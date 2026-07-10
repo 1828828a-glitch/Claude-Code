@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HTML = "file://" + path.join(__dirname, "index.html");
-const OUT = process.argv[2] || path.join(__dirname, "adtank-digibure-expo-60s.mp4");
+const OUT = process.argv[2] || path.join(__dirname, "adturn-hr-expo-72s.mp4");
 const FFMPEG = process.argv[3] || findFfmpeg();
 const FPS = 30;
 

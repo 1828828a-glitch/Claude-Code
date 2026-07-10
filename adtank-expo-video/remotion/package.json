@@ -2,10 +2,10 @@
   "name": "adtank-expo-video-remotion",
   "version": "1.0.0",
   "private": true,
-  "description": "ADTANK GP「デジブレ」展示会用60秒紹介動画（Remotion版）",
+  "description": "ADTANK GP「デジブレ」展示会用72秒紹介動画（Remotion版）",
   "scripts": {
     "studio": "remotion studio",
-    "render": "remotion render src/index.ts DigibureExpo out/adtank-digibure-expo-60s.mp4 --codec=h264"
+    "render": "remotion render src/index.ts DigibureExpo out/adturn-hr-expo-72s.mp4 --codec=h264"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",

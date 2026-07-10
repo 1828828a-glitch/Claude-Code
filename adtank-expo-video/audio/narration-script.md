@@ -30,8 +30,8 @@ python3 bgm_synth.py
 # → sidechaincompress (threshold=0.015, ratio=5) 後に amix
 
 # Canvas版MP4への合成
-ffmpeg -i adtank-digibure-expo-60s.mp4 -i audio/mix.wav \
-  -c:v copy -c:a aac -b:a 192k -shortest adtank-digibure-expo-60s-with-audio.mp4
+ffmpeg -i adturn-hr-expo-72s.mp4 -i audio/mix.wav \
+  -c:v copy -c:a aac -b:a 192k -shortest adturn-hr-expo-72s-with-audio.mp4
 ```
 
 Remotion版は `remotion/public/` の `bgm.mp3`・`narration.mp3` を
