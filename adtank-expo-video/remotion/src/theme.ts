@@ -2,7 +2,7 @@
 export const W = 1920;
 export const H = 1080;
 export const FPS = 30;
-export const DURATION_S = 60;
+export const DURATION_S = 72;
 
 export const INK = "#101014";
 export const GREY = "#8b8f99";

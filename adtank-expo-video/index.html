@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>ADTANK GP「ADTURN for HR」展示会用紹介動画（60秒）</title>
+<title>ADTANK GP「ADTURN for HR」展示会用紹介動画（72秒）</title>
 <style>
   html,body{margin:0;padding:0;background:#1a1a1e;height:100%;overflow:hidden;
     font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;}
@@ -20,17 +20,18 @@
 <div id="stage"><canvas id="cv" width="1920" height="1080"></canvas></div>
 <div id="ui">
   <button id="play">▶</button>
-  <input id="seek" type="range" min="0" max="60" step="0.01" value="0">
-  <span id="time">0.0 / 60.0</span>
+  <input id="seek" type="range" min="0" max="72" step="0.01" value="0">
+  <span id="time">0.0 / 72.0</span>
 </div>
 <script>
 "use strict";
 /* =========================================================================
-   ADTANK GP「デジブレ」展示会用 紹介動画（60秒 / 1920x1080）
+   ADTANK GP「ADTURN for HR」展示会用 紹介動画（72秒 / 1920x1080）
    render(t) は t 秒時点のフレームを純粋に描画する（フレーム書き出し用に決定的）
    ========================================================================= */
 const W = 1920, H = 1080;
-const DURATION = 60;
+const DURATION = 72;
+const CUTS = [0, 7, 15.5, 24.5, 33, 42, 63, 72]; // シーン切替時刻
 const cv = document.getElementById("cv");
 const ctx = cv.getContext("2d");
 
@@ -176,6 +177,14 @@ function scene2(t0){
     centered("デジブレ",rx,ry+180,F(900,64),ACCENT);
     centered("オリジナルAIエンジン",rx,ry+245,F(700,34),GREY);
     ctx.restore();
+  }
+  // 受信リップル（リングから波紋が広がる）
+  const flowG=seg(t,1.6,2.2)*(1-seg(t,6,6.8));
+  if(flowG>0){
+    for(let i=0;i<3;i++){
+      const p=((t*.5)+i/3)%1;
+      ring(rx,ry-30,123+p*95,3,ACCENT,(1-p)*.25*flowG*(1-out));
+    }
   }
   // 転写パーティクル（頭 → リング）
   const flow=seg(t,1.2,6.5);
@@ -359,67 +368,109 @@ function scene5(t0){
 }
 
 /* =========================================================
-   Scene 6  42.0 - 51.5  サービス紹介 ADTURN for HR
+   Scene 6  42.0 - 63.0  サービス紹介 ADTURN for HR（章立てウォークスルー）
    ========================================================= */
+const CHAPTERS=[
+  {n:"01",title:"現状診断",desc:"公開情報から「採用の現在地」を可視化"},
+  {n:"02",title:"競合ポジショニング分析",desc:"競合の強みと、構造的な限界"},
+  {n:"03",title:"ターゲット再定義",desc:"本当に狙うべき「隠れた優秀層」"},
+  {n:"04",title:"採用ファネル設計",desc:"歩留まりを最大化する動線設計"},
+  {n:"05",title:"トークスクリプト",desc:"競合と比較されても選ばれる「語り」"},
+  {n:"06",title:"具体的提言",desc:"明日から実行できる「即効薬」"},
+];
+const CH_T0=4.2, CH_STEP=1.9; // 章iの登場時刻 = CH_T0 + i*CH_STEP
 function scene6(t0){
   const t=t0-42;
-  const out=eio(seg(t0,50.7,51.5));
+  const out=eio(seg(t0,62.2,63));
   ctx.save();ctx.globalAlpha=(1-out);
 
+  // ヘッダー（チップ＋サービス名）
   const kH=eoq(seg(t,.1,1));
   if(kH>0){ctx.save();ctx.globalAlpha=kH*(1-out);ctx.translate(0,24*(1-kH));
-    // ラベルチップ
     ctx.font=F(800,34);
     const lbl="デジブレ搭載｜採用・人事向け診断サービス";
     const lw=ctx.measureText(lbl).width;
-    ctx.fillStyle=ACCENT;rr(W/2-lw/2-28,80,lw+56,64,32);ctx.fill();
-    ctx.fillStyle="#fff";ctx.fillText(lbl,W/2-lw/2,125);
-    centered("ADTURN for HR",W/2,262,F(900,92),ACCENT);
-    parts([{t:"診断から、戦略レポート",c:INK},{t:"「そのもの」",c:ACCENT},{t:"まで出力。",c:INK}],
-      W/2,345,F(800,44));ctx.restore();}
+    ctx.fillStyle=ACCENT;rr(W/2-lw/2-28,64,lw+56,64,32);ctx.fill();
+    ctx.fillStyle="#fff";ctx.fillText(lbl,W/2-lw/2,109);
+    centered("ADTURN for HR",W/2,235,F(900,84),ACCENT);
+    ctx.restore();}
 
-  // レポート2枚（テキスト行が書かれていく）
-  const docs=[
-    {x:430,title:"採用「勝ち筋」戦略レポート",d:.5},
-    {x:1050,title:"採用戦略・ブランド価値変革提言書",d:.9},
-  ];
-  docs.forEach((doc,di)=>{
-    const k=eoq(seg(t,doc.d,doc.d+.9));
-    if(k<=0)return;
-    const dw=440,dh=500,x=doc.x,y=385+60*(1-k);
-    ctx.save();ctx.globalAlpha=k*(1-out);
-    ctx.shadowColor="rgba(30,34,80,.14)";ctx.shadowBlur=40;ctx.shadowOffsetY=16;
-    ctx.fillStyle=CARD;rr(x,y,dw,dh,16);ctx.fill();
+  // 左：レポート誌面（2枚重ね・6章ブロック入り）
+  const kD=eoq(seg(t,.5,1.4));
+  const dx=170,dy=310,dw=560,dh=680;
+  if(kD>0){
+    ctx.save();ctx.globalAlpha=kD*(1-out);
+    // 背面の提言書（少し傾けて重ねる）
+    ctx.save();ctx.translate(dx+dw/2+34,dy+dh/2+22);ctx.rotate(.035);
+    ctx.fillStyle="#f0f1f6";rr(-dw/2,-dh/2,dw,dh,16);ctx.fill();
+    ctx.strokeStyle="#e3e4ea";ctx.lineWidth=2;rr(-dw/2,-dh/2,dw,dh,16);ctx.stroke();
+    ctx.restore();
+    // 前面の戦略レポート
+    ctx.shadowColor="rgba(30,34,80,.16)";ctx.shadowBlur=46;ctx.shadowOffsetY=18;
+    ctx.fillStyle=CARD;rr(dx,dy,dw,dh,16);ctx.fill();
     ctx.shadowColor="transparent";
-    ctx.strokeStyle="#e3e4ea";ctx.lineWidth=2;rr(x,y,dw,dh,16);ctx.stroke();
-    // タイトル
-    ctx.font=F(800,28);ctx.fillStyle=INK;
-    ctx.fillText(doc.title,x+34,y+60);
-    ctx.fillStyle=ACCENT;ctx.fillRect(x+34,y+80,dw-68,4);
-    // 本文行（順に伸びる）
-    const rl=rng(11+di*7);
-    for(let li=0;li<10;li++){
-      const lk=eoc(seg(t,doc.d+.9+li*.22,doc.d+1.7+li*.22));
-      if(lk<=0)continue;
-      const isHead=(li===0||li===4||li===8);
-      const lw2=(isHead?200:(dw-68)*(.72+rl()*.28))*lk;
-      ctx.fillStyle=isHead?ACCENT2:"#d9dbe3";
-      ctx.fillRect(x+34,y+120+li*38,lw2,isHead?18:12);
+    ctx.strokeStyle="#e3e4ea";ctx.lineWidth=2;rr(dx,dy,dw,dh,16);ctx.stroke();
+    ctx.font=F(800,30);ctx.fillStyle=INK;
+    ctx.fillText("採用「勝ち筋」戦略レポート",dx+36,dy+56);
+    ctx.fillStyle=ACCENT;ctx.fillRect(dx+36,dy+78,dw-72,4);
+    // 6つの章ブロック（見出し行＋本文2行のダミー誌面）
+    const rl=rng(23);
+    for(let s=0;s<6;s++){
+      const sy=dy+108+s*94;
+      const widths=[.62+rl()*.3,.86+rl()*.12,.5+rl()*.35];
+      ctx.fillStyle=ACCENT2;ctx.fillRect(dx+36,sy,170*widths[0]+60,16);
+      ctx.fillStyle="#d9dbe3";
+      ctx.fillRect(dx+36,sy+30,(dw-72)*widths[1],10);
+      ctx.fillRect(dx+36,sy+52,(dw-72)*widths[2],10);
     }
     ctx.restore();
+  }
+  // 章ハイライト枠（登場済みの最新章へスライドして追従）
+  let hi=-1;
+  for(let i=0;i<6;i++)if(t>=CH_T0+i*CH_STEP)hi=i;
+  if(hi>=0&&kD>0){
+    const prev=Math.max(0,hi-1);
+    const kMove=eoc(seg(t,CH_T0+hi*CH_STEP,CH_T0+hi*CH_STEP+.55));
+    const yy=dy+108+lerp(prev*94,hi*94,hi===0?1:kMove)-12;
+    const pulse=1+Math.sin(t*4)*.008;
+    ctx.save();ctx.globalAlpha=(1-out)*eoq(seg(t,CH_T0,CH_T0+.5));
+    ctx.fillStyle=ACCENT;ctx.globalAlpha*=.07;
+    rr(dx+22,yy,dw-44,86,12);ctx.fill();
+    ctx.globalAlpha=(1-out)*eoq(seg(t,CH_T0,CH_T0+.5));
+    ctx.strokeStyle=ACCENT;ctx.lineWidth=3.5*pulse;
+    rr(dx+22,yy,dw-44,86,12);ctx.stroke();
+    ctx.restore();
+  }
+  // 右：章立てリスト（番号バッジ＋タイトル＋一行解説がカスケード）
+  CHAPTERS.forEach((c,i)=>{
+    const k=eoq(seg(t,CH_T0+i*CH_STEP,CH_T0+i*CH_STEP+.7));
+    if(k<=0)return;
+    const iy=316+i*112, ix=860+40*(1-k);
+    const active=(i===Math.min(5,Math.max(0,(()=>{let h=-1;for(let j=0;j<6;j++)if(t>=CH_T0+j*CH_STEP)h=j;return h;})())));
+    ctx.save();ctx.globalAlpha=k*(1-out)*(active?1:.55);
+    // 番号バッジ
+    ctx.fillStyle=active?ACCENT:"#c9cce8";rr(ix,iy,64,64,16);ctx.fill();
+    ctx.font=F(800,30);ctx.fillStyle="#fff";
+    const nw=ctx.measureText(c.n).width;ctx.fillText(c.n,ix+32-nw/2,iy+43);
+    // タイトル＋解説
+    ctx.font=F(800,38);ctx.fillStyle=INK;ctx.fillText(c.title,ix+92,iy+34);
+    ctx.font=F(700,27);ctx.fillStyle=GREY;ctx.fillText(c.desc,ix+92,iy+74);
+    ctx.restore();
   });
-  const kS=eoq(seg(t,2.6,3.4));
+  // 締めのメッセージ
+  const kS=eoq(seg(t,16.6,17.4));
   if(kS>0){ctx.save();ctx.globalAlpha=kS*(1-out);
-    centered("人事・採用トップパフォーマーの「脳」が、貴社を診断する。",W/2,995,F(800,42),INK);
+    parts([{t:"この戦略レポート",c:INK},{t:"「そのもの」",c:ACCENT},{t:"を、デジブレが出力。",c:INK}],
+      W/2,1042,F(800,40));
     ctx.restore();}
   ctx.restore();
 }
 
 /* =========================================================
-   Scene 7  51.5 - 60.0  CTA
+   Scene 7  63.0 - 72.0  CTA
    ========================================================= */
 function scene7(t0){
-  const t=t0-51.5;
+  const t=t0-63;
   // 背景をわずかにアクセント寄りに
   const kBG=eio(seg(t,0,1));
   ctx.save();ctx.globalAlpha=kBG*.06;ctx.fillStyle=ACCENT;ctx.fillRect(0,0,W,H);ctx.restore();
@@ -449,16 +500,26 @@ function scene7(t0){
 }
 
 /* ---- master ---- */
+function zoomFor(t){ // シーン内で1.0→1.015へ滲むズームドリフト（映像の「呼吸」）
+  for(let i=0;i<CUTS.length-1;i++){
+    if(t<CUTS[i+1])return 1+0.015*eio((t-CUTS[i])/(CUTS[i+1]-CUTS[i]));
+  }
+  return 1;
+}
 function render(t){
   t=Math.max(0,Math.min(DURATION,t));
   drawBG(t);
+  ctx.save();
+  const z=zoomFor(t);
+  ctx.translate(W/2,H/2);ctx.scale(z,z);ctx.translate(-W/2,-H/2);
   if(t<7)        scene1(t);
   else if(t<15.5)scene2(t);
   else if(t<24.5)scene3(t);
   else if(t<33)  scene4(t);
   else if(t<42)  scene5(t);
-  else if(t<51.5)scene6(t);
+  else if(t<63)  scene6(t);
   else           scene7(t);
+  ctx.restore();
   progress(t);
 }
 
@@ -475,7 +536,7 @@ const btn=document.getElementById("play"),
 function loop(now){
   if(!playing)return;
   const t=(base+(now-t0)/1000)%DURATION;
-  render(t);bar.value=t;lab.textContent=t.toFixed(1)+" / 60.0";
+  render(t);bar.value=t;lab.textContent=t.toFixed(1)+" / "+DURATION.toFixed(1);
   requestAnimationFrame(loop);
 }
 btn.onclick=()=>{
@@ -483,7 +544,7 @@ btn.onclick=()=>{
   if(playing){t0=performance.now();base=parseFloat(bar.value)%DURATION;requestAnimationFrame(loop);}
 };
 bar.oninput=()=>{playing=false;btn.textContent="▶";
-  render(parseFloat(bar.value));lab.textContent=parseFloat(bar.value).toFixed(1)+" / 60.0";};
+  render(parseFloat(bar.value));lab.textContent=parseFloat(bar.value).toFixed(1)+" / "+DURATION.toFixed(1);};
 
 /* フォント読み込み後に初期フレーム */
 document.fonts.ready.then(()=>render(0));

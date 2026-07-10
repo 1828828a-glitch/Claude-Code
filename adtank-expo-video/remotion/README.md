@@ -1,9 +1,9 @@
 # ADTANK GP「ADTURN for HR」展示会用 紹介動画 — Remotion版
 
-`../index.html`（Canvas版）と同じ60秒・同じ絵コンテを、
+`../index.html`（Canvas版）と同じ72秒・同じ絵コンテを、
 [Remotion](https://www.remotion.dev/)（Reactベースの動画フレームワーク）で実装したものです。
 
-- 尺: 60秒 / 1920×1080 / 30fps / H.264 MP4
+- 尺: 72秒 / 1920×1080 / 30fps / H.264 MP4
 - シーン構成・コピー・配色・イージング・乱数系列はCanvas版と同一
 - BGM（`public/bgm.mp3`）とナレーション（`public/narration.mp3`）を
   `DigibureExpo.tsx` の `<Audio>` で合成（音源の生成方法は `../audio/` を参照）
@@ -23,8 +23,8 @@ src/
     S3Compare.tsx     0:15–0:24 既存AIとの比較「料理そのものを」
     S4Technology.tsx  0:24–0:33 暗黙知抽出×AI翻訳技術
     S5Roster.tsx      0:33–0:42 約40名コピー済みカウンター
-    S6Output.tsx      0:42–0:51 サービス紹介 ADTURN for HR
-    S7CTA.tsx         0:51–1:00 CTA・ブース誘導
+    S6Output.tsx      0:42–1:03 サービス紹介 ADTURN for HR（章立てウォークスルー）
+    S7CTA.tsx         1:03–1:12 CTA・ブース誘導
 ```
 
 ## 使い方

@@ -10,8 +10,21 @@ import { S6Output } from "./scenes/S6Output";
 import { S7CTA } from "./scenes/S7CTA";
 
 /* シーン切替時刻（秒）— Canvas版と同一 */
-const CUTS = [0, 7, 15.5, 24.5, 33, 42, 51.5, 60];
+const CUTS = [0, 7, 15.5, 24.5, 33, 42, 63, 72];
 const SCENES = [S1Hook, S2Digibure, S3Compare, S4Technology, S5Roster, S6Output, S7CTA];
+
+/* シーン内で1.0→1.015へ滲むズームドリフト（映像の「呼吸」） */
+const ZoomDrift: React.FC<{ durationInFrames: number; children: React.ReactNode }> = ({
+  durationInFrames,
+  children,
+}) => {
+  const f = useCurrentFrame();
+  const k = f / durationInFrames;
+  const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+  return (
+    <AbsoluteFill style={{ transform: `scale(${1 + 0.015 * e})` }}>{children}</AbsoluteFill>
+  );
+};
 
 export const DigibureExpo: React.FC = () => {
   const frame = useCurrentFrame();
@@ -31,15 +44,16 @@ export const DigibureExpo: React.FC = () => {
           backgroundPosition: "80px 80px",
         }}
       />
-      {SCENES.map((Scene, i) => (
-        <Sequence
-          key={i}
-          from={Math.round(CUTS[i] * FPS)}
-          durationInFrames={Math.round((CUTS[i + 1] - CUTS[i]) * FPS)}
-        >
-          <Scene />
-        </Sequence>
-      ))}
+      {SCENES.map((Scene, i) => {
+        const dur = Math.round((CUTS[i + 1] - CUTS[i]) * FPS);
+        return (
+          <Sequence key={i} from={Math.round(CUTS[i] * FPS)} durationInFrames={dur}>
+            <ZoomDrift durationInFrames={dur}>
+              <Scene />
+            </ZoomDrift>
+          </Sequence>
+        );
+      })}
       {/* 進行インジケータ */}
       <div style={{ position: "absolute", left: 0, bottom: 0, width: "100%", height: 8, background: "#e7e8ee" }} />
       <div

@@ -62,6 +62,18 @@ export const S2Digibure: React.FC = () => {
         </>
       )}
 
+      {/* 受信リップル（リングから波紋が広がる） */}
+      {(() => {
+        const flowG = seg(t, 1.6, 2.2) * (1 - seg(t, 6, 6.8));
+        if (flowG <= 0) return null;
+        return [0, 1, 2].map((i) => {
+          const p = (t * 0.5 + i / 3) % 1;
+          return (
+            <Ring key={`rip${i}`} cx={rx} cy={ry - 30} r={123 + p * 95} lw={3}
+              opacity={(1 - p) * 0.25 * flowG * (1 - out)} />
+          );
+        });
+      })()}
       {flow > 0 && flow < 1 &&
         particles.map((p, i) => {
           const prog = (t * 0.45 + p.off) % 1;
