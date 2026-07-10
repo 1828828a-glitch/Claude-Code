@@ -18,11 +18,11 @@ export const S7CTA: React.FC = () => {
     <AbsoluteFill style={{ fontFamily: FONT }}>
       <AbsoluteFill style={{ background: ACCENT, opacity: kBG * 0.06 }} />
       {kR > 0 && <Ring cx={W / 2} cy={330} r={107 * kR * pulse} lw={24 * kR} opacity={kR} />}
-      <CenterText x={W / 2} top={455} size={110} weight={900} color={INK} opacity={k1} dy={26 * (1 - k1)}>
-        デジブレ
+      <CenterText x={W / 2} top={460} size={104} weight={900} color={INK} opacity={k1} dy={26 * (1 - k1)}>
+        ADTURN for HR
       </CenterText>
       <CenterText x={W / 2} top={585} size={38} weight={700} color={GREY} opacity={k1} dy={26 * (1 - k1)}>
-        オリジナルAIエンジン（特許出願中）
+        Powered by デジブレ｜オリジナルAIエンジン（特許出願中）
       </CenterText>
       <CenterText x={W / 2} top={678} size={64} weight={900} color={INK} opacity={k2} dy={26 * (1 - k2)}>
         トップパフォーマーの脳を、<span style={{ color: ACCENT }}>あなたの武器に。</span>

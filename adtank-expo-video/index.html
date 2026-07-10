@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>ADTANK GP「デジブレ」展示会用紹介動画（60秒）</title>
+<title>ADTANK GP「ADTURN for HR」展示会用紹介動画（60秒）</title>
 <style>
   html,body{margin:0;padding:0;background:#1a1a1e;height:100%;overflow:hidden;
     font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;}
@@ -359,7 +359,7 @@ function scene5(t0){
 }
 
 /* =========================================================
-   Scene 6  42.0 - 51.5  出力例 ADTURN for HR
+   Scene 6  42.0 - 51.5  サービス紹介 ADTURN for HR
    ========================================================= */
 function scene6(t0){
   const t=t0-42;
@@ -370,12 +370,13 @@ function scene6(t0){
   if(kH>0){ctx.save();ctx.globalAlpha=kH*(1-out);ctx.translate(0,24*(1-kH));
     // ラベルチップ
     ctx.font=F(800,34);
-    const lbl="出力例｜ADTURN for HR";
+    const lbl="デジブレ搭載｜採用・人事向け診断サービス";
     const lw=ctx.measureText(lbl).width;
-    ctx.fillStyle=ACCENT;rr(W/2-lw/2-28,92,lw+56,64,32);ctx.fill();
-    ctx.fillStyle="#fff";ctx.fillText(lbl,W/2-lw/2,137);
+    ctx.fillStyle=ACCENT;rr(W/2-lw/2-28,80,lw+56,64,32);ctx.fill();
+    ctx.fillStyle="#fff";ctx.fillText(lbl,W/2-lw/2,125);
+    centered("ADTURN for HR",W/2,262,F(900,92),ACCENT);
     parts([{t:"診断から、戦略レポート",c:INK},{t:"「そのもの」",c:ACCENT},{t:"まで出力。",c:INK}],
-      W/2,260,F(900,70));ctx.restore();}
+      W/2,345,F(800,44));ctx.restore();}
 
   // レポート2枚（テキスト行が書かれていく）
   const docs=[
@@ -385,7 +386,7 @@ function scene6(t0){
   docs.forEach((doc,di)=>{
     const k=eoq(seg(t,doc.d,doc.d+.9));
     if(k<=0)return;
-    const dw=440,dh=560,x=doc.x,y=340+60*(1-k);
+    const dw=440,dh=500,x=doc.x,y=385+60*(1-k);
     ctx.save();ctx.globalAlpha=k*(1-out);
     ctx.shadowColor="rgba(30,34,80,.14)";ctx.shadowBlur=40;ctx.shadowOffsetY=16;
     ctx.fillStyle=CARD;rr(x,y,dw,dh,16);ctx.fill();
@@ -397,7 +398,7 @@ function scene6(t0){
     ctx.fillStyle=ACCENT;ctx.fillRect(x+34,y+80,dw-68,4);
     // 本文行（順に伸びる）
     const rl=rng(11+di*7);
-    for(let li=0;li<11;li++){
+    for(let li=0;li<10;li++){
       const lk=eoc(seg(t,doc.d+.9+li*.22,doc.d+1.7+li*.22));
       if(lk<=0)continue;
       const isHead=(li===0||li===4||li===8);
@@ -409,7 +410,7 @@ function scene6(t0){
   });
   const kS=eoq(seg(t,2.6,3.4));
   if(kS>0){ctx.save();ctx.globalAlpha=kS*(1-out);
-    centered("人事・採用トップパフォーマーの「脳」が、貴社を診断する。",W/2,985,F(800,42),INK);
+    centered("人事・採用トップパフォーマーの「脳」が、貴社を診断する。",W/2,995,F(800,42),INK);
     ctx.restore();}
   ctx.restore();
 }
@@ -430,8 +431,8 @@ function scene7(t0){
   }
   const k1=eoq(seg(t,.6,1.5));
   if(k1>0){ctx.save();ctx.globalAlpha=k1;ctx.translate(0,26*(1-k1));
-    centered("デジブレ",W/2,545,F(900,110),INK);
-    centered("オリジナルAIエンジン（特許出願中）",W/2,625,F(700,38),GREY);ctx.restore();}
+    centered("ADTURN for HR",W/2,545,F(900,104),INK);
+    centered("Powered by デジブレ｜オリジナルAIエンジン（特許出願中）",W/2,625,F(700,38),GREY);ctx.restore();}
   const k2=eoq(seg(t,1.3,2.2));
   if(k2>0){ctx.save();ctx.globalAlpha=k2;ctx.translate(0,26*(1-k2));
     parts([{t:"トップパフォーマーの脳を、",c:INK},{t:"あなたの武器に。",c:ACCENT}],
