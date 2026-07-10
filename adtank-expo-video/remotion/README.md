@@ -5,6 +5,8 @@
 
 - 尺: 60秒 / 1920×1080 / 30fps / H.264 MP4
 - シーン構成・コピー・配色・イージング・乱数系列はCanvas版と同一
+- BGM（`public/bgm.mp3`）とナレーション（`public/narration.mp3`）を
+  `DigibureExpo.tsx` の `<Audio>` で合成（音源の生成方法は `../audio/` を参照）
 
 ## 構成
 

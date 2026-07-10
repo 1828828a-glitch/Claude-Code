@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { ACCENT, BG, FPS } from "./theme";
 import { S1Hook } from "./scenes/S1Hook";
 import { S2Digibure } from "./scenes/S2Digibure";
@@ -19,6 +19,9 @@ export const DigibureExpo: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ background: BG }}>
+      {/* BGM（合成トラック・フェード込み）とナレーション（タイミング合成済み） */}
+      <Audio src={staticFile("bgm.mp3")} volume={0.5} />
+      <Audio src={staticFile("narration.mp3")} />
       {/* うっすらグリッドドット */}
       <AbsoluteFill
         style={{
