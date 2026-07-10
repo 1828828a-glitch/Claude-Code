@@ -211,9 +211,14 @@ const BAnswers: React.FC<{ dur: number }> = ({ dur }) => {
         </div>
       </div>
       {flipK > 0.6 && (
-        <Slam at={6.2} top={880} size={37} color={INK} grad>
-          {ANSWER_ITEMS.join("　/　")}
-        </Slam>
+        <>
+          <Slam at={6.0} top={800} size={44} color={INK} grad>
+            ADTURN for HR
+          </Slam>
+          <Slam at={6.3} top={890} size={34} color={INK}>
+            {ANSWER_ITEMS.join("　/　")}
+          </Slam>
+        </>
       )}
     </AbsoluteFill>
   );
@@ -278,8 +283,9 @@ const BCta: React.FC<{ dur: number }> = ({ dur }) => {
   const t = useT();
   const kFill = eio(seg(t, 0.1, 1.1)); // アクセント円が画面全体へ
   const sh = shake(t, 1.5, 16);
+  const shName = shake(t, 6.75, 14);
   const k2 = eoq(seg(t, 6.6, 7.5));
-  const o1 = eio(seg(t, 6.2, 6.9));
+  const o1 = eio(seg(t, 6.0, 6.6));
   const pulse = 1 + Math.sin(t * 2.4) * 0.015;
   return (
     <AbsoluteFill style={{ background: DARK, fontFamily: FONT }}>
@@ -294,27 +300,38 @@ const BCta: React.FC<{ dur: number }> = ({ dur }) => {
               height: 170, border: "20px solid #fff", borderRadius: "50%",
               boxSizing: "border-box", transform: `scale(${pulse})`,
               opacity: eoq(seg(t, 1.2, 1.9)) }} />
-            <Slam at={1.5} top={470} size={92} color="#fff">
-              {"貴社の「答え」は、\nもう出せます。"}
-            </Slam>
+            <div style={{ position: "absolute", inset: 0, opacity: 1 - o1 }}>
+              <Slam at={1.5} top={470} size={92} color="#fff">
+                {"貴社の「答え」は、\nもう出せます。"}
+              </Slam>
+            </div>
           </>
         )}
-        {/* 切り替え: CTA */}
+        {/* 切り替え: サービス名スラム＋CTA */}
         {k2 > 0 && (
-          <>
-            <div style={{ position: "absolute", left: W / 2, top: 810,
+          <div style={{ position: "absolute", inset: 0,
+            transform: `translate(${shName.x}px,${shName.y}px)` }}>
+            <Slam at={6.6} top={445} size={124} color="#fff">
+              ADTURN for HR
+            </Slam>
+            <div style={{ position: "absolute", left: 0, right: 0, top: 630,
+              textAlign: "center", fontSize: 33, fontWeight: 700, color: "#fff",
+              opacity: k2 * 0.85 }}>
+              Powered by デジブレ｜オリジナルAIエンジン（特許出願中）
+            </div>
+            <div style={{ position: "absolute", left: W / 2, top: 780,
               transform: `translateX(-50%) translateY(${18 * (1 - k2)}px)`, opacity: k2,
               background: "#fff", borderRadius: 46, padding: "0 52px", height: 92,
               display: "flex", alignItems: "center", color: ACCENT, fontSize: 40,
               fontWeight: 900, whiteSpace: "nowrap" }}>
               デモ実施中｜ぜひブースでご体験ください
             </div>
-            <div style={{ position: "absolute", left: 0, right: 0, top: 940,
+            <div style={{ position: "absolute", left: 0, right: 0, top: 930,
               textAlign: "center", fontSize: 34, fontWeight: 800, color: "#fff",
               opacity: k2 * 0.9, letterSpacing: "0.2em" }}>
               ADTANK GP
             </div>
-          </>
+          </div>
         )}
       </div>
     </AbsoluteFill>

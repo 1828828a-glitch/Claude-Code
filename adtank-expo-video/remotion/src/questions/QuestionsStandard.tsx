@@ -199,7 +199,11 @@ const SAnswers: React.FC<{ dur: number }> = ({ dur }) => {
       </AbsoluteFill>
       {/* フェーズ2: レポートページがめくられていく */}
       <AbsoluteFill style={{ opacity: eio(phase2) }}>
-        <Center top={128} size={58} opacity={kH} dy={20 * (1 - kH)}>
+        <Center top={92} size={38} weight={800} opacity={kH} dy={20 * (1 - kH)}>
+          <span style={{ backgroundImage: GRAD, WebkitBackgroundClip: "text",
+            color: "transparent", letterSpacing: "0.08em" }}>ADTURN for HR</span>
+        </Center>
+        <Center top={158} size={54} opacity={kH} dy={20 * (1 - kH)}>
           その全ての<span style={{ backgroundImage: GRAD, WebkitBackgroundClip: "text",
             color: "transparent" }}>「答え」</span>を、レポートとして出力します。
         </Center>
@@ -308,14 +312,21 @@ const SCta: React.FC<{ dur: number }> = ({ dur }) => {
       </Center>
       {k2 > 0 && (
         <>
-          <div style={{ position: "absolute", left: W / 2, top: 585, transform:
+          <Center top={505} size={88} opacity={k2} dy={20 * (1 - k2)}>
+            <span style={{ backgroundImage: GRAD, WebkitBackgroundClip: "text",
+              color: "transparent", letterSpacing: "0.04em" }}>ADTURN for HR</span>
+          </Center>
+          <Center top={640} size={32} weight={700} color={GREY} opacity={k2}>
+            Powered by デジブレ｜オリジナルAIエンジン（特許出願中）
+          </Center>
+          <div style={{ position: "absolute", left: W / 2, top: 730, transform:
             `translateX(-50%) translateY(${20 * (1 - k2)}px)`, opacity: k2,
             backgroundImage: GRAD, borderRadius: 46, padding: "0 52px", height: 92,
             display: "flex", alignItems: "center", color: "#fff", fontSize: 40, fontWeight: 800,
             whiteSpace: "nowrap" }}>
             デモ実施中｜ぜひブースでご体験ください
           </div>
-          <Center top={740} size={34} weight={800} color={GREY} opacity={k2}>
+          <Center top={880} size={34} weight={800} color={GREY} opacity={k2}>
             ADTANK GP
           </Center>
         </>
