@@ -27,6 +27,24 @@ src/
     S7CTA.tsx         1:03–1:12 CTA・ブース誘導
 ```
 
+## 台本v3「問い連打型」コンポジション（2パターン）
+
+`ADTURN for HR レポート紹介動画台本 v3（問い連打型＋無自覚資産）` を実装した
+93秒・8シーンのコンポジションが2種類あります（音声は共通・`src/questions/`）。
+
+| ID | パターン | 表現 |
+|---|---|---|
+| `QuestionsStandard` | ① スタンダード洗練 | 白基調・タイピング・静かなフェード・グラデーションアクセント |
+| `QuestionsBold` | ② 突飛・アイキャッチ | 黒白反転・巨大アウトライン数字・スラム＋シェイク・全画面反転・グリッチ |
+
+```bash
+npx remotion render src/index.ts QuestionsStandard out/adturn-questions-standard-93s.mp4 --codec=h264
+npx remotion render src/index.ts QuestionsBold out/adturn-questions-bold-93s.mp4 --codec=h264
+```
+
+シーン切替時刻・問いのテキストは `src/questions/timeline.ts` に集約。
+ナレーション・BGM素材の生成は `../audio/questions/` を参照。
+
 ## 使い方
 
 ```bash
