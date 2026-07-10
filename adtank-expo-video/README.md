@@ -25,6 +25,8 @@
 - `index.html` — 動画本体（Canvasアニメーション）。ブラウザで開くと再生・シークして確認できます。
 - `render-video.mjs` — フレーム書き出し＆MP4エンコードスクリプト
 - `adtank-digibure-expo-60s.mp4` — 書き出し済みの完成動画
+- `remotion/` — 同じ動画のRemotion（React）実装。Remotion Studioでの
+  プレビュー・編集が可能です。詳細は `remotion/README.md` を参照。
 
 ## 編集・書き出し方法
 
