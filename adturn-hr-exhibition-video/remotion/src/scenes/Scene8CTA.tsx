@@ -8,23 +8,23 @@ export const Scene8CTA: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
 
-  // Beat 1: 0-95 / Beat 2: 95-190 / Beat 3: 190-300
+  // Beat 1: 0-104 / Beat 2: 104-312 / Beat 3: 312-430 (paced to narration n8a/n8b/n8c)
   const b1In = useRise(8, 60);
-  const b1Out = interpolate(frame, [82, 96], [1, 0], {
+  const b1Out = interpolate(frame, [88, 102], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const b2In = useRise(100, 60);
-  const b2SubIn = useRise(120, 30);
-  const b2Out = interpolate(frame, [176, 190], [1, 0], {
+  const b2In = useRise(106, 60);
+  const b2SubIn = useRise(150, 30);
+  const b2Out = interpolate(frame, [296, 310], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
 
-  const glow = spring({frame: frame - 196, fps, config: {damping: 18, stiffness: 70}});
+  const glow = spring({frame: frame - 316, fps, config: {damping: 18, stiffness: 70}});
   const pulse = 1 + Math.sin(frame / 12) * 0.05;
-  const b3Text = useRise(214, 40);
-  const b3Cta = useRise(232, 30);
+  const b3Text = useRise(330, 40);
+  const b3Cta = useRise(348, 30);
 
   return (
     <AbsoluteFill style={{background: COLORS.ink, fontFamily: FONT, overflow: 'hidden'}}>
@@ -36,7 +36,7 @@ export const Scene8CTA: React.FC = () => {
         }}
       />
       {/* Beat 1 */}
-      {frame < 98 && (
+      {frame < 104 && (
         <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', opacity: b1Out}}>
           <div style={{fontSize: 130, fontWeight: 900, color: COLORS.white, ...b1In}}>
             一般論は、<GradientText>一行もない。</GradientText>
@@ -44,7 +44,7 @@ export const Scene8CTA: React.FC = () => {
         </AbsoluteFill>
       )}
       {/* Beat 2 */}
-      {frame >= 98 && frame < 192 && (
+      {frame >= 104 && frame < 312 && (
         <AbsoluteFill
           style={{
             justifyContent: 'center',
@@ -63,7 +63,7 @@ export const Scene8CTA: React.FC = () => {
         </AbsoluteFill>
       )}
       {/* Beat 3: final card */}
-      {frame >= 192 && (
+      {frame >= 312 && (
         <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', flexDirection: 'column'}}>
           <div
             style={{

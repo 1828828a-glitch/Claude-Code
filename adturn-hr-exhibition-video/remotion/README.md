@@ -1,6 +1,6 @@
 # ADTURN for HR 展示会用紹介動画（Remotion）
 
-デジブレの技術的新規性（トップパフォーマーの脳の転写・特許出願中）を主訴求とした、約72秒・1920x1080・30fpsのモーショングラフィックス動画。
+デジブレの技術的新規性（トップパフォーマーの脳の転写・特許出願中）を主訴求とした、約83秒・1920x1080・30fpsのモーショングラフィックス動画。BGM（アンビエントシンセ）とナレーション（日本語女性ボイス）付き。
 
 ## 構成（台本 v1 準拠）
 
@@ -29,4 +29,6 @@ npx remotion render src/index.ts AdturnForHR out/adturn-for-hr.mp4 --codec=h264 
 - 尺・シーン配分: `src/theme.ts` の `SCENES`（フレーム数 @30fps）
 - 配色・フォント: `src/theme.ts` の `COLORS` / `GRADIENT` / `FONT`
 - 各シーンのテキスト・演出: `src/scenes/*.tsx`
-- 音声なし（展示会の音出しNGブース対応）。BGM・ナレーションを載せる場合は `<Audio>` を `src/Video.tsx` に追加。
+- 音声: `public/audio/` に格納。ナレーション（n1〜n8c）は edge-tts（`ja-JP-NanamiNeural`, rate +10%）で生成、BGM（bgm.m4a）はスクリプトで合成したアンビエントパッド。配置・音量オートメーション（問いゾーンでのダッキング含む）は `src/Video.tsx` の `NARRATION` / `bgmVolume`。
+- ナレーション原稿を変えた場合は、各クリップの実尺に合わせて `SCENES` と `NARRATION` の開始フレームを再調整すること。
+- テロップのみで訴求が完結する構成のため、音出しNGブースでは音声を無視してそのまま流せます。

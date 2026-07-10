@@ -10,8 +10,8 @@ export const Scene2Engine: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
 
-  // Beat 1: 0-165 counter + orbit / Beat 2: 165-300 recipe comparison
-  const beat1Opacity = interpolate(frame, [150, 168], [1, 0], {
+  // Beat 1: 0-220 counter + orbit / Beat 2: 220-370 recipe comparison
+  const beat1Opacity = interpolate(frame, [205, 223], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -22,9 +22,9 @@ export const Scene2Engine: React.FC = () => {
   const headAnim = useRise(6, 50);
   const orbitIn = spring({frame: frame - 10, fps, config: {damping: 200}});
 
-  const b2Head = useRise(172, 60);
-  const b2Left = useRise(190, 50);
-  const b2Right = useRise(202, 50);
+  const b2Head = useRise(227, 60);
+  const b2Left = useRise(245, 50);
+  const b2Right = useRise(257, 50);
 
   return (
     <AbsoluteFill style={{background: COLORS.white, fontFamily: FONT, overflow: 'hidden'}}>
@@ -104,7 +104,7 @@ export const Scene2Engine: React.FC = () => {
       </AbsoluteFill>
 
       {/* Beat 2: レシピではなく料理そのもの */}
-      {frame >= 165 && (
+      {frame >= 220 && (
         <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', flexDirection: 'column'}}>
           <div style={{fontSize: 96, fontWeight: 900, color: COLORS.ink, ...b2Head}}>
             レシピではなく、<GradientText>料理そのもの</GradientText>を出力。

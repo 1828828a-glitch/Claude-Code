@@ -15,16 +15,16 @@ export const FONT = "'Noto Sans CJK JP', 'Noto Sans JP', sans-serif";
 
 export const FPS = 30;
 
-// Scene durations in frames (total 2160 = 72s @30fps)
+// Scene durations in frames (total 2485 ≈ 83s @30fps, paced to narration)
 export const SCENES = {
   tech: 300, // S1 技術宣言 10s
-  engine: 300, // S2 技術の中身 10s
+  engine: 370, // S2 技術の中身 12.3s
   intro: 180, // S3 問いの宣言 6s
   q1: 240, // S4 Q1 8s
   q2: 270, // S5 Q2 9s
-  q3: 210, // S6 Q3 7s
-  answer: 360, // S7 答え 12s
-  cta: 300, // S8 CTA 10s
+  q3: 240, // S6 Q3 8s
+  answer: 455, // S7 答え 15.2s
+  cta: 430, // S8 CTA 14.3s
 };
 
 export const TOTAL_FRAMES = Object.values(SCENES).reduce((a, b) => a + b, 0);

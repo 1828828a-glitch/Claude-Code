@@ -1,6 +1,6 @@
 import React from 'react';
-import {AbsoluteFill, Sequence, interpolate, useCurrentFrame} from 'remotion';
-import {SCENES} from './theme';
+import {AbsoluteFill, Audio, Sequence, interpolate, staticFile, useCurrentFrame} from 'remotion';
+import {SCENES, TOTAL_FRAMES} from './theme';
 import {Scene1Tech} from './scenes/Scene1Tech';
 import {Scene2Engine} from './scenes/Scene2Engine';
 import {Scene3Intro} from './scenes/Scene3Intro';
@@ -22,6 +22,39 @@ const CrossFade: React.FC<{duration: number; overlap?: number; children: React.R
   return <AbsoluteFill style={{opacity}}>{children}</AbsoluteFill>;
 };
 
+// Narration placements: [file, absolute start frame]
+const NARRATION: Array<[string, number]> = [
+  ['n1', 15], // S1 技術宣言
+  ['n2a', 312], // S2 約40名コピー済み
+  ['n2b', 528], // S2 レシピではなく料理そのもの
+  ['n3', 679], // S3 例えば、採用。
+  ['n4', 859], // S4 Q1
+  ['n5', 1099], // S5 Q2
+  ['n6', 1369], // S6 Q3
+  ['n7a', 1606], // S7 答え=ADTURN for HR
+  ['n7b', 1774], // S7 レポート内容
+  ['n8a', 2064], // S8 一般論は一行もない
+  ['n8b', 2165], // S8 もう出せます
+  ['n8c', 2375], // S8 デモはブースで
+];
+
+// BGM: ambient pad, ducked during the question section (静かな「余白」)
+const QUESTIONS_START = 670;
+const QUESTIONS_END = 1600;
+const bgmVolume = (f: number) => {
+  const base = interpolate(
+    f,
+    [QUESTIONS_START - 30, QUESTIONS_START + 30, QUESTIONS_END - 30, QUESTIONS_END + 30],
+    [0.3, 0.18, 0.18, 0.3],
+    {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}
+  );
+  const endFade = interpolate(f, [TOTAL_FRAMES - 70, TOTAL_FRAMES - 5], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  return base * endFade;
+};
+
 export const AdturnVideo: React.FC = () => {
   const s = SCENES;
   let at = 0;
@@ -33,6 +66,13 @@ export const AdturnVideo: React.FC = () => {
 
   return (
     <AbsoluteFill style={{background: '#FFFFFF'}}>
+      {/* Audio track */}
+      <Audio src={staticFile('audio/bgm.m4a')} volume={bgmVolume} />
+      {NARRATION.map(([file, from]) => (
+        <Sequence key={file} from={from} name={`ナレーション ${file}`}>
+          <Audio src={staticFile(`audio/${file}.mp3`)} />
+        </Sequence>
+      ))}
       <Sequence from={starts.tech} durationInFrames={s.tech} name="S1 技術宣言">
         <Scene1Tech />
       </Sequence>
