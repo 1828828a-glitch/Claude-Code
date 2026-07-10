@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ADTANK GP「デジブレ」展示会用紹介動画（60秒）</title>
+<style>
+  html,body{margin:0;padding:0;background:#1a1a1e;height:100%;overflow:hidden;
+    font-family:"Noto Sans CJK JP","Noto Sans JP",sans-serif;}
+  #stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+  canvas{max-width:100%;max-height:100%;box-shadow:0 8px 60px rgba(0,0,0,.5);}
+  #ui{position:fixed;left:0;right:0;bottom:0;padding:14px 20px;display:flex;gap:14px;
+    align-items:center;background:linear-gradient(transparent,rgba(0,0,0,.55));z-index:5;}
+  #ui button{width:44px;height:44px;border-radius:50%;border:none;background:#5B67F2;color:#fff;
+    font-size:16px;cursor:pointer;}
+  #seek{flex:1;accent-color:#5B67F2;}
+  #time{color:#fff;font-size:13px;min-width:90px;text-align:right;font-variant-numeric:tabular-nums;}
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="cv" width="1920" height="1080"></canvas></div>
+<div id="ui">
+  <button id="play">▶</button>
+  <input id="seek" type="range" min="0" max="60" step="0.01" value="0">
+  <span id="time">0.0 / 60.0</span>
+</div>
+<script>
+"use strict";
+/* =========================================================================
+   ADTANK GP「デジブレ」展示会用 紹介動画（60秒 / 1920x1080）
+   render(t) は t 秒時点のフレームを純粋に描画する（フレーム書き出し用に決定的）
+   ========================================================================= */
+const W = 1920, H = 1080;
+const DURATION = 60;
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+
+/* ---- brand ---- */
+const INK    = "#101014";   // 見出しの黒
+const GREY   = "#8b8f99";   // 補助グレー
+const LGREY  = "#c9ccd4";
+const ACCENT = "#5B67F2";   // ブルーバイオレット
+const ACCENT2= "#7d86f6";
+const BG     = "#fafafc";
+const CARD   = "#ffffff";
+const F = (w,s)=>`${w} ${s}px "Noto Sans CJK JP","Noto Sans JP",sans-serif`;
+
+/* ---- helpers ---- */
+const clamp01 = v => v<0?0:v>1?1:v;
+const seg  = (t,a,b)=>clamp01((t-a)/(b-a));
+const lerp = (a,b,k)=>a+(b-a)*k;
+const eoc  = k=>1-Math.pow(1-k,3);              // easeOutCubic
+const eoq  = k=>1-Math.pow(1-k,5);              // easeOutQuint
+const eio  = k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2; // easeInOutCubic
+const eob  = k=>{const c=1.7;return 1+ (c+1)*Math.pow(k-1,3)+c*Math.pow(k-1,2);}; // back out
+function rng(seed){ // mulberry32（決定的な擬似乱数）
+  return function(){seed|=0;seed=seed+0x6D2B79F5|0;let z=Math.imul(seed^seed>>>15,1|seed);
+    z=z+Math.imul(z^z>>>7,61|z)^z;return((z^z>>>14)>>>0)/4294967296;};
+}
+function rr(x,y,w,h,r){ // rounded rect path
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
+/* 複数色パーツから成る1行を中央揃えで描く */
+function parts(list,cx,y,font){
+  ctx.font=font;
+  const total=list.reduce((s,p)=>s+ctx.measureText(p.t).width,0);
+  let x=cx-total/2;
+  for(const p of list){ctx.fillStyle=p.c;ctx.fillText(p.t,x,y);x+=ctx.measureText(p.t).width;}
+}
+function centered(text,cx,y,font,color){ctx.font=font;ctx.fillStyle=color;
+  const w=ctx.measureText(text).width;ctx.fillText(text,cx-w/2,y);}
+
+/* 背景（全シーン共通の白地＋うっすらグリッドドット） */
+function drawBG(t){
+  ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
+  ctx.save();ctx.globalAlpha=.5;
+  ctx.fillStyle="#ecedf2";
+  for(let gx=80;gx<W;gx+=120)for(let gy=80;gy<H;gy+=120){
+    ctx.beginPath();ctx.arc(gx,gy,2,0,7);ctx.fill();}
+  ctx.restore();
+}
+/* デジブレの丸ロゴ（リング） */
+function ring(x,y,r,lw,color,alpha=1){
+  ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=color;ctx.lineWidth=lw;
+  ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.stroke();ctx.restore();
+}
+/* 既存AIの三角アイコン */
+function tri(x,y,r,color,alpha=1){
+  ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=color;ctx.lineWidth=r*.3;
+  ctx.lineJoin="round";ctx.beginPath();
+  for(let i=0;i<3;i++){const a=-Math.PI/2+i*2*Math.PI/3;
+    const px=x+r*Math.cos(a),py=y+r*Math.sin(a);i?ctx.lineTo(px,py):ctx.moveTo(px,py);}
+  ctx.closePath();ctx.stroke();ctx.restore();
+}
+/* 特許出願中スタンプ */
+function stamp(x,y,k,scaleBase=1){
+  if(k<=0)return;
+  const s=(1.6-0.6*eob(k))*scaleBase, a=clamp01(k*2);
+  ctx.save();ctx.translate(x,y);ctx.rotate(-0.08);ctx.scale(s,s);ctx.globalAlpha=a;
+  ctx.strokeStyle=ACCENT;ctx.lineWidth=6;
+  rr(-150,-46,300,92,14);ctx.stroke();
+  ctx.font=F(900,46);ctx.fillStyle=ACCENT;
+  const w=ctx.measureText("特許出願中").width;
+  ctx.fillText("特許出願中",-w/2,17);ctx.restore();
+}
+/* 進行インジケータ（画面下の細いバー） */
+function progress(t){
+  ctx.fillStyle="#e7e8ee";ctx.fillRect(0,H-8,W,8);
+  ctx.fillStyle=ACCENT;ctx.fillRect(0,H-8,W*(t/DURATION),8);
+}
+
+/* =========================================================
+   Scene 1  0.0 - 7.0  フック
+   ========================================================= */
+function scene1(t){
+  // 背景に漂う「既存AIの用途」ワード
+  const words=["情報収集","要約","資料作成","下書き","疑問解消","学習補助","翻訳","議事録"];
+  const r=rng(7);
+  for(let i=0;i<words.length;i++){
+    const bx=200+r()*1500, by=140+r()*820, sp=8+r()*14, ph=r()*6.28;
+    const y=by+Math.sin(t*.5+ph)*18, x=bx+t*sp*.6;
+    const a=.18*seg(t,.2+i*.15,1.2+i*.15)*(1-seg(t,5.4,6.4));
+    ctx.save();ctx.globalAlpha=a;ctx.font=F(700,34+r()*14);ctx.fillStyle=GREY;
+    ctx.fillText(words[i],x%W,y);ctx.restore();
+  }
+  // メインコピー2行
+  const k1=eoq(seg(t,0.7,1.8)), k2=eoq(seg(t,1.5,2.6));
+  const out=eio(seg(t,5.9,6.8));
+  ctx.save();ctx.globalAlpha=(1-out);
+  ctx.translate(0,-40*out);
+  if(k1>0){ctx.save();ctx.globalAlpha=k1*(1-out);ctx.translate(0,30*(1-k1));
+    parts([{t:"もし、トップパフォーマーの",c:INK},{t:"「脳」",c:ACCENT},{t:"を",c:INK}],
+      W/2,H/2-40,F(900,86));ctx.restore();}
+  if(k2>0){ctx.save();ctx.globalAlpha=k2*(1-out);ctx.translate(0,30*(1-k2));
+    centered("そのままコピーできたら。",W/2,H/2+90,F(900,86),INK);ctx.restore();}
+  // 下線が伸びる
+  const k3=eoq(seg(t,2.4,3.4));
+  ctx.fillStyle=ACCENT;ctx.globalAlpha=k3*(1-out);
+  ctx.fillRect(W/2-330*k3,H/2+150,660*k3,10);
+  ctx.restore();
+}
+
+/* =========================================================
+   Scene 2  7.0 - 15.5  デジブレ登場（脳の転写・特許出願中）
+   ========================================================= */
+function scene2(t0){
+  const t=t0-7;
+  const inK=eoq(seg(t,0,.8)), out=eio(seg(t0,14.7,15.5));
+  ctx.save();ctx.globalAlpha=(1-out);
+
+  // 上部ラベル＋見出し
+  ctx.save();ctx.globalAlpha=inK*(1-out);
+  centered("ADTANK GP",W/2,150,F(800,40),GREY);
+  parts([{t:"世界で初めて、",c:INK},{t:"「脳の転写」",c:ACCENT},{t:"に成功。",c:INK}],
+    W/2,250,F(900,76));
+  ctx.restore();
+
+  // 左：人物シルエット / 右：デジブレのリング
+  const hx=560,hy=600,rx=1360,ry=600;
+  const kFig=eoq(seg(t,.5,1.4));
+  if(kFig>0){
+    ctx.save();ctx.globalAlpha=kFig*(1-out);
+    ctx.fillStyle=INK;
+    ctx.beginPath();ctx.arc(hx,hy-70,70,0,7);ctx.fill();          // 頭
+    rr(hx-105,hy+20,210,150,60);ctx.fill();                        // 肩
+    ctx.font=F(700,36);ctx.fillStyle=GREY;
+    const w=ctx.measureText("トップパフォーマー").width;
+    ctx.fillText("トップパフォーマー",hx-w/2,hy+240);
+    ctx.restore();
+  }
+  const kRing=eoq(seg(t,.9,1.9));
+  if(kRing>0){
+    const pulse=1+Math.sin(t*3)*.02;
+    ring(rx,ry-30,110*kRing*pulse,26*kRing,ACCENT,kRing*(1-out));
+    ctx.save();ctx.globalAlpha=kRing*(1-out);
+    centered("デジブレ",rx,ry+180,F(900,64),ACCENT);
+    centered("オリジナルAIエンジン",rx,ry+245,F(700,34),GREY);
+    ctx.restore();
+  }
+  // 転写パーティクル（頭 → リング）
+  const flow=seg(t,1.2,6.5);
+  if(flow>0&&flow<1){
+    const r=rng(42);
+    for(let i=0;i<46;i++){
+      const off=r(), arc=(r()-.5)*260, size=2+r()*4;
+      const p=((t*.45+off)%1);
+      const a=Math.sin(p*Math.PI)*.9*(1-out)*seg(t,1.2,2);
+      const x=lerp(hx+80,rx-125,p), y=lerp(hy-70,ry-30,p)+Math.sin(p*Math.PI)*arc;
+      ctx.save();ctx.globalAlpha=a;ctx.fillStyle=r()>.35?ACCENT:ACCENT2;
+      ctx.beginPath();ctx.arc(x,y,size,0,7);ctx.fill();ctx.restore();
+    }
+  }
+  // 特許出願中スタンプ
+  stamp(W/2,930,seg(t,2.6,3.1),1);
+  ctx.restore();
+}
+
+/* =========================================================
+   Scene 3  15.5 - 24.5  既存AIとの比較
+   ========================================================= */
+function scene3(t0){
+  const t=t0-15.5;
+  const out=eio(seg(t0,23.7,24.5));
+  ctx.save();ctx.globalAlpha=(1-out);
+
+  const kL=eoq(seg(t,.15,1)), kR=eoq(seg(t,.45,1.3));
+  const cw=700,ch=520,cy=180;
+  // 左：既存のAIツール
+  if(kL>0){
+    const x=170+(-80*(1-kL));
+    ctx.save();ctx.globalAlpha=kL*(1-out);
+    ctx.fillStyle=CARD;ctx.strokeStyle="#e3e4ea";ctx.lineWidth=2;
+    rr(x,cy,cw,ch,28);ctx.fill();ctx.stroke();
+    tri(x+cw/2,cy+120,52,"#a9adb8");
+    centered("既存のAIツール",x+cw/2,cy+250,F(800,46),GREY);
+    centered("一般的な回答を出力",x+cw/2,cy+340,F(700,38),GREY);
+    centered("役割は業務の「補助」まで",x+cw/2,cy+410,F(700,38),GREY);
+    ctx.restore();
+  }
+  // 右：デジブレ
+  if(kR>0){
+    const x=1050+(80*(1-kR));
+    ctx.save();ctx.globalAlpha=kR*(1-out);
+    ctx.fillStyle=CARD;ctx.strokeStyle=ACCENT;ctx.lineWidth=4;
+    rr(x,cy,cw,ch,28);ctx.fill();ctx.stroke();
+    ring(x+cw/2,cy+120,48,16,ACCENT,kR*(1-out));
+    centered("デジブレ",x+cw/2,cy+250,F(900,46),ACCENT);
+    centered("提案書・分析・戦略「そのもの」を",x+cw/2,cy+340,F(800,38),INK);
+    centered("トップパフォーマー品質で出力",x+cw/2,cy+410,F(800,38),INK);
+    ctx.restore();
+  }
+  // VS
+  const kV=eob(seg(t,.9,1.4));
+  if(kV>0){ctx.save();ctx.globalAlpha=clamp01(kV)*(1-out);
+    ctx.translate(W/2,cy+ch/2);ctx.scale(kV,kV);
+    ctx.fillStyle=INK;ctx.beginPath();ctx.arc(0,0,62,0,7);ctx.fill();
+    ctx.font=F(900,44);ctx.fillStyle="#fff";
+    const w=ctx.measureText("VS").width;ctx.fillText("VS",-w/2,16);ctx.restore();}
+  // タグライン
+  const kT=eoq(seg(t,1.8,2.7));
+  if(kT>0){ctx.save();ctx.globalAlpha=kT*(1-out);ctx.translate(0,26*(1-kT));
+    parts([{t:"レシピではなく、",c:INK},{t:"「料理そのもの」",c:ACCENT},{t:"を。",c:INK}],
+      W/2,880,F(900,78));
+    ctx.fillStyle=ACCENT;ctx.fillRect(W/2-300*kT,915,600*kT,8);ctx.restore();}
+  ctx.restore();
+}
+
+/* =========================================================
+   Scene 4  24.5 - 33.0  技術的裏付け
+   ========================================================= */
+function scene4(t0){
+  const t=t0-24.5;
+  const out=eio(seg(t0,32.2,33));
+  ctx.save();ctx.globalAlpha=(1-out);
+
+  const kH=eoq(seg(t,.1,1));
+  if(kH>0){ctx.save();ctx.globalAlpha=kH*(1-out);ctx.translate(0,24*(1-kH));
+    centered("なぜ、脳を転写できるのか。",W/2,170,F(800,44),GREY);
+    parts([{t:"独自の暗黙知抽出",c:ACCENT},{t:" × ",c:INK},{t:"AIに翻訳する独自技術",c:ACCENT}],
+      W/2,270,F(900,72));ctx.restore();}
+
+  const cards=[
+    {title:"脳科学の観点",sub1:"思考・記憶・感情が生まれる",sub2:"メカニズムの解明",icon:"brain"},
+    {title:"医学的な観点",sub1:"脳の構造・機能から",sub2:"高次脳機能を解明",icon:"med"},
+    {title:"スキル抽出の観点",sub1:"質問による暗黙知抽出を",sub2:"同志社大学と共同研究",icon:"skill"},
+  ];
+  const cw=480,ch=430,gap=60,x0=(W-cw*3-gap*2)/2,cy=400;
+  cards.forEach((c,i)=>{
+    const k=eoq(seg(t,.7+i*.28,1.6+i*.28));
+    if(k<=0)return;
+    const x=x0+i*(cw+gap), y=cy+50*(1-k);
+    ctx.save();ctx.globalAlpha=k*(1-out);
+    ctx.fillStyle=CARD;ctx.strokeStyle="#e3e4ea";ctx.lineWidth=2;
+    rr(x,y,cw,ch,24);ctx.fill();ctx.stroke();
+    ctx.fillStyle=ACCENT;rr(x,y,cw,96,24);ctx.save();ctx.clip();
+    ctx.fillRect(x,y,cw,96);ctx.restore();
+    ctx.font=F(800,40);ctx.fillStyle="#fff";
+    const w=ctx.measureText(c.title).width;ctx.fillText(c.title,x+cw/2-w/2,y+62);
+    // アイコン（線画）
+    const ix=x+cw/2,iy=y+210;
+    ctx.strokeStyle=ACCENT;ctx.lineWidth=8;ctx.lineCap="round";
+    if(c.icon==="brain"){ // 脳：半円2つ＋しわ
+      ctx.beginPath();ctx.arc(ix-26,iy,52,Math.PI*.5,Math.PI*1.5);ctx.stroke();
+      ctx.beginPath();ctx.arc(ix+26,iy,52,Math.PI*1.5,Math.PI*.5);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(ix,iy-52);ctx.lineTo(ix,iy+52);ctx.stroke();
+      ctx.beginPath();ctx.arc(ix-30,iy-14,14,0,Math.PI);ctx.stroke();
+      ctx.beginPath();ctx.arc(ix+30,iy+10,14,Math.PI,0);ctx.stroke();
+    }else if(c.icon==="med"){ // 医学：十字
+      ctx.beginPath();ctx.arc(ix,iy,58,0,7);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(ix-26,iy);ctx.lineTo(ix+26,iy);
+      ctx.moveTo(ix,iy-26);ctx.lineTo(ix,iy+26);ctx.stroke();
+    }else{ // スキル抽出：虫めがね
+      ctx.beginPath();ctx.arc(ix-12,iy-12,44,0,7);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(ix+20,iy+20);ctx.lineTo(ix+52,iy+52);ctx.stroke();
+    }
+    ctx.font=F(700,32);ctx.fillStyle=GREY;
+    let w1=ctx.measureText(c.sub1).width;ctx.fillText(c.sub1,x+cw/2-w1/2,y+330);
+    let w2=ctx.measureText(c.sub2).width;ctx.fillText(c.sub2,x+cw/2-w2/2,y+380);
+    ctx.restore();
+  });
+  const kS=eoq(seg(t,2.2,3));
+  if(kS>0){ctx.save();ctx.globalAlpha=kS*(1-out);
+    centered("脳科学・医学の専門家と確立したメソッドを、すでに実装。",W/2,950,F(800,40),INK);
+    ctx.restore();}
+  ctx.restore();
+}
+
+/* =========================================================
+   Scene 5  33.0 - 42.0  約40名コピー済み
+   ========================================================= */
+function scene5(t0){
+  const t=t0-33;
+  const out=eio(seg(t0,41.2,42));
+  ctx.save();ctx.globalAlpha=(1-out);
+
+  const kH=eoq(seg(t,.1,1));
+  if(kH>0){ctx.save();ctx.globalAlpha=kH*(1-out);ctx.translate(0,24*(1-kH));
+    parts([{t:"各領域のトップパフォーマーの脳を、",c:INK},{t:"コピー済み。",c:ACCENT}],
+      W/2,175,F(900,68));
+    centered("マーケ・採用・人事・ブランディング・経営コンサル・アーティスト…",W/2,245,F(700,32),GREY);
+    ctx.restore();}
+
+  // 中央カウンター（0→40）
+  const cx=W/2,cy=630;
+  const kC=seg(t,.6,2.6);
+  const n=Math.round(40*eoc(kC));
+  const kR2=eoq(seg(t,.3,1.2));
+  if(kR2>0){
+    ring(cx,cy,250*kR2,10,"#e0e2ef",kR2*(1-out));
+    // 弧が伸びる
+    ctx.save();ctx.globalAlpha=kR2*(1-out);
+    ctx.strokeStyle=ACCENT;ctx.lineWidth=18;ctx.lineCap="round";
+    ctx.beginPath();ctx.arc(cx,cy,250*kR2,-Math.PI/2,-Math.PI/2+2*Math.PI*eoc(kC));ctx.stroke();
+    ctx.restore();
+    ctx.save();ctx.globalAlpha=kR2*(1-out);
+    parts([{t:"約",c:INK},{t:String(n),c:ACCENT},{t:"名",c:INK}],cx,cy+10,F(900,104));
+    centered("の脳をコピー済み",cx,cy+95,F(800,40),GREY);
+    ctx.restore();
+  }
+  // 周囲の職種チップ
+  const chips=[
+    "大手コンサル 4大ファームMD","上場企業役員","外資系企業エース人事","大手コピーライター",
+    "世界的有名アーティスト","論文著者","4度IPOのシリアルアントレプレナー","大手採用コンサル会社本部長"];
+  const pos=[[330,410],[1590,410],[260,660],[1660,660],[330,910],[1590,910],[600,1010],[1320,1010]];
+  chips.forEach((c,i)=>{
+    const k=eoq(seg(t,1.2+i*.22,2+i*.22));
+    if(k<=0)return;
+    const [px,py]=pos[i];
+    ctx.save();ctx.globalAlpha=k*(1-out);
+    ctx.font=F(700,30);
+    const w=ctx.measureText(c).width;
+    const bx=px-w/2-24,by=py-34+14*(1-k);
+    ctx.fillStyle=CARD;ctx.strokeStyle=ACCENT2;ctx.lineWidth=2;
+    rr(bx,by,w+48,64,32);ctx.fill();ctx.stroke();
+    ctx.fillStyle=INK;ctx.fillText(c,px-w/2,by+43);
+    ctx.restore();
+  });
+  ctx.restore();
+}
+
+/* =========================================================
+   Scene 6  42.0 - 51.5  出力例 ADTURN for HR
+   ========================================================= */
+function scene6(t0){
+  const t=t0-42;
+  const out=eio(seg(t0,50.7,51.5));
+  ctx.save();ctx.globalAlpha=(1-out);
+
+  const kH=eoq(seg(t,.1,1));
+  if(kH>0){ctx.save();ctx.globalAlpha=kH*(1-out);ctx.translate(0,24*(1-kH));
+    // ラベルチップ
+    ctx.font=F(800,34);
+    const lbl="出力例｜ADTURN for HR";
+    const lw=ctx.measureText(lbl).width;
+    ctx.fillStyle=ACCENT;rr(W/2-lw/2-28,92,lw+56,64,32);ctx.fill();
+    ctx.fillStyle="#fff";ctx.fillText(lbl,W/2-lw/2,137);
+    parts([{t:"診断から、戦略レポート",c:INK},{t:"「そのもの」",c:ACCENT},{t:"まで出力。",c:INK}],
+      W/2,260,F(900,70));ctx.restore();}
+
+  // レポート2枚（テキスト行が書かれていく）
+  const docs=[
+    {x:430,title:"採用「勝ち筋」戦略レポート",d:.5},
+    {x:1050,title:"採用戦略・ブランド価値変革提言書",d:.9},
+  ];
+  docs.forEach((doc,di)=>{
+    const k=eoq(seg(t,doc.d,doc.d+.9));
+    if(k<=0)return;
+    const dw=440,dh=560,x=doc.x,y=340+60*(1-k);
+    ctx.save();ctx.globalAlpha=k*(1-out);
+    ctx.shadowColor="rgba(30,34,80,.14)";ctx.shadowBlur=40;ctx.shadowOffsetY=16;
+    ctx.fillStyle=CARD;rr(x,y,dw,dh,16);ctx.fill();
+    ctx.shadowColor="transparent";
+    ctx.strokeStyle="#e3e4ea";ctx.lineWidth=2;rr(x,y,dw,dh,16);ctx.stroke();
+    // タイトル
+    ctx.font=F(800,28);ctx.fillStyle=INK;
+    ctx.fillText(doc.title,x+34,y+60);
+    ctx.fillStyle=ACCENT;ctx.fillRect(x+34,y+80,dw-68,4);
+    // 本文行（順に伸びる）
+    const rl=rng(11+di*7);
+    for(let li=0;li<11;li++){
+      const lk=eoc(seg(t,doc.d+.9+li*.22,doc.d+1.7+li*.22));
+      if(lk<=0)continue;
+      const isHead=(li===0||li===4||li===8);
+      const lw2=(isHead?200:(dw-68)*(.72+rl()*.28))*lk;
+      ctx.fillStyle=isHead?ACCENT2:"#d9dbe3";
+      ctx.fillRect(x+34,y+120+li*38,lw2,isHead?18:12);
+    }
+    ctx.restore();
+  });
+  const kS=eoq(seg(t,2.6,3.4));
+  if(kS>0){ctx.save();ctx.globalAlpha=kS*(1-out);
+    centered("人事・採用トップパフォーマーの「脳」が、貴社を診断する。",W/2,985,F(800,42),INK);
+    ctx.restore();}
+  ctx.restore();
+}
+
+/* =========================================================
+   Scene 7  51.5 - 60.0  CTA
+   ========================================================= */
+function scene7(t0){
+  const t=t0-51.5;
+  // 背景をわずかにアクセント寄りに
+  const kBG=eio(seg(t,0,1));
+  ctx.save();ctx.globalAlpha=kBG*.06;ctx.fillStyle=ACCENT;ctx.fillRect(0,0,W,H);ctx.restore();
+
+  const kR3=eoq(seg(t,.2,1.2));
+  if(kR3>0){
+    const pulse=1+Math.sin(t*2.4)*.02;
+    ring(W/2,330,95*kR3*pulse,24*kR3,ACCENT,kR3);
+  }
+  const k1=eoq(seg(t,.6,1.5));
+  if(k1>0){ctx.save();ctx.globalAlpha=k1;ctx.translate(0,26*(1-k1));
+    centered("デジブレ",W/2,545,F(900,110),INK);
+    centered("オリジナルAIエンジン（特許出願中）",W/2,625,F(700,38),GREY);ctx.restore();}
+  const k2=eoq(seg(t,1.3,2.2));
+  if(k2>0){ctx.save();ctx.globalAlpha=k2;ctx.translate(0,26*(1-k2));
+    parts([{t:"トップパフォーマーの脳を、",c:INK},{t:"あなたの武器に。",c:ACCENT}],
+      W/2,740,F(900,64));ctx.restore();}
+  const k3=eoq(seg(t,2.1,3));
+  if(k3>0){ctx.save();ctx.globalAlpha=k3;
+    // CTAバー
+    ctx.font=F(800,42);
+    const msg="デモ実施中｜ぜひブースでご体験ください";
+    const w=ctx.measureText(msg).width;
+    ctx.fillStyle=ACCENT;rr(W/2-w/2-50,830,w+100,92,46);ctx.fill();
+    ctx.fillStyle="#fff";ctx.fillText(msg,W/2-w/2,890);
+    centered("ADTANK GP",W/2,1000,F(800,36),GREY);ctx.restore();}
+}
+
+/* ---- master ---- */
+function render(t){
+  t=Math.max(0,Math.min(DURATION,t));
+  drawBG(t);
+  if(t<7)        scene1(t);
+  else if(t<15.5)scene2(t);
+  else if(t<24.5)scene3(t);
+  else if(t<33)  scene4(t);
+  else if(t<42)  scene5(t);
+  else if(t<51.5)scene6(t);
+  else           scene7(t);
+  progress(t);
+}
+
+/* ---- export hooks（フレーム書き出し用） ---- */
+window.__DURATION = DURATION;
+window.__seek = function(t){render(t);};
+window.__frame = function(t){render(t);return cv.toDataURL("image/png");};
+
+/* ---- preview playback ---- */
+let playing=false,t0=0,base=0;
+const btn=document.getElementById("play"),
+      bar=document.getElementById("seek"),
+      lab=document.getElementById("time");
+function loop(now){
+  if(!playing)return;
+  const t=(base+(now-t0)/1000)%DURATION;
+  render(t);bar.value=t;lab.textContent=t.toFixed(1)+" / 60.0";
+  requestAnimationFrame(loop);
+}
+btn.onclick=()=>{
+  playing=!playing;btn.textContent=playing?"❚❚":"▶";
+  if(playing){t0=performance.now();base=parseFloat(bar.value)%DURATION;requestAnimationFrame(loop);}
+};
+bar.oninput=()=>{playing=false;btn.textContent="▶";
+  render(parseFloat(bar.value));lab.textContent=parseFloat(bar.value).toFixed(1)+" / 60.0";};
+
+/* フォント読み込み後に初期フレーム */
+document.fonts.ready.then(()=>render(0));
+render(0);
+</script>
+</body>
+</html>
