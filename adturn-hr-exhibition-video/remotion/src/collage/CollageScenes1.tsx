@@ -2,7 +2,6 @@ import React from 'react';
 import {AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame} from 'remotion';
 import {FONT} from '../theme';
 import {
-  CollageSub,
   Confetti,
   Halftone,
   Newspaper,
@@ -86,24 +85,18 @@ export const CS1Tech: React.FC = () => {
   const bannerPop = usePopSteps(158);
   const badgePop = usePopSteps(205);
 
-  // 頭の半分（クリップ＋回転）
-  const HeadHalf: React.FC<{side: 'l' | 'r'}> = ({side}) => (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        clipPath: side === 'l' ? 'inset(0 50% 0 0)' : 'inset(0 0 0 50%)',
-        transform: `translateX(${(side === 'l' ? -1 : 1) * splitStep * 150}px) rotate(${(side === 'l' ? -1 : 1) * splitStep * -14}deg)`,
-        transformOrigin: side === 'l' ? '30% 100%' : '70% 100%',
-      }}
-    >
+  // 頭のパーツ（顔・耳・肩）— cutY より上がフタとして開く
+  const CUT_Y = 170; // コンテナ内カット高さ
+  const HeadShape: React.FC = () => (
+    <>
       {/* 頭のシルエット */}
       <div style={{position: 'absolute', left: 110, top: 0, width: 380, height: 420, borderRadius: '48% 48% 42% 42%', background: '#2A3550'}} />
       {/* 耳 */}
-      <div style={{position: 'absolute', left: side === 'l' ? 88 : undefined, right: side === 'r' ? 88 : undefined, top: 190, width: 52, height: 90, borderRadius: 26, background: '#2A3550'}} />
+      <div style={{position: 'absolute', left: 88, top: 210, width: 52, height: 90, borderRadius: 26, background: '#2A3550'}} />
+      <div style={{position: 'absolute', right: 88, top: 210, width: 52, height: 90, borderRadius: 26, background: '#2A3550'}} />
       {/* 肩 */}
       <div style={{position: 'absolute', left: 0, top: 400, width: 600, height: 160, borderRadius: '60px 60px 0 0', background: '#2A3550'}} />
-    </div>
+    </>
   );
 
   return (
@@ -116,22 +109,6 @@ export const CS1Tech: React.FC = () => {
 
       {/* 割れる瞬間の紙バースト */}
       {frame >= SPLIT && frame < SPLIT + 60 && <PaperBurst cx={960} cy={470} color="rgba(45,107,180,0.30)" r0={260} r1={470} />}
-
-      {/* 紙の頭（中央・パカっと割れる） */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 660,
-          top: 200,
-          width: 600,
-          height: 560,
-          transform: `rotate(${headW.rot * 0.6}deg)`,
-          filter: 'drop-shadow(6px 8px 0 rgba(34,30,24,0.25))',
-        }}
-      >
-        <HeadHalf side="l" />
-        <HeadHalf side="r" />
-      </div>
 
       {/* カラフル脳（既存素材を切り絵コラージュとして使用） */}
       {frame >= SPLIT + 8 && aStep < 1 && (
@@ -149,6 +126,41 @@ export const CS1Tech: React.FC = () => {
           <Img src={staticFile('img/brain.png')} style={{width: '100%', height: '100%', objectFit: 'contain'}} />
         </div>
       )}
+
+      {/* 紙の頭（中央）: 頭頂部のフタがパカーンと左へ開く */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 660,
+          top: 200,
+          width: 600,
+          height: 560,
+          transform: `rotate(${headW.rot * 0.6}deg)`,
+          filter: 'drop-shadow(6px 8px 0 rgba(34,30,24,0.25))',
+        }}
+      >
+        {/* 下側（顔・固定） */}
+        <div style={{position: 'absolute', inset: 0, clipPath: `inset(${CUT_Y}px 0 0 0)`}}>
+          <HeadShape />
+        </div>
+        {/* 頭頂部のフタ: 左端をヒンジに、なべ蓋のように起き上がる */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            clipPath: `inset(0 0 ${560 - CUT_Y}px 0)`,
+            transform: `rotate(${-splitStep * 64}deg) translateY(${-splitStep * 14}px)`,
+            transformOrigin: `128px ${CUT_Y}px`,
+          }}
+        >
+          <HeadShape />
+        </div>
+        {/* カット面（開口部の断面） */}
+        {splitStep > 0.2 && (
+          <div style={{position: 'absolute', left: 128, top: CUT_Y - 10, width: 348, height: 20, borderRadius: 10, background: '#465B8C'}} />
+        )}
+      </div>
+
 
       {/* 紙リング（転写先） */}
       <div style={{position: 'absolute', right: 240, top: 120, transform: `scale(${ringPop.scale})`, opacity: ringPop.opacity}}>
@@ -204,8 +216,6 @@ export const CS1Tech: React.FC = () => {
           <div style={{fontSize: 31, fontWeight: 900, color: PAPER.white, whiteSpace: 'nowrap'}}>世界初｜特許出願中</div>
         </TornPaper>
       </div>
-
-      <CollageSub enter={15} text={'トップパフォーマーの脳を、AIに転写する。\n世界初、特許出願中のAIエンジン「デジブレ」。'} />
     </AbsoluteFill>
   );
 };
@@ -224,8 +234,8 @@ export const CS2Engine: React.FC = () => {
 
   const TAGS = ['人事', '採用コンサル', 'マーケ', 'ブランディング', '経営コンサル', 'アーティスト'];
   const tagPos = [
-    {x: 1240, y: 170}, {x: 1560, y: 260}, {x: 1650, y: 500},
-    {x: 1520, y: 740}, {x: 1230, y: 830}, {x: 1090, y: 500},
+    {x: 1240, y: 170}, {x: 1580, y: 260}, {x: 1680, y: 490},
+    {x: 1540, y: 720}, {x: 1220, y: 780}, {x: 1030, y: 420},
   ];
   // フックは条件分岐の外でまとめて呼ぶ
   const copiedPop = usePopSteps(30);
@@ -295,9 +305,9 @@ export const CS2Engine: React.FC = () => {
 
       {isBeat2 && (
         <>
-          <div style={{position: 'absolute', left: '50%', top: 120, transform: `translateX(-50%) rotate(-1deg) scale(${b2Head.scale})`, opacity: b2Head.opacity, width: 1330, height: 180}}>
+          <div style={{position: 'absolute', left: '50%', top: 120, transform: `translateX(-50%) rotate(-1deg) scale(${b2Head.scale})`, opacity: b2Head.opacity, width: 1560, height: 180}}>
             <TornPaper seed="cs2b2" roughness={11} style={{width: '100%', height: '100%'}}>
-              <div style={{fontSize: 84, fontWeight: 900, color: PAPER.ink}}>
+              <div style={{fontSize: 74, fontWeight: 900, color: PAPER.ink, whiteSpace: 'nowrap'}}>
                 レシピではなく、<span style={{color: PAPER.red}}>料理そのもの</span>を出力。
               </div>
             </TornPaper>
@@ -335,11 +345,10 @@ export const CS2Engine: React.FC = () => {
             </TornPaper>
             <Tape style={{position: 'absolute', left: 240, top: -20}} rot={-4} />
           </div>
-          <Confetti seed="cs2cf" count={10} enterBase={266} area={{x: 140, y: 320, w: 1640, h: 560}} />
+          <Confetti seed="cs2cf" count={4} enterBase={266} area={{x: 60, y: 340, w: 180, h: 480}} />
+          <Confetti seed="cs2cf2" count={4} enterBase={270} area={{x: 240, y: 830, w: 1440, h: 90}} />
         </>
       )}
-
-      <CollageSub enter={14} text={isBeat2 ? 'レシピではなく、料理そのものを出力します。' : '独自の暗黙知抽出技術により、\n約40名のトップパフォーマーの脳をコピーしました。'} />
     </AbsoluteFill>
   );
 };
@@ -424,8 +433,6 @@ export const CS25Voice: React.FC = () => {
           <Confetti seed="slamcf" count={14} enterBase={FLASH + 10} colors={[PAPER.white, PAPER.yellow, PAPER.ink]} area={{x: 160, y: 120, w: 1600, h: 700}} />
         </AbsoluteFill>
       )}
-
-      <CollageSub enter={16} text={isSlam ? 'それ、解決できます。' : '「トップパフォーマーが、もっといたら…」\nその声に、答えがあります。'} />
       <AbsoluteFill style={{background: '#FFFFFF', opacity: flash, pointerEvents: 'none'}} />
     </AbsoluteFill>
   );

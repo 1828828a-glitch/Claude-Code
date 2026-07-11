@@ -2,7 +2,6 @@ import React from 'react';
 import {AbsoluteFill, useCurrentFrame} from 'remotion';
 import {FONT} from '../theme';
 import {
-  CollageSub,
   Confetti,
   Halftone,
   Newspaper,
@@ -52,8 +51,9 @@ export const CS3Intro: React.FC = () => {
           <div style={{fontSize: 42, fontWeight: 900, color: PAPER.white}}>貴社は、この問いに、即答できますか。</div>
         </TornPaper>
       </div>
-      <Confetti seed="cs3cf" count={10} enterBase={12} area={{x: 140, y: 140, w: 1640, h: 700}} />
-      <CollageSub enter={12} text={'例えば採用。この問いに、即答できますか。'} />
+      <Confetti seed="cs3cf" count={4} enterBase={12} area={{x: 140, y: 130, w: 500, h: 140}} />
+      <Confetti seed="cs3cf2" count={3} enterBase={16} area={{x: 130, y: 330, w: 220, h: 420}} />
+      <Confetti seed="cs3cf3" count={3} enterBase={20} area={{x: 1580, y: 560, w: 200, h: 300}} />
     </AbsoluteFill>
   );
 };
@@ -117,8 +117,6 @@ const CollageQuestion: React.FC<{
           <div key={i} style={{width: i === active ? 64 : 24, height: 24, borderRadius: 12, background: i === active ? PAPER.red : dark ? 'rgba(255,255,255,0.35)' : 'rgba(34,30,24,0.25)', filter: 'drop-shadow(2px 3px 0 rgba(34,30,24,0.2))'}} />
         ))}
       </div>
-
-      <CollageSub enter={12} text={subtitle} />
     </AbsoluteFill>
   );
 };

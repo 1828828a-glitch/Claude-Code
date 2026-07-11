@@ -3,7 +3,6 @@ import {AbsoluteFill, useCurrentFrame} from 'remotion';
 import {FONT} from '../theme';
 import {ReportDoc} from '../fx';
 import {
-  CollageSub,
   Confetti,
   Halftone,
   Newspaper,
@@ -63,7 +62,8 @@ export const CS7Answer: React.FC = () => {
               </div>
             ))}
           </div>
-          <Confetti seed="cs7cf" count={10} enterBase={40} area={{x: 160, y: 120, w: 1600, h: 740}} />
+          <Confetti seed="cs7cf" count={5} enterBase={40} area={{x: 180, y: 730, w: 480, h: 150}} />
+          <Confetti seed="cs7cf2" count={5} enterBase={44} area={{x: 1260, y: 730, w: 480, h: 150}} />
         </>
       )}
 
@@ -81,8 +81,8 @@ export const CS7Answer: React.FC = () => {
             <Tape style={{position: 'absolute', right: -40, top: -12}} rot={26} />
           </div>
           <div style={{position: 'absolute', left: '50%', top: 306, transform: `translateX(-50%) scale(${subPop.scale})`, opacity: subPop.opacity}}>
-            <TornPaper seed="cs7sub" color={PAPER.ink} roughness={6} style={{width: 1060, height: 82}}>
-              <div style={{fontSize: 34, fontWeight: 900, color: PAPER.white}}>人事・採用トップパフォーマーの脳による、貴社専用の戦略レポート</div>
+            <TornPaper seed="cs7sub" color={PAPER.ink} roughness={6} style={{width: 1260, height: 82}}>
+              <div style={{fontSize: 33, fontWeight: 900, color: PAPER.white, whiteSpace: 'nowrap'}}>人事・採用トップパフォーマーの脳による、貴社専用の戦略レポート</div>
             </TornPaper>
           </div>
 
@@ -121,11 +121,6 @@ export const CS7Answer: React.FC = () => {
           </div>
         </>
       )}
-
-      <CollageSub
-        enter={10}
-        text={isBeat2 ? 'トップパフォーマーの脳が、貴社専用の\n戦略レポートを出力します。' : 'すべての答えを出力するのが、ADTURN for HR。'}
-      />
     </AbsoluteFill>
   );
 };
@@ -176,7 +171,6 @@ export const CS8CTA: React.FC = () => {
               </div>
             </TornPaper>
           </div>
-          <CollageSub enter={10} text={'一般論は、一行もない。'} />
         </>
       )}
 
@@ -198,8 +192,9 @@ export const CS8CTA: React.FC = () => {
               <div style={{fontSize: 38, fontWeight: 900, color: PAPER.white}}>トップパフォーマーの脳を、あなたの武器に。</div>
             </TornPaper>
           </div>
-          <Confetti seed="cs8cf" count={12} enterBase={120} colors={[PAPER.white, PAPER.yellow, PAPER.ink]} area={{x: 160, y: 140, w: 1600, h: 660}} />
-          <CollageSub enter={116} text={'貴社の答えは、もう出せます。'} />
+          <Confetti seed="cs8cf" count={6} enterBase={120} colors={[PAPER.white, PAPER.yellow, PAPER.ink]} area={{x: 160, y: 130, w: 1600, h: 160}} />
+          <Confetti seed="cs8cf2" count={3} enterBase={128} colors={[PAPER.white, PAPER.yellow, PAPER.ink]} area={{x: 130, y: 350, w: 200, h: 400}} />
+          <Confetti seed="cs8cf3" count={3} enterBase={132} colors={[PAPER.white, PAPER.yellow, PAPER.ink]} area={{x: 1590, y: 350, w: 200, h: 400}} />
         </AbsoluteFill>
       )}
 
@@ -235,8 +230,10 @@ export const CS8CTA: React.FC = () => {
           <div style={{position: 'absolute', bottom: 120, width: '100%', textAlign: 'center', fontSize: 30, fontWeight: 900, letterSpacing: '0.3em', color: '#7A7466'}}>
             ADTANK GP
           </div>
-          <Confetti seed="cs8ecf" count={12} enterBase={340} area={{x: 140, y: 120, w: 1640, h: 700}} />
-          <CollageSub enter={340} text={'デモは、ぜひブースで。'} />
+          <Confetti seed="cs8ecf" count={4} enterBase={340} area={{x: 150, y: 110, w: 560, h: 170}} />
+          <Confetti seed="cs8ecf2" count={4} enterBase={344} area={{x: 1210, y: 110, w: 560, h: 170}} />
+          <Confetti seed="cs8ecf3" count={2} enterBase={350} area={{x: 130, y: 340, w: 200, h: 380}} />
+          <Confetti seed="cs8ecf4" count={2} enterBase={354} area={{x: 1590, y: 340, w: 200, h: 380}} />
         </AbsoluteFill>
       )}
     </AbsoluteFill>

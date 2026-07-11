@@ -291,17 +291,38 @@ const DigibreRing: React.FC<{appear: number}> = ({appear}) => {
   );
 };
 
-// ── 割れる頭部（クリッピング平面で2分割し、ヒンジのように開く） ──
+// ── パカーンと開く頭部（頭頂部を水平カットし、フタのように後ろへ開く＝脳の取り出し） ──
 // 注意: geoはThreeCanvasの外でロードして渡すこと。キャンバス内部の子で非同期ロードすると
 // ロード完了後にGLキャンバスが再描画されず、静止画レンダリングで頭部が消える。
+// クリッピング平面はワールド空間評価なので、フタ側はフタのワールド変換に平面を毎フレーム追従させる。
+// （固定平面だと、回転したフタ＝頭全体のコピーのうち平面より上に来た部分＝顔が突き抜けて見えるバグになる）
 const SplitHead: React.FC<{split: number; geo: THREE.BufferGeometry}> = ({split, geo}) => {
   const frame = useCurrentFrame();
-  const planeL = useMemo(() => new THREE.Plane(new THREE.Vector3(-1, 0.18, 0), 0.001), []);
-  const planeR = useMemo(() => new THREE.Plane(new THREE.Vector3(1, -0.18, 0), 0.001), []);
+  const CUT = 0.85; // 眉上あたりの水平カット高さ（ローカル座標）
 
   const breathe = Math.sin(frame / 30) * 0.02;
-  const openAngle = split * 0.42; // パカっと開く角度
-  const openShift = split * 0.6;
+  const lid = split * 0.82; // パカーンと開く角度（約47°）
+  const lidLift = split * 0.2;
+
+  // ルートグループの変換（下のJSXと一致させること）
+  const rootPos = new THREE.Vector3(0, -0.1 + breathe, 0);
+  const rootRot = new THREE.Euler(0.05, -0.3 + frame / 900, 0);
+  const mRoot = new THREE.Matrix4().compose(
+    rootPos,
+    new THREE.Quaternion().setFromEuler(rootRot),
+    new THREE.Vector3(1, 1, 1)
+  );
+  // フタのヒンジ変換チェーン
+  const mHinge = new THREE.Matrix4().compose(
+    new THREE.Vector3(0, CUT + lidLift, -0.55),
+    new THREE.Quaternion().setFromEuler(new THREE.Euler(-lid, 0, 0)),
+    new THREE.Vector3(1, 1, 1)
+  );
+  const mBack = new THREE.Matrix4().makeTranslation(0, -CUT, 0.55);
+  const mLid = mRoot.clone().multiply(mHinge).multiply(mBack);
+  // ローカルのカット平面をそれぞれのワールド変換で写像
+  const planeBottom = new THREE.Plane(new THREE.Vector3(0, -1, 0), CUT).applyMatrix4(mRoot);
+  const planeTop = new THREE.Plane(new THREE.Vector3(0, 1, 0), -CUT).applyMatrix4(mLid);
 
   const common = {
     color: new THREE.Color('#4A5490'),
@@ -314,26 +335,26 @@ const SplitHead: React.FC<{split: number; geo: THREE.BufferGeometry}> = ({split,
 
   return (
     <group position={[0, -0.1 + breathe, 0]} rotation={[0.05, -0.3 + frame / 900, 0]}>
-      {/* 右半分（+X側）: 右へ開く */}
-      <group position={[openShift, 0, 0]} rotation={[0, 0, -openAngle]}>
-        <mesh geometry={geo}>
-          <meshStandardMaterial {...common} clippingPlanes={[planeR]} />
-        </mesh>
-        <mesh geometry={geo} scale={1.002}>
-          <meshBasicMaterial color="#8F7CFF" wireframe transparent opacity={0.3} clippingPlanes={[planeR]} />
-        </mesh>
+      {/* 下側（顔）: 固定 */}
+      <mesh geometry={geo}>
+        <meshStandardMaterial {...common} clippingPlanes={[planeBottom]} />
+      </mesh>
+      <mesh geometry={geo} scale={1.002}>
+        <meshBasicMaterial color="#8F7CFF" wireframe transparent opacity={0.3} clippingPlanes={[planeBottom]} />
+      </mesh>
+      {/* 頭頂部のフタ: 後頭部を支点に後ろへ起き上がる */}
+      <group position={[0, CUT + lidLift, -0.55]} rotation={[-lid, 0, 0]}>
+        <group position={[0, -CUT, 0.55]}>
+          <mesh geometry={geo}>
+            <meshStandardMaterial {...common} clippingPlanes={[planeTop]} />
+          </mesh>
+          <mesh geometry={geo} scale={1.002}>
+            <meshBasicMaterial color="#8F7CFF" wireframe transparent opacity={0.3} clippingPlanes={[planeTop]} />
+          </mesh>
+        </group>
       </group>
-      {/* 左半分（-X側）: 左へ開く */}
-      <group position={[-openShift, 0, 0]} rotation={[0, 0, openAngle]}>
-        <mesh geometry={geo}>
-          <meshStandardMaterial {...common} clippingPlanes={[planeL]} />
-        </mesh>
-        <mesh geometry={geo} scale={1.002}>
-          <meshBasicMaterial color="#8F7CFF" wireframe transparent opacity={0.3} clippingPlanes={[planeL]} />
-        </mesh>
-      </group>
-      {/* 割れ目の発光（暗黙知の源） */}
-      <pointLight position={[0, 0.5, 0]} color="#9F7CFF" intensity={split * 50} distance={12} />
+      {/* 開口部の発光（暗黙知の源） */}
+      <pointLight position={[0, 0.7, 0]} color="#9F7CFF" intensity={split * 50} distance={12} />
     </group>
   );
 };

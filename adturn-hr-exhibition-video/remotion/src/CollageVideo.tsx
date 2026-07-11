@@ -1,31 +1,28 @@
 import React from 'react';
 import {AbsoluteFill, Audio, Sequence, interpolate, staticFile} from 'remotion';
 import {SCENES, TOTAL_FRAMES} from './theme';
-import {CS1Tech, CS2Engine, CS25Voice} from './collage/CollageScenes1';
+import {CS1Tech, CS2Engine} from './collage/CollageScenes1';
 import {CS3Intro, CSQ1, CSQ2, CSQ3} from './collage/CollageScenes2';
 import {CS7Answer, CS8CTA} from './collage/CollageScenes3';
 
 // ナレーション配置は本編（Video.tsx）と同一
 const NARRATION: Array<[string, number]> = [
-  ['n1', 15],
-  ['n2a', 327],
-  ['n2b', 561],
-  ['v1', 729],
-  ['v2', 861],
-  ['v3', 995],
-  ['n3', 1119],
-  ['n4', 1309],
-  ['n5', 1559],
-  ['n6', 1854],
-  ['n7a', 2091],
-  ['n7b', 2253],
-  ['n8a', 2554],
-  ['n8b', 2655],
-  ['n8c', 2883],
+  ['n1', 15], // S1 技術宣言
+  ['n2a', 327], // S2 約40名コピー済み
+  ['n2b', 561], // S2 レシピではなく料理そのもの
+  ['n3', 724], // S3 例えば、採用。
+  ['n4', 914], // S4 Q1
+  ['n5', 1164], // S5 Q2
+  ['n6', 1459], // S6 Q3
+  ['n7a', 1696], // S7 答え=ADTURN for HR
+  ['n7b', 1858], // S7 レポート内容
+  ['n8a', 2159], // S8 一般論は一行もない
+  ['n8b', 2260], // S8 もう出せます
+  ['n8c', 2488], // S8 デモはブースで
 ];
 
 const QUESTIONS_START = 715;
-const QUESTIONS_END = 2085;
+const QUESTIONS_END = 1690;
 const bgmVolume = (f: number) => {
   const base = interpolate(
     f,
@@ -62,9 +59,6 @@ export const AdturnCollageVideo: React.FC = () => {
       </Sequence>
       <Sequence from={starts.engine} durationInFrames={s.engine} name="C2 技術の中身">
         <CS2Engine />
-      </Sequence>
-      <Sequence from={starts.voice} durationInFrames={s.voice} name="C2.5 現場の声">
-        <CS25Voice />
       </Sequence>
       <Sequence from={starts.intro} durationInFrames={s.intro} name="C3 問いの宣言">
         <CS3Intro />
