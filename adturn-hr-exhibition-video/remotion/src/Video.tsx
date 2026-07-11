@@ -3,6 +3,7 @@ import {AbsoluteFill, Audio, Sequence, interpolate, staticFile, useCurrentFrame}
 import {SCENES, TOTAL_FRAMES} from './theme';
 import {Scene1Tech} from './scenes/Scene1Tech';
 import {Scene2Engine} from './scenes/Scene2Engine';
+import {Scene25Voice} from './scenes/Scene25Voice';
 import {Scene3Intro} from './scenes/Scene3Intro';
 import {Scene4Q1, Scene5Q2, Scene6Q3, QuestionProgress} from './scenes/SceneQuestions';
 import {Scene7Answer} from './scenes/Scene7Answer';
@@ -48,20 +49,23 @@ const NARRATION: Array<[string, number]> = [
   ['n1', 15], // S1 技術宣言
   ['n2a', 327], // S2 約40名コピー済み
   ['n2b', 561], // S2 レシピではなく料理そのもの
-  ['n3', 724], // S3 例えば、採用。
-  ['n4', 914], // S4 Q1
-  ['n5', 1164], // S5 Q2
-  ['n6', 1459], // S6 Q3
-  ['n7a', 1696], // S7 答え=ADTURN for HR
-  ['n7b', 1858], // S7 レポート内容
-  ['n8a', 2159], // S8 一般論は一行もない
-  ['n8b', 2260], // S8 もう出せます
-  ['n8c', 2488], // S8 デモはブースで
+  ['v1', 729], // S2.5 経営者の声
+  ['v2', 861], // S2.5 人事責任者の声
+  ['v3', 995], // S2.5 それ、解決できます。
+  ['n3', 1119], // S3 例えば、採用。
+  ['n4', 1309], // S4 Q1
+  ['n5', 1559], // S5 Q2
+  ['n6', 1854], // S6 Q3
+  ['n7a', 2091], // S7 答え=ADTURN for HR
+  ['n7b', 2253], // S7 レポート内容
+  ['n8a', 2554], // S8 一般論は一行もない
+  ['n8b', 2655], // S8 もう出せます
+  ['n8c', 2883], // S8 デモはブースで
 ];
 
-// BGM: ambient pad, ducked during the question section (静かな「余白」)
+// BGM: ambient pad, ducked from the voice scene through the question section (静かな「余白」)
 const QUESTIONS_START = 715;
-const QUESTIONS_END = 1690;
+const QUESTIONS_END = 2085;
 const bgmVolume = (f: number) => {
   const base = interpolate(
     f,
@@ -104,6 +108,11 @@ export const AdturnVideo: React.FC = () => {
           </CameraDrift>
         </CrossFade>
       </Sequence>
+      <Sequence from={starts.voice} durationInFrames={s.voice} name="S2.5 現場の声">
+        <CrossFade duration={s.voice}>
+          <Scene25Voice />
+        </CrossFade>
+      </Sequence>
       <Sequence from={starts.intro} durationInFrames={s.intro} name="S3 問いの宣言">
         <CrossFade duration={s.intro}>
           <CameraDrift phase={14}>
@@ -123,7 +132,7 @@ export const AdturnVideo: React.FC = () => {
         <CrossFade duration={s.q2}>
           <CameraDrift phase={28}>
             <Scene5Q2 />
-            <QuestionProgress active={1} />
+            <QuestionProgress active={1} dark />
           </CameraDrift>
         </CrossFade>
       </Sequence>

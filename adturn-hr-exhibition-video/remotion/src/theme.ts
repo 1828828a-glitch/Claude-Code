@@ -15,10 +15,11 @@ export const FONT = "'Noto Sans CJK JP', 'Noto Sans JP', sans-serif";
 
 export const FPS = 30;
 
-// Scene durations in frames (total 2590 ≈ 86s @30fps, paced to natural-rate narration)
+// Scene durations in frames (total 2985 ≈ 99.5s @30fps, paced to natural-rate narration)
 export const SCENES = {
   tech: 315, // S1 技術宣言 10.5s
   engine: 400, // S2 技術の中身 13.3s
+  voice: 395, // S2.5 現場の声→それ解決できます 13.2s
   intro: 190, // S3 問いの宣言 6.3s
   q1: 250, // S4 Q1 8.3s
   q2: 295, // S5 Q2 9.8s

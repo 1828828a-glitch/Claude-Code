@@ -30,6 +30,28 @@ export const Scene7Answer: React.FC = () => {
 
   return (
     <AbsoluteFill style={{background: COLORS.white, fontFamily: FONT, overflow: 'hidden'}}>
+      {/* 光のウォッシュ背景＋浮遊オーブで奥行きを出す */}
+      <AbsoluteFill
+        style={{
+          background:
+            'radial-gradient(ellipse 1400px 900px at 50% 30%, rgba(139,92,246,0.10) 0%, rgba(67,83,255,0.04) 45%, transparent 75%)',
+        }}
+      />
+      {[0, 1].map((i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            left: i === 0 ? -180 + Math.sin(frame / 70) * 30 : 1500 + Math.cos(frame / 80) * 40,
+            top: i === 0 ? 620 + Math.cos(frame / 60) * 40 : -140 + Math.sin(frame / 75) * 30,
+            width: 560,
+            height: 560,
+            borderRadius: '50%',
+            background: `radial-gradient(circle, rgba(${i === 0 ? '67,83,255' : '139,92,246'},0.16) 0%, transparent 70%)`,
+            filter: 'blur(10px)',
+          }}
+        />
+      ))}
       <Particles count={20} seed="s7" color="rgba(139,92,246,0.16)" maxSize={8} />
       {/* Beat 1: 3つの問いへのチェック */}
       {frame < 110 && (
