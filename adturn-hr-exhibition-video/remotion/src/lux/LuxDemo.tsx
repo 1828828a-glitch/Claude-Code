@@ -6,27 +6,32 @@ import {useThree} from '@react-three/fiber';
 import {FONT} from '../theme';
 import {useBrainTexture, useHeadGeometry} from '../scenes/Head3D';
 
-// ── ラグジュアリー「プロダクト・ラボ」スタイルデモ ──
+// ── ラグジュアリー「プロダクト・ラボ」スタイル共通パーツ＋スタイルデモ ──
 // 参考: 暗背景に単一の精密3Dオブジェクト、スローターンテーブル、
 // 細い引き出し線＋極小タイポのHUD、下部にステータスバー。
 
-const INK = '#E8ECF0';
-const DIM = 'rgba(232,236,240,0.55)';
-const GOLD = '#D8B36A';
-const RED = '#E5484D';
-const LINE = 'rgba(232,236,240,0.35)';
+export const INK = '#E8ECF0';
+export const DIM = 'rgba(232,236,240,0.55)';
+export const GOLD = '#D8B36A';
+export const RED = '#E5484D';
+export const LINE = 'rgba(232,236,240,0.35)';
+export const LUX_BG = '#0A0E13';
 
-// タイムライン（450f = 15s）
+// デモのタイムライン（450f = 15s）
 const OPEN_START = 110; // 頭がパカーン
 const OPEN_DUR = 55;
 const CALLOUT_BASE = 200; // 引き出し線の出現開始
 const DONE_AT = 360; // TRANSCRIBED
 
 // ── 3D: 頭（フタ開き）＋脳 ──
-const LuxHead: React.FC<{geo: THREE.BufferGeometry}> = ({geo}) => {
+const LuxHead: React.FC<{geo: THREE.BufferGeometry; openStart: number; openDur: number}> = ({
+  geo,
+  openStart,
+  openDur,
+}) => {
   const frame = useCurrentFrame();
   const CUT = 0.85;
-  const split = interpolate(frame, [OPEN_START, OPEN_START + OPEN_DUR], [0, 1], {
+  const split = interpolate(frame, [openStart, openStart + openDur], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: (t) => 1 - Math.pow(1 - t, 3),
@@ -86,14 +91,14 @@ const LuxHead: React.FC<{geo: THREE.BufferGeometry}> = ({geo}) => {
 };
 
 // ── 3D: 脳の浮上 ──
-const LuxBrain: React.FC<{tex: THREE.Texture}> = ({tex}) => {
+const LuxBrain: React.FC<{tex: THREE.Texture; riseStart: number}> = ({tex, riseStart}) => {
   const frame = useCurrentFrame();
-  const rise = interpolate(frame, [OPEN_START + 20, OPEN_START + 95], [0, 1], {
+  const rise = interpolate(frame, [riseStart, riseStart + 75], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: (t) => 1 - Math.pow(1 - t, 3),
   });
-  if (frame < OPEN_START + 20) return null;
+  if (frame < riseStart) return null;
   const y = 0.35 + rise * 1.35 + Math.sin(frame / 34) * 0.05;
   const s = 0.25 + rise * 0.72;
   return (
@@ -122,8 +127,57 @@ const LuxCamera: React.FC = () => {
   return null;
 };
 
+// ── 3Dキャンバス一式（頭＋脳＋照明）。シーン1とデモで共用 ──
+export const LuxHeadCanvas: React.FC<{openStart?: number; openDur?: number}> = ({
+  openStart = OPEN_START,
+  openDur = OPEN_DUR,
+}) => {
+  const {width, height} = useVideoConfig();
+  const geo = useHeadGeometry();
+  const brainTex = useBrainTexture();
+  return (
+    <ThreeCanvas
+      width={width}
+      height={height}
+      gl={{antialias: true}}
+      onCreated={(state: {gl: THREE.WebGLRenderer}) => {
+        state.gl.localClippingEnabled = true;
+      }}
+      camera={{fov: 35, position: [0, 0.65, 7.6]}}
+      style={{position: 'absolute', inset: 0}}
+    >
+      <LuxCamera />
+      <ambientLight intensity={0.5} color="#5F6C86" />
+      <directionalLight position={[5, 4, 3]} intensity={3.4} color="#FFD9A0" />
+      <directionalLight position={[-5, 2, -1]} intensity={1.4} color="#6E86C4" />
+      <directionalLight position={[0, 3, -5]} intensity={2.2} color="#8FA6D8" />
+      {geo && <LuxHead geo={geo} openStart={openStart} openDur={openDur} />}
+      {brainTex && <LuxBrain tex={brainTex} riseStart={openStart + 20} />}
+    </ThreeCanvas>
+  );
+};
+
+// ── 背景（極薄ドットグリッド＋ビネット） ──
+export const LuxBackdrop: React.FC = () => (
+  <>
+    <AbsoluteFill
+      style={{
+        backgroundImage: 'radial-gradient(rgba(232,236,240,0.05) 1px, transparent 1px)',
+        backgroundSize: '56px 56px',
+        opacity: 0.7,
+      }}
+    />
+    <AbsoluteFill
+      style={{
+        background:
+          'radial-gradient(ellipse 70% 60% at 50% 44%, rgba(216,179,106,0.05), transparent 60%), radial-gradient(ellipse 120% 100% at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%)',
+      }}
+    />
+  </>
+);
+
 // ── HUD: 引き出し線＋極小ラベル ──
-const Callout: React.FC<{
+export const Callout: React.FC<{
   at: number;
   side: 'left' | 'right';
   y: number;
@@ -168,7 +222,7 @@ const Callout: React.FC<{
   );
 };
 
-// ── HUD全体 ──
+// ── デモ用HUD全体 ──
 const LuxHud: React.FC = () => {
   const frame = useCurrentFrame();
   const boot = interpolate(frame, [6, 30], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
@@ -282,46 +336,13 @@ const LuxHud: React.FC = () => {
 // ── デモ本体 ──
 export const LuxDemo: React.FC = () => {
   const frame = useCurrentFrame();
-  const {width, height} = useVideoConfig();
-  const geo = useHeadGeometry();
-  const brainTex = useBrainTexture();
   const fade = interpolate(frame, [0, 14], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
 
   return (
-    <AbsoluteFill style={{background: '#0A0E13'}}>
-      {/* 極薄のドットグリッド＋ビネット */}
-      <AbsoluteFill
-        style={{
-          backgroundImage: 'radial-gradient(rgba(232,236,240,0.05) 1px, transparent 1px)',
-          backgroundSize: '56px 56px',
-          opacity: 0.7,
-        }}
-      />
-      <AbsoluteFill
-        style={{
-          background:
-            'radial-gradient(ellipse 70% 60% at 50% 44%, rgba(216,179,106,0.05), transparent 60%), radial-gradient(ellipse 120% 100% at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%)',
-        }}
-      />
+    <AbsoluteFill style={{background: LUX_BG}}>
+      <LuxBackdrop />
       <AbsoluteFill style={{opacity: fade}}>
-        <ThreeCanvas
-          width={width}
-          height={height}
-          gl={{antialias: true}}
-          onCreated={(state: {gl: THREE.WebGLRenderer}) => {
-            state.gl.localClippingEnabled = true;
-          }}
-          camera={{fov: 35, position: [0, 0.65, 7.6]}}
-          style={{position: 'absolute', inset: 0}}
-        >
-          <LuxCamera />
-          <ambientLight intensity={0.5} color="#5F6C86" />
-          <directionalLight position={[5, 4, 3]} intensity={3.4} color="#FFD9A0" />
-          <directionalLight position={[-5, 2, -1]} intensity={1.4} color="#6E86C4" />
-          <directionalLight position={[0, 3, -5]} intensity={2.2} color="#8FA6D8" />
-          {geo && <LuxHead geo={geo} />}
-          {brainTex && <LuxBrain tex={brainTex} />}
-        </ThreeCanvas>
+        <LuxHeadCanvas />
       </AbsoluteFill>
       <LuxHud />
     </AbsoluteFill>
