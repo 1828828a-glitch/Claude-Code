@@ -57,7 +57,7 @@ const loadHeadGeometry = (): Promise<THREE.BufferGeometry> => {
   return headGeoPromise;
 };
 
-const useHeadGeometry = () => {
+export const useHeadGeometry = () => {
   const [geo, setGeo] = useState<THREE.BufferGeometry | null>(null);
   const [handle] = useState(() => delayRender('loading head.glb'));
   useEffect(() => {
@@ -79,7 +79,7 @@ const useHeadGeometry = () => {
 
 // カラフル脳テクスチャ（キャンバスの外でロードすること — GLBと同じ再描画問題を避ける）
 let brainTexPromise: Promise<THREE.Texture> | null = null;
-const useBrainTexture = () => {
+export const useBrainTexture = () => {
   const [tex, setTex] = useState<THREE.Texture | null>(null);
   const [handle] = useState(() => delayRender('loading brain.png'));
   useEffect(() => {
