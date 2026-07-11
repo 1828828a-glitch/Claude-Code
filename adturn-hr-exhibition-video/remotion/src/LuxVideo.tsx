@@ -3,21 +3,22 @@ import {AbsoluteFill, Audio, Sequence, interpolate, staticFile, useCurrentFrame}
 import {SCENES, TOTAL_FRAMES} from './theme';
 import {LUX_BG, LuxBackdrop} from './lux/LuxDemo';
 import {L1Tech, L2Engine, L3Intro, L7Answer, L8CTA, LQ1, LQ2, LQ3, LuxFrame} from './lux/LuxScenes';
+import {LuxStage} from './lux/LuxStage';
 
 // ナレーション配置は本編（Video.tsx）と同一
 const NARRATION: Array<[string, number]> = [
   ['n1', 15], // L1 技術宣言
   ['n2a', 327], // L2 約40名コピー済み
-  ['n2b', 561], // L2 レシピではなく料理そのもの
+  ['n2b', 574], // L2 レシピではなく料理そのもの
   ['n3', 724], // L3 例えば、採用。
   ['n4', 914], // L4 Q1
   ['n5', 1164], // L5 Q2
   ['n6', 1459], // L6 Q3
   ['n7a', 1696], // L7 答え=ADTURN for HR
-  ['n7b', 1858], // L7 レポート内容
+  ['n7b', 1862], // L7 レポート内容
   ['n8a', 2159], // L8 一般論は一行もない
-  ['n8b', 2260], // L8 もう出せます
-  ['n8c', 2488], // L8 デモはブースで
+  ['n8b', 2284], // L8 もう出せます
+  ['n8c', 2492], // L8 デモはブースで
 ];
 
 const QUESTIONS_START = 715;
@@ -64,6 +65,8 @@ export const AdturnLuxVideo: React.FC = () => {
       ))}
       {/* 背景は全編共通（切り替えなしで高級感の連続性を出す） */}
       <LuxBackdrop />
+      {/* 常設3Dステージ: 頭部＋脳が86秒まわり続け、シーンごとにカメラと明度が変わる */}
+      <LuxStage />
       <Sequence from={starts.tech} durationInFrames={s.tech} name="L1 技術宣言">
         <SceneFade duration={s.tech}>
           <L1Tech />

@@ -24,10 +24,11 @@ const CALLOUT_BASE = 200; // 引き出し線の出現開始
 const DONE_AT = 360; // TRANSCRIBED
 
 // ── 3D: 頭（フタ開き）＋脳 ──
-const LuxHead: React.FC<{geo: THREE.BufferGeometry; openStart: number; openDur: number}> = ({
+export const LuxHead: React.FC<{geo: THREE.BufferGeometry; openStart: number; openDur: number; xOff?: number}> = ({
   geo,
   openStart,
   openDur,
+  xOff = 0,
 }) => {
   const frame = useCurrentFrame();
   const CUT = 0.85;
@@ -41,7 +42,7 @@ const LuxHead: React.FC<{geo: THREE.BufferGeometry; openStart: number; openDur: 
 
   // ターンテーブル（ごくゆっくり）
   const yRot = -0.42 + frame / 620;
-  const rootPos = new THREE.Vector3(0, -0.25, 0);
+  const rootPos = new THREE.Vector3(xOff, -0.25, 0);
   const rootRot = new THREE.Euler(0.04, yRot, 0);
   const mRoot = new THREE.Matrix4().compose(
     rootPos,
@@ -91,7 +92,7 @@ const LuxHead: React.FC<{geo: THREE.BufferGeometry; openStart: number; openDur: 
 };
 
 // ── 3D: 脳の浮上 ──
-const LuxBrain: React.FC<{tex: THREE.Texture; riseStart: number}> = ({tex, riseStart}) => {
+export const LuxBrain: React.FC<{tex: THREE.Texture; riseStart: number}> = ({tex, riseStart}) => {
   const frame = useCurrentFrame();
   const rise = interpolate(frame, [riseStart, riseStart + 75], [0, 1], {
     extrapolateLeft: 'clamp',

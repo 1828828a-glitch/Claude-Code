@@ -132,16 +132,12 @@ export const LuxFrame: React.FC = () => {
 
 // ── L1 技術宣言（315f）: 3Dヘッド＋コピー＋引き出し線 ──
 export const L1Tech: React.FC = () => {
-  const frame = useCurrentFrame();
-  const fade = interpolate(frame, [0, 14], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const t1 = useFU(36);
   const t2 = useFU(58);
   const rule = useDraw(30);
   return (
     <AbsoluteFill style={{fontFamily: FONT}}>
-      <AbsoluteFill style={{opacity: fade}}>
-        <LuxHeadCanvas openStart={62} openDur={50} />
-      </AbsoluteFill>
+      {/* 3Dヘッドは常設ステージ（LuxStage）側で表示 */}
       {/* 左: メインコピー */}
       <div style={{position: 'absolute', left: 70, top: 360}}>
         <div style={{width: 64, height: 2, background: GOLD, transform: `scaleX(${rule})`, transformOrigin: 'left'}} />
@@ -208,8 +204,8 @@ export const L2Engine: React.FC = () => {
             </div>
           </div>
 
-          {/* 右: 標本フレームの脳＋領域インデックス */}
-          <div style={{position: 'absolute', left: 1010, top: 250, width: 500, height: 460, ...brainIn}}>
+          {/* 右: 標本フレーム（中身は常設ステージの3Dヘッド）＋領域インデックス */}
+          <div style={{position: 'absolute', left: 1100, top: 170, width: 560, height: 630, ...brainIn}}>
             {/* コーナーブラケット */}
             {[
               {left: 0, top: 0, bt: 1, bl: 1},
@@ -235,13 +231,12 @@ export const L2Engine: React.FC = () => {
                 }}
               />
             ))}
-            <Img
-              src={staticFile('img/brain.png')}
-              style={{position: 'absolute', left: 50, top: 30, width: 400, height: 400, objectFit: 'contain'}}
-            />
-            <Caps style={{position: 'absolute', left: 0, bottom: -34}}>SPECIMEN — DIGIBRE CORE</Caps>
+            {/* クロスヘア */}
+            <div style={{position: 'absolute', left: '50%', top: -14, width: 1, height: 14, background: GOLD, opacity: 0.6}} />
+            <div style={{position: 'absolute', left: '50%', bottom: -14, width: 1, height: 14, background: GOLD, opacity: 0.6}} />
+            <Caps style={{position: 'absolute', left: 0, bottom: -38}}>SPECIMEN — DIGIBRE CORE</Caps>
           </div>
-          <div style={{position: 'absolute', left: 1580, top: 262}}>
+          <div style={{position: 'absolute', left: 1690, top: 262}}>
             {TAGS.map((t, i) => {
               const p = interpolate(frame, [36 + i * 14, 56 + i * 14], [0, 1], {
                 extrapolateLeft: 'clamp',
