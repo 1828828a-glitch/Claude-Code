@@ -2,7 +2,7 @@ import React from 'react';
 import {AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {COLORS, FONT, GRADIENT} from '../theme';
 import {GradientText, useRise} from '../helpers';
-import {KineticChars, Particles} from '../fx';
+import {KineticChars, Particles, ReportDoc} from '../fx';
 
 // S8 信頼の担保＋CTA（14.7s）: パーティクル収束→エンドカード
 // Beat 1: 0-104 一般論は一行もない / Beat 2: 104-328 もう出せます / Beat 3: 328-440 エンドカード
@@ -10,6 +10,7 @@ export const Scene8CTA: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
 
+  const b1Sub = useRise(46, 30);
   const b1Out = interpolate(frame, [88, 102], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
@@ -42,16 +43,48 @@ export const Scene8CTA: React.FC = () => {
         }}
       />
       <Particles count={55} seed="s8" color="rgba(139,92,246,0.55)" pull={pull} />
-      {/* Beat 1 */}
+      {/* Beat 1: 光る戦略レポート誌面 ＋「一般論は、一行もない。」 */}
       {frame < 104 && (
-        <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', opacity: b1Out}}>
-          <KineticChars
-            text="一般論は、一行もない。"
-            delay={10}
-            stagger={2.8}
-            gradientRange={[6, 10]}
-            style={{fontSize: 130, fontWeight: 900, color: COLORS.white}}
+        <AbsoluteFill
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 110,
+            opacity: b1Out,
+          }}
+        >
+          <ReportDoc
+            delay={6}
+            width={430}
+            height={580}
+            header="戦略レポート｜p.21"
+            lineCount={11}
+            seed="s8doc"
+            glow
+            fontSize={26}
           />
+          <div>
+            <KineticChars
+              text="一般論は、"
+              delay={12}
+              stagger={2.6}
+              style={{fontSize: 110, fontWeight: 900, color: COLORS.white}}
+            />
+            <KineticChars
+              text="一行もない。"
+              delay={26}
+              stagger={2.6}
+              gradientRange={[0, 4]}
+              style={{fontSize: 110, fontWeight: 900, color: COLORS.white}}
+            />
+            <div style={{height: 40}} />
+            <div style={{fontSize: 38, fontWeight: 500, color: 'rgba(255,255,255,0.72)', lineHeight: 1.7, ...b1Sub}}>
+              貴社の公開情報から、人事・採用
+              <br />
+              トップパフォーマーの「脳」が診断。
+            </div>
+          </div>
         </AbsoluteFill>
       )}
       {/* Beat 2 */}

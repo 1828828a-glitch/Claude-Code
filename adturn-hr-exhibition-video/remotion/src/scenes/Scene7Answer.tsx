@@ -2,17 +2,18 @@ import React from 'react';
 import {AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {COLORS, FONT, GRADIENT} from '../theme';
 import {GradientText, usePop, useRise} from '../helpers';
-import {DrawCheck, Particles, RadialBurst, TiltIn} from '../fx';
+import {DrawCheck, Particles, RadialBurst, ReportDoc, TiltIn} from '../fx';
 
-const QUESTIONS = ['Q1 ポジション', 'Q2 無自覚の魅力', 'Q3 クロージング'];
-const DELIVERABLES = [
-  {n: '01', t: '市場ポジションの設計'},
-  {n: '02', t: '眠れる魅力の発掘'},
-  {n: '03', t: '狙うべき人材の特定'},
-  {n: '04', t: '面接トークスクリプト'},
+const QUESTIONS = ['Q1｜ポジション', 'Q2｜無自覚の魅力', 'Q3｜ターゲット', 'Q4｜クロージング'];
+const REPORTS = [
+  {t: 'ポジショニング\nマップ', rot: -8},
+  {t: '無自覚資産の\n発掘', rot: -3},
+  {t: 'ターゲット\nペルソナ', rot: 3},
+  {t: 'トーク\nスクリプト', rot: 8},
 ];
 
-// S7 答えの存在証明（15.3s）: チェック描画 → ロゴ後光リビール → 3D納品物カード
+// S7 答えの存在証明（15.3s）
+// Beat 1: 「4つの問い、すべてに答えを。」チェックカード / Beat 2: ロゴ→扇状レポートカード
 export const Scene7Answer: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -24,9 +25,10 @@ export const Scene7Answer: React.FC = () => {
   const headAnim = useRise(4, 40);
 
   const logoIn = spring({frame: frame - 112, fps, config: {damping: 15, stiffness: 90, mass: 1}});
-  const subAnim = useRise(140, 40);
+  const subAnim = useRise(140, 30);
+  const lineAnim = useRise(228, 30);
 
-  const checkPops = QUESTIONS.map((_, i) => usePop(24 + i * 16));
+  const checkPops = QUESTIONS.map((_, i) => usePop(20 + i * 13));
 
   return (
     <AbsoluteFill style={{background: COLORS.white, fontFamily: FONT, overflow: 'hidden'}}>
@@ -53,7 +55,8 @@ export const Scene7Answer: React.FC = () => {
         />
       ))}
       <Particles count={20} seed="s7" color="rgba(139,92,246,0.16)" maxSize={8} />
-      {/* Beat 1: 3つの問いへのチェック */}
+
+      {/* Beat 1: 4つの問いにチェック */}
       {frame < 110 && (
         <AbsoluteFill
           style={{
@@ -64,36 +67,37 @@ export const Scene7Answer: React.FC = () => {
           }}
         >
           <div style={{fontSize: 84, fontWeight: 900, color: COLORS.ink, ...headAnim}}>
-            そのすべての「答え」を、出力する。
+            4つの問い、<GradientText>すべてに答え</GradientText>を。
           </div>
           <div style={{height: 70}} />
-          <div style={{display: 'flex', gap: 44}}>
+          <div style={{display: 'flex', gap: 40}}>
             {QUESTIONS.map((q, i) => (
               <div
                 key={q}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 20,
-                  padding: '26px 44px',
-                  borderRadius: 999,
-                  background: COLORS.offWhite,
-                  border: '2px solid #E5E7EB',
-                  fontSize: 38,
+                  position: 'relative',
+                  padding: '46px 44px',
+                  borderRadius: 22,
+                  background: COLORS.white,
+                  border: '3px solid #23283C',
+                  fontSize: 36,
                   fontWeight: 700,
-                  color: COLORS.inkSoft,
+                  color: COLORS.ink,
+                  boxShadow: '0 16px 44px rgba(11,16,32,0.10)',
                   ...checkPops[i],
                 }}
               >
-                <DrawCheck delay={30 + i * 16} />
                 {q}
+                <div style={{position: 'absolute', top: -22, right: -22}}>
+                  <DrawCheck delay={28 + i * 13} size={52} />
+                </div>
               </div>
             ))}
           </div>
         </AbsoluteFill>
       )}
 
-      {/* Beat 2: ロゴリビール＋納品物 */}
+      {/* Beat 2: ロゴリビール → 扇状レポートカード */}
       {frame >= 105 && (
         <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', flexDirection: 'column'}}>
           <RadialBurst delay={112} />
@@ -101,54 +105,74 @@ export const Scene7Answer: React.FC = () => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 36,
-              transform: `scale(${logoIn})`,
+              gap: 30,
+              transform: `scale(${Math.min(logoIn, 1.04)})`,
               opacity: frame < 112 ? 0 : 1,
             }}
           >
             <div
               style={{
-                width: 110,
-                height: 110,
+                width: 78,
+                height: 78,
                 borderRadius: '50%',
-                border: '26px solid transparent',
+                border: '19px solid transparent',
                 background: `linear-gradient(${COLORS.white}, ${COLORS.white}) padding-box, ${GRADIENT} border-box`,
                 transform: `rotate(${frame * 1.2}deg)`,
-                boxShadow: '0 18px 60px rgba(67,83,255,0.35)',
+                boxShadow: '0 14px 44px rgba(67,83,255,0.35)',
               }}
             />
-            <div style={{display: 'flex', alignItems: 'baseline', fontSize: 150, fontWeight: 900, letterSpacing: '0.01em'}}>
+            <div style={{display: 'flex', alignItems: 'baseline', fontSize: 104, fontWeight: 900, letterSpacing: '0.01em'}}>
               <span style={{color: COLORS.ink}}>ADTURN</span>
-              <span style={{width: 40}} />
+              <span style={{width: 28}} />
               <GradientText>for HR</GradientText>
             </div>
           </div>
-          <div style={{height: 34}} />
-          <div style={{fontSize: 44, fontWeight: 700, color: COLORS.inkSoft, ...subAnim}}>
+          <div style={{height: 20}} />
+          <div style={{fontSize: 38, fontWeight: 700, color: COLORS.inkSoft, ...subAnim}}>
             人事・採用トップパフォーマーの脳による、貴社専用の戦略レポート
           </div>
-          <div style={{height: 70}} />
-          <div style={{display: 'flex', gap: 36}}>
-            {DELIVERABLES.map((d, i) => (
-              <TiltIn key={d.n} delay={168 + i * 12} dir={i < 2 ? -1 : 1}>
-                <div
-                  style={{
-                    width: 380,
-                    padding: '40px 36px',
-                    borderRadius: 28,
-                    background: COLORS.white,
-                    border: '2px solid #E9EBF5',
-                    boxShadow: '0 20px 60px rgba(11,16,32,0.08)',
-                  }}
-                >
-                  <GradientText style={{fontSize: 54, fontWeight: 900}}>{d.n}</GradientText>
-                  <div style={{height: 14}} />
-                  <div style={{fontSize: 37, fontWeight: 700, color: COLORS.ink, lineHeight: 1.4}}>
-                    {d.t}
-                  </div>
-                </div>
-              </TiltIn>
+          <div style={{height: 48}} />
+          {/* 扇状に並ぶレポートカード */}
+          <div style={{display: 'flex', alignItems: 'flex-start'}}>
+            {REPORTS.map((r, i) => (
+              <div
+                key={r.t}
+                style={{
+                  transform: `rotate(${r.rot}deg) translateY(${Math.abs(r.rot) * 4 + Math.sin(frame / 26 + i * 1.4) * 5}px)`,
+                  margin: '0 -6px',
+                  zIndex: i,
+                }}
+              >
+                <ReportDoc
+                  delay={166 + i * 11}
+                  width={300}
+                  height={330}
+                  title={r.t}
+                  lineCount={5}
+                  seed={`rep${i}`}
+                  fontSize={30}
+                />
+              </div>
             ))}
+          </div>
+          <div style={{height: 42}} />
+          <div
+            style={{
+              fontSize: 33,
+              fontWeight: 700,
+              color: COLORS.greyDark,
+              display: 'flex',
+              gap: 22,
+              ...lineAnim,
+            }}
+          >
+            <span>市場ポジションの設計</span>
+            <span style={{color: COLORS.grey}}>/</span>
+            <span>眠れる魅力の発掘</span>
+            <span style={{color: COLORS.grey}}>/</span>
+            <span>狙うべき人材の特定</span>
+            <span style={{color: COLORS.grey}}>/</span>
+            <span>面接で使うトークスクリプト</span>
           </div>
         </AbsoluteFill>
       )}

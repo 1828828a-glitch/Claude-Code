@@ -356,6 +356,98 @@ export const Odometer: React.FC<{
   );
 };
 
+// ── 戦略レポートの誌面モック（行が書き込まれていくアニメーション付き） ──
+export const ReportDoc: React.FC<{
+  delay: number;
+  width: number;
+  height: number;
+  header?: string; // 左上の小見出し（例: 戦略レポート｜p.21）
+  title?: string; // 中央の大きめタイトル（扇状カード用）
+  lineCount?: number;
+  seed?: string;
+  glow?: boolean;
+  fontSize?: number;
+}> = ({delay, width, height, header, title, lineCount = 9, seed = 'doc', glow, fontSize = 26}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const cardIn = spring({frame: frame - delay, fps, config: {damping: 16, stiffness: 110, mass: 0.8}});
+  const bob = Math.sin((frame - delay) / 32) * 6;
+  return (
+    <div
+      style={{
+        width,
+        height,
+        borderRadius: 14,
+        background: '#FFFFFF',
+        padding: '26px 30px',
+        boxShadow: glow
+          ? '0 0 60px rgba(185,175,255,0.55), 0 0 140px rgba(99,102,241,0.35)'
+          : '0 18px 50px rgba(11,16,32,0.16)',
+        opacity: Math.min(cardIn * 1.3, 1),
+        transform: `translateY(${(1 - cardIn) * 60 + bob}px) scale(${0.9 + cardIn * 0.1})`,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 0,
+      }}
+    >
+      {header && (
+        <>
+          <div style={{fontSize, fontWeight: 900, color: COLORS.ink}}>{header}</div>
+          <div style={{height: 8}} />
+          <div style={{height: 3, background: COLORS.ink, opacity: 0.85}} />
+          <div style={{height: 16}} />
+        </>
+      )}
+      {title && (
+        <>
+          <div
+            style={{
+              fontSize: fontSize * 1.15,
+              fontWeight: 900,
+              color: COLORS.ink,
+              textAlign: 'center',
+              lineHeight: 1.35,
+              whiteSpace: 'pre-line',
+              minHeight: fontSize * 3.2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {title}
+          </div>
+          <div style={{height: 10}} />
+          <div style={{height: 6, borderRadius: 4, background: GRADIENT}} />
+          <div style={{height: 18}} />
+        </>
+      )}
+      {Array.from({length: lineCount}).map((_, i) => {
+        const w = 50 + random(`${seed}w${i}`) * 45;
+        const isBlue = i % 3 === 2; // 3行に1本だけ青（強調行）
+        const lineIn = interpolate(frame, [delay + 10 + i * 4, delay + 22 + i * 4], [0, 1], {
+          extrapolateLeft: 'clamp',
+          extrapolateRight: 'clamp',
+        });
+        return (
+          <div
+            key={i}
+            style={{
+              height: height * 0.032,
+              minHeight: 7,
+              borderRadius: 5,
+              marginBottom: height * 0.035,
+              width: `${w}%`,
+              background: isBlue ? GRADIENT : '#D3D7E3',
+              transform: `scaleX(${lineIn})`,
+              transformOrigin: 'left',
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
 // ── グラデーションの下線スイープ ──
 export const Underline: React.FC<{delay: number; width?: number | string}> = ({delay, width = '100%'}) => {
   const frame = useCurrentFrame();
