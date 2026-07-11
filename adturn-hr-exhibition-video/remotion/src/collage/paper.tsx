@@ -239,6 +239,95 @@ export const PaperBurst: React.FC<{cx: number; cy: number; color?: string; n?: n
   );
 };
 
+// ギザギザの丸シール（チェックなど）
+export const PaperSeal: React.FC<{
+  size?: number;
+  color?: string;
+  children?: React.ReactNode;
+  style?: React.CSSProperties;
+}> = ({size = 190, color = PAPER.red, children, style}) => (
+  <div style={{filter: 'drop-shadow(4px 6px 0 rgba(34,30,24,0.25))', width: size, height: size, ...style}}>
+    <svg width={size} height={size} viewBox="-95 -95 190 190">
+      <g fill={color}>
+        {Array.from({length: 14}).map((_, i) => (
+          <polygon key={i} points="0,-92 12,-70 -12,-70" transform={`rotate(${(i / 14) * 360})`} />
+        ))}
+        <circle r={74} />
+      </g>
+    </svg>
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {children ?? (
+        <svg width={size * 0.5} height={size * 0.5} viewBox="-50 -50 100 100">
+          <polyline points="-30,2 -8,24 34,-24" fill="none" stroke={PAPER.white} strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+    </div>
+  </div>
+);
+
+// 紙のリング（デジブレの輪の切り絵版）
+export const PaperRing: React.FC<{size?: number; color?: string; seed?: string; style?: React.CSSProperties}> = ({
+  size = 260,
+  color = PAPER.blue,
+  seed = 'ring',
+  style,
+}) => {
+  const w = useWobble(seed, 1);
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        border: `${size * 0.16}px solid ${color}`,
+        transform: `rotate(${w.rot}deg)`,
+        filter: 'drop-shadow(5px 7px 0 rgba(34,30,24,0.25))',
+        ...style,
+      }}
+    />
+  );
+};
+
+// 紙の吹き出し（しっぽ付き）
+export const SpeechBubble: React.FC<{
+  seed?: string;
+  width: number;
+  height: number;
+  tail?: 'left' | 'right';
+  color?: string;
+  style?: React.CSSProperties;
+  children?: React.ReactNode;
+}> = ({seed = 'sb', width, height, tail = 'left', color = PAPER.white, style, children}) => (
+  <div style={{position: 'relative', width, height: height + 34, ...style}}>
+    <TornPaper seed={seed} color={color} roughness={8} style={{width, height}}>
+      {children}
+    </TornPaper>
+    <div
+      style={{
+        position: 'absolute',
+        bottom: 0,
+        left: tail === 'left' ? 60 : undefined,
+        right: tail === 'right' ? 60 : undefined,
+        width: 0,
+        height: 0,
+        borderLeft: '26px solid transparent',
+        borderRight: '26px solid transparent',
+        borderTop: `36px solid ${color}`,
+        transform: `skewX(${tail === 'left' ? -18 : 18}deg)`,
+        filter: 'drop-shadow(3px 4px 0 rgba(34,30,24,0.2))',
+      }}
+    />
+  </div>
+);
+
 // 下部の字幕（参考動画準拠: 白文字＋影）
 export const CollageSub: React.FC<{text: string; enter?: number}> = ({text, enter = 0}) => {
   const frame = useCurrentFrame();
