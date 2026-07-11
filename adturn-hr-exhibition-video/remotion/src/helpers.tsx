@@ -1,6 +1,7 @@
 import React from 'react';
 import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {COLORS, FONT, GRADIENT} from './theme';
+import {KineticChars, Particles, Underline} from './fx';
 
 export const useRise = (delay: number, distance = 60) => {
   const frame = useCurrentFrame();
@@ -85,20 +86,20 @@ export const Pill: React.FC<{
   );
 };
 
-// Question scene shared layout
+// Question scene shared layout（キネティックタイポ＋下線スイープ＋パララックス数字）
 export const QuestionScene: React.FC<{
   num: string;
   tag: string;
   lines: string[];
   sub: string;
-  accentIndex?: number;
-  total?: number;
   background?: React.ReactNode;
   extra?: React.ReactNode;
 }> = ({num, tag, lines, sub, background, extra}) => {
   const frame = useCurrentFrame();
   const numAnim = useRise(4, 40);
-  const subAnim = useRise(40, 30);
+  const subAnim = useRise(46, 30);
+  const lineLens = lines.map((l) => Array.from(l).length);
+  const underlineDelay = 22 + lineLens.reduce((a, b) => a + b, 0) * 1.5 + 8;
   return (
     <div
       style={{
@@ -110,13 +111,14 @@ export const QuestionScene: React.FC<{
         overflow: 'hidden',
       }}
     >
+      <Particles count={14} seed={`q${num}`} color="rgba(67,83,255,0.12)" maxSize={7} />
       {background}
-      {/* Giant outline question number */}
+      {/* Giant outline question number with slow parallax drift */}
       <div
         style={{
           position: 'absolute',
           left: 60,
-          top: -60,
+          top: -60 + Math.sin(frame / 55) * 18,
           fontSize: 560,
           fontWeight: 900,
           color: 'transparent',
@@ -127,6 +129,21 @@ export const QuestionScene: React.FC<{
       >
         {num}
       </div>
+      {/* 右上のアクセント（回転するグラデーションリング） */}
+      <div
+        style={{
+          position: 'absolute',
+          right: 120,
+          top: 110,
+          width: 120,
+          height: 120,
+          borderRadius: '50%',
+          border: '22px solid transparent',
+          background: `linear-gradient(${COLORS.white}, ${COLORS.white}) padding-box, ${GRADIENT} border-box`,
+          transform: `rotate(${frame}deg) scale(${0.9 + Math.sin(frame / 18) * 0.08})`,
+          opacity: 0.75,
+        }}
+      />
       <div
         style={{
           position: 'absolute',
@@ -151,37 +168,23 @@ export const QuestionScene: React.FC<{
           {num}｜{tag}
         </Pill>
         <div style={{height: 50}} />
-        {lines.map((line, i) => {
-          const anim = useRise(16 + i * 8, 70);
-          const chars = interpolate(frame, [16 + i * 8, 16 + i * 8 + line.length * 1.2], [0, line.length], {
-            extrapolateLeft: 'clamp',
-            extrapolateRight: 'clamp',
-          });
-          return (
-            <div
-              key={i}
-              style={{
-                fontSize: 92,
-                fontWeight: 900,
-                color: COLORS.ink,
-                lineHeight: 1.35,
-                ...anim,
-              }}
-            >
-              {line.slice(0, Math.ceil(chars))}
-              <span style={{opacity: chars < line.length ? 1 : 0, color: COLORS.blue}}>|</span>
-            </div>
-          );
-        })}
-        <div style={{height: 44}} />
+        {lines.map((line, i) => (
+          <KineticChars
+            key={i}
+            text={line}
+            delay={22 + (i === 0 ? 0 : lineLens[0] * 1.5)}
+            stagger={1.5}
+            style={{fontSize: 92, fontWeight: 900, color: COLORS.ink, lineHeight: 1.35}}
+          />
+        ))}
+        <div style={{height: 26}} />
+        <Underline delay={underlineDelay} width={430} />
+        <div style={{height: 34}} />
         <div
           style={{
             fontSize: 38,
             fontWeight: 500,
             color: COLORS.greyDark,
-            borderLeft: `8px solid`,
-            borderImage: `${GRADIENT} 1`,
-            paddingLeft: 28,
             lineHeight: 1.6,
             ...subAnim,
           }}

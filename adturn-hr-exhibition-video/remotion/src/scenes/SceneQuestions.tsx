@@ -34,7 +34,7 @@ export const Scene5Q2: React.FC = () => {
       background={
         <AbsoluteFill>
           {BURIED_WORDS.map(({w, x, y, d}) => {
-            const o = interpolate(frame, [20 + d, 50 + d, 130 + d, 170 + d], [0, 0.06, 0.06, 0], {
+            const o = interpolate(frame, [20 + d, 50 + d, 200 + d, 240 + d], [0, 0.06, 0.06, 0], {
               extrapolateLeft: 'clamp',
               extrapolateRight: 'clamp',
             });

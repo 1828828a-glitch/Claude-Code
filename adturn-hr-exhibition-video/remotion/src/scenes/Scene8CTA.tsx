@@ -2,29 +2,35 @@ import React from 'react';
 import {AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {COLORS, FONT, GRADIENT} from '../theme';
 import {GradientText, useRise} from '../helpers';
+import {KineticChars, Particles} from '../fx';
 
-// S8 信頼の担保＋CTA（10s）: 「一般論は、一行もない。」→「貴社の答えは、もう出せます。」→ ブースへ
+// S8 信頼の担保＋CTA（14.7s）: パーティクル収束→エンドカード
+// Beat 1: 0-104 一般論は一行もない / Beat 2: 104-328 もう出せます / Beat 3: 328-440 エンドカード
 export const Scene8CTA: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
 
-  // Beat 1: 0-104 / Beat 2: 104-312 / Beat 3: 312-430 (paced to narration n8a/n8b/n8c)
-  const b1In = useRise(8, 60);
   const b1Out = interpolate(frame, [88, 102], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const b2In = useRise(106, 60);
-  const b2SubIn = useRise(150, 30);
-  const b2Out = interpolate(frame, [296, 310], [1, 0], {
+  const b2SubIn = useRise(160, 30);
+  const b2Out = interpolate(frame, [312, 326], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
 
-  const glow = spring({frame: frame - 316, fps, config: {damping: 18, stiffness: 70}});
+  const glow = spring({frame: frame - 332, fps, config: {damping: 18, stiffness: 70}});
   const pulse = 1 + Math.sin(frame / 12) * 0.05;
-  const b3Text = useRise(330, 40);
-  const b3Cta = useRise(348, 30);
+  const b3Text = useRise(346, 40);
+  const b3Cta = useRise(362, 30);
+  const ctaPulse = 1 + Math.sin(frame / 10) * 0.03;
+
+  // パーティクルがエンドカードに向かって中心に収束していく
+  const pull = interpolate(frame, [240, 380], [0, 0.72], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
 
   return (
     <AbsoluteFill style={{background: COLORS.ink, fontFamily: FONT, overflow: 'hidden'}}>
@@ -35,16 +41,21 @@ export const Scene8CTA: React.FC = () => {
           backgroundSize: '120px 120px',
         }}
       />
+      <Particles count={55} seed="s8" color="rgba(139,92,246,0.55)" pull={pull} />
       {/* Beat 1 */}
       {frame < 104 && (
         <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', opacity: b1Out}}>
-          <div style={{fontSize: 130, fontWeight: 900, color: COLORS.white, ...b1In}}>
-            一般論は、<GradientText>一行もない。</GradientText>
-          </div>
+          <KineticChars
+            text="一般論は、一行もない。"
+            delay={10}
+            stagger={2.8}
+            gradientRange={[6, 10]}
+            style={{fontSize: 130, fontWeight: 900, color: COLORS.white}}
+          />
         </AbsoluteFill>
       )}
       {/* Beat 2 */}
-      {frame >= 104 && frame < 312 && (
+      {frame >= 104 && frame < 328 && (
         <AbsoluteFill
           style={{
             justifyContent: 'center',
@@ -53,17 +64,21 @@ export const Scene8CTA: React.FC = () => {
             opacity: b2Out,
           }}
         >
-          <div style={{fontSize: 116, fontWeight: 900, color: COLORS.white, ...b2In}}>
-            貴社の「答え」は、<GradientText>もう出せます。</GradientText>
-          </div>
+          <KineticChars
+            text="貴社の「答え」は、もう出せます。"
+            delay={108}
+            stagger={2.2}
+            gradientRange={[9, 14]}
+            style={{fontSize: 112, fontWeight: 900, color: COLORS.white}}
+          />
           <div style={{height: 40}} />
           <div style={{fontSize: 48, fontWeight: 700, color: 'rgba(255,255,255,0.75)', ...b2SubIn}}>
             トップパフォーマーの脳を、あなたの武器に。
           </div>
         </AbsoluteFill>
       )}
-      {/* Beat 3: final card */}
-      {frame >= 312 && (
+      {/* Beat 3: エンドカード */}
+      {frame >= 328 && (
         <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', flexDirection: 'column'}}>
           <div
             style={{
@@ -76,6 +91,27 @@ export const Scene8CTA: React.FC = () => {
               transform: `scale(${glow * pulse})`,
             }}
           />
+          {/* リングの周りを回る衛星ドット */}
+          {[0, 1, 2].map((i) => {
+            const a = frame / 20 + (i * Math.PI * 2) / 3;
+            return (
+              <div
+                key={i}
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: 'calc(50% - 205px)',
+                  width: 14,
+                  height: 14,
+                  borderRadius: '50%',
+                  background: '#B9AFFF',
+                  opacity: glow * 0.9,
+                  transform: `translate(calc(-50% + ${Math.cos(a) * 150}px), calc(-50% + ${Math.sin(a) * 150}px))`,
+                  filter: 'blur(0.5px)',
+                }}
+              />
+            );
+          })}
           <div
             style={{
               width: 190,
@@ -83,13 +119,15 @@ export const Scene8CTA: React.FC = () => {
               borderRadius: '50%',
               border: '44px solid transparent',
               background: `linear-gradient(${COLORS.ink}, ${COLORS.ink}) padding-box, ${GRADIENT} border-box`,
-              transform: `scale(${glow * pulse})`,
+              transform: `scale(${glow * pulse}) rotate(${frame}deg)`,
               filter: `drop-shadow(0 0 60px rgba(99,102,241,0.55))`,
             }}
           />
           <div style={{height: 56}} />
-          <div style={{fontSize: 92, fontWeight: 900, color: COLORS.white, ...b3Text}}>
-            ADTURN <GradientText>for HR</GradientText>
+          <div style={{display: 'flex', alignItems: 'baseline', fontSize: 92, fontWeight: 900, ...b3Text}}>
+            <span style={{color: COLORS.white}}>ADTURN</span>
+            <span style={{width: 26}} />
+            <GradientText>for HR</GradientText>
           </div>
           <div style={{height: 44}} />
           <div style={{display: 'flex', alignItems: 'center', gap: 34, ...b3Cta}}>
@@ -101,6 +139,8 @@ export const Scene8CTA: React.FC = () => {
                 fontSize: 42,
                 fontWeight: 900,
                 color: COLORS.white,
+                transform: `scale(${ctaPulse})`,
+                boxShadow: '0 0 50px rgba(99,102,241,0.5)',
               }}
             >
               デモ実施中

@@ -25,22 +25,22 @@ const CrossFade: React.FC<{duration: number; overlap?: number; children: React.R
 // Narration placements: [file, absolute start frame]
 const NARRATION: Array<[string, number]> = [
   ['n1', 15], // S1 技術宣言
-  ['n2a', 312], // S2 約40名コピー済み
-  ['n2b', 528], // S2 レシピではなく料理そのもの
-  ['n3', 679], // S3 例えば、採用。
-  ['n4', 859], // S4 Q1
-  ['n5', 1099], // S5 Q2
-  ['n6', 1369], // S6 Q3
-  ['n7a', 1606], // S7 答え=ADTURN for HR
-  ['n7b', 1774], // S7 レポート内容
-  ['n8a', 2064], // S8 一般論は一行もない
-  ['n8b', 2165], // S8 もう出せます
-  ['n8c', 2375], // S8 デモはブースで
+  ['n2a', 327], // S2 約40名コピー済み
+  ['n2b', 561], // S2 レシピではなく料理そのもの
+  ['n3', 724], // S3 例えば、採用。
+  ['n4', 914], // S4 Q1
+  ['n5', 1164], // S5 Q2
+  ['n6', 1459], // S6 Q3
+  ['n7a', 1696], // S7 答え=ADTURN for HR
+  ['n7b', 1858], // S7 レポート内容
+  ['n8a', 2159], // S8 一般論は一行もない
+  ['n8b', 2260], // S8 もう出せます
+  ['n8c', 2488], // S8 デモはブースで
 ];
 
 // BGM: ambient pad, ducked during the question section (静かな「余白」)
-const QUESTIONS_START = 670;
-const QUESTIONS_END = 1600;
+const QUESTIONS_START = 715;
+const QUESTIONS_END = 1690;
 const bgmVolume = (f: number) => {
   const base = interpolate(
     f,
