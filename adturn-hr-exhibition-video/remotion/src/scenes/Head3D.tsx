@@ -143,6 +143,64 @@ const KnowledgeStream: React.FC<{start: number; strength: number}> = ({start, st
   );
 };
 
+// ── カラフルな知識オーブ（割れた頭から弾け出て、リングへ吸い込まれる） ──
+const ORB_COLORS = [
+  '#FF6B9D', '#FFC24B', '#4ADE80', '#38BDF8', '#A78BFA',
+  '#F472B6', '#FF8A5C', '#34D399', '#60A5FA', '#FBBF24',
+];
+const ORB_COUNT = 26;
+
+const ColorOrbs: React.FC<{burstAt: number}> = ({burstAt}) => {
+  const frame = useCurrentFrame();
+  return (
+    <group>
+      {Array.from({length: ORB_COUNT}).map((_, i) => {
+        const t0 = burstAt + 4 + random(`ot${i}`) * 20; // 出発タイミング（ばらけさせる）
+        const t = (frame - t0) / 30; // 秒
+        if (t <= 0) return null;
+        // 初速: 上方＋放射方向（画面内で弧を描く程度に抑える）
+        const ang = random(`oa${i}`) * Math.PI * 2;
+        const vx = Math.cos(ang) * (0.6 + random(`ovx${i}`) * 1.1);
+        const vz = Math.sin(ang) * (0.4 + random(`ovz${i}`) * 0.7);
+        const vy = 1.7 + random(`ovy${i}`) * 1.3;
+        const g = -3.1;
+        // 弾道（バースト）フェーズ
+        const bx = (random(`ox${i}`) - 0.5) * 0.5 + vx * t;
+        const by = 0.55 + vy * t + 0.5 * g * t * t;
+        const bz = (random(`oz${i}`) - 0.5) * 0.5 + vz * t;
+        // リングへの吸い込み（tJoin以降、1.1秒かけて）
+        const tJoin = 0.9 + random(`oj${i}`) * 1.1;
+        const u = Math.min(Math.max((t - tJoin) / 1.1, 0), 1);
+        const e = u * u * (3 - 2 * u);
+        // 吸い込み開始時点の弾道位置で凍結し、そこからリングへ
+        const tf = Math.min(t, tJoin);
+        const fx = (random(`ox${i}`) - 0.5) * 0.5 + vx * tf;
+        const fy = 0.55 + vy * tf + 0.5 * g * tf * tf;
+        const fz = (random(`oz${i}`) - 0.5) * 0.5 + vz * tf;
+        const bob = Math.sin(frame / 14 + i * 2.3) * 0.05 * (1 - e);
+        const x = (u > 0 ? fx : bx) + (RING_POS.x - fx) * e;
+        const y = (u > 0 ? fy : by) + bob + (RING_POS.y - fy) * e;
+        const z = (u > 0 ? fz : bz) + (RING_POS.z - fz) * e;
+        const size = (0.09 + random(`os${i}`) * 0.13) * (1 - e * 0.85);
+        const color = ORB_COLORS[i % ORB_COLORS.length];
+        const appear = Math.min(t * 6, 1); // 出現時にポップ
+        return (
+          <mesh key={i} position={[x, y, z]} scale={size * appear}>
+            <sphereGeometry args={[1, 24, 24]} />
+            <meshStandardMaterial
+              color={color}
+              emissive={color}
+              emissiveIntensity={0.45}
+              roughness={0.25}
+              metalness={0.1}
+            />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+};
+
 // ── デジブレリング（吸い込み先の輪） ──
 const DigibreRing: React.FC<{appear: number}> = ({appear}) => {
   const frame = useCurrentFrame();
@@ -271,6 +329,7 @@ export const HeadSplitScene: React.FC<{
       <directionalLight position={[4, 5, 3]} intensity={2.4} color="#B9C2FF" />
       <directionalLight position={[-5, 2, -2]} intensity={3.2} color="#7A5CFF" />
       {geo && <SplitHead split={split} geo={geo} />}
+      <ColorOrbs burstAt={splitStart + 12} />
       <KnowledgeStream start={streamStart} strength={streamStrength} />
       <DigibreRing appear={ringAppear} />
     </ThreeCanvas>
