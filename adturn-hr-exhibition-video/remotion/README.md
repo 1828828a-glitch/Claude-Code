@@ -4,6 +4,18 @@
 
 演出コンポーネントは `src/fx.tsx` に集約: 文字単位キネティックタイポ（KineticChars）、浮遊/収束パーティクル（Particles）、ニューラルネット結線＋信号パルス（NeuralNet）、3Dチルトインカード（TiltIn）、SVGチェック描画（DrawCheck）、放射バースト（RadialBurst）、オドメーターカウンター（Odometer）、下線スイープ（Underline）。
 
+## 3D VFX（S1: 頭部スプリット）
+
+`src/scenes/Head3D.tsx` — Three.js（@remotion/three + React Three Fiber）による実3Dシーン。
+
+- 頭部モデル: three.js公式サンプルの LeePerrySmith.glb（MIT）を `public/models/` に同梱。Draco圧縮のためデコーダーを `public/draco/` に同梱。
+- 「パカっと割れる」演出: 同一ジオメトリを2枚描画し、それぞれ逆向きのワールド空間クリッピング平面（`material.clippingPlanes`）で半分ずつに切って、ヒンジ状に回転・平行移動。`renderer.localClippingEnabled` を `onCreated` で有効化。
+- 暗黙知ストリーム: 600粒のPointsが頭内部から螺旋を描いてデジブレリングへ吸い込まれる（決定論的乱数で全フレーム再現可能）。
+- ヘッドレス環境では `remotion.config.ts` の `setChromiumOpenGlRenderer('swangle')`（SwiftShader）が必須。
+- **重要（ハマりどころ）**: GLBの非同期ロードは必ずThreeCanvasの**外**（親コンポーネント）で行い、ジオメトリをpropsで渡すこと。キャンバス内部の子でロードすると、ロード完了後にGLキャンバスが再描画されず、静止画レンダリングでモデルが消える。
+
+2Dシーン側は `CameraDrift`（src/Video.tsx）で微小なパース回転＋ドリーを常時かけ、シネマティックな奥行きを付与。
+
 ## 構成（台本 v1 準拠）
 
 | シーン | 尺 | 内容 |

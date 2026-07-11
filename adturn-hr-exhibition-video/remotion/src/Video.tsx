@@ -22,6 +22,27 @@ const CrossFade: React.FC<{duration: number; overlap?: number; children: React.R
   return <AbsoluteFill style={{opacity}}>{children}</AbsoluteFill>;
 };
 
+// 疑似3Dカメラドリフト: 2Dシーンに微小なパース回転＋スロードリーで奥行きを与える
+const CameraDrift: React.FC<{phase?: number; children: React.ReactNode}> = ({phase = 0, children}) => {
+  const frame = useCurrentFrame();
+  const t = frame / 30 + phase;
+  const rx = Math.sin(t / 3.1) * 1.1;
+  const ry = Math.cos(t / 3.7) * 1.4;
+  const zoom = 1.03 + Math.sin(t / 5.3) * 0.015;
+  return (
+    <AbsoluteFill style={{perspective: 1400, overflow: 'hidden'}}>
+      <AbsoluteFill
+        style={{
+          transform: `rotateX(${rx}deg) rotateY(${ry}deg) scale(${zoom})`,
+          transformOrigin: 'center center',
+        }}
+      >
+        {children}
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
 // Narration placements: [file, absolute start frame]
 const NARRATION: Array<[string, number]> = [
   ['n1', 15], // S1 技術宣言
@@ -78,35 +99,47 @@ export const AdturnVideo: React.FC = () => {
       </Sequence>
       <Sequence from={starts.engine} durationInFrames={s.engine} name="S2 技術の中身">
         <CrossFade duration={s.engine}>
-          <Scene2Engine />
+          <CameraDrift phase={7}>
+            <Scene2Engine />
+          </CameraDrift>
         </CrossFade>
       </Sequence>
       <Sequence from={starts.intro} durationInFrames={s.intro} name="S3 問いの宣言">
         <CrossFade duration={s.intro}>
-          <Scene3Intro />
+          <CameraDrift phase={14}>
+            <Scene3Intro />
+          </CameraDrift>
         </CrossFade>
       </Sequence>
       <Sequence from={starts.q1} durationInFrames={s.q1} name="S4 Q1">
         <CrossFade duration={s.q1}>
-          <Scene4Q1 />
-          <QuestionProgress active={0} />
+          <CameraDrift phase={21}>
+            <Scene4Q1 />
+            <QuestionProgress active={0} />
+          </CameraDrift>
         </CrossFade>
       </Sequence>
       <Sequence from={starts.q2} durationInFrames={s.q2} name="S5 Q2">
         <CrossFade duration={s.q2}>
-          <Scene5Q2 />
-          <QuestionProgress active={1} />
+          <CameraDrift phase={28}>
+            <Scene5Q2 />
+            <QuestionProgress active={1} />
+          </CameraDrift>
         </CrossFade>
       </Sequence>
       <Sequence from={starts.q3} durationInFrames={s.q3} name="S6 Q3">
         <CrossFade duration={s.q3}>
-          <Scene6Q3 />
-          <QuestionProgress active={2} />
+          <CameraDrift phase={35}>
+            <Scene6Q3 />
+            <QuestionProgress active={2} />
+          </CameraDrift>
         </CrossFade>
       </Sequence>
       <Sequence from={starts.answer} durationInFrames={s.answer} name="S7 答え=ADTURN for HR">
         <CrossFade duration={s.answer}>
-          <Scene7Answer />
+          <CameraDrift phase={42}>
+            <Scene7Answer />
+          </CameraDrift>
         </CrossFade>
       </Sequence>
       <Sequence from={starts.cta} durationInFrames={s.cta} name="S8 CTA">
