@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { buildTextures } from '../systems/TextureFactory';
+import { applySheetTextures } from '../systems/AssetIntegration';
 
 // public/assets のPNG（存在すれば）を読み込み、
 // 無いものはコード生成テクスチャで補ってタイトルへ。
@@ -24,11 +25,14 @@ export class BootScene extends Phaser.Scene {
     this.load.on('loaderror', (file: Phaser.Loader.File) => {
       console.info(`[assets] ${file.key} は見つからないため、生成グラフィックを使用します`);
     });
-    OPTIONAL_ASSETS.forEach((key) => this.load.image(key, `assets/${key}.png`));
+    // 単一ファイル配布（Artifact等）では window.__CK_ASSETS__ にdata URIが埋め込まれる
+    const inlined = (window as unknown as { __CK_ASSETS__?: Record<string, string> }).__CK_ASSETS__;
+    OPTIONAL_ASSETS.forEach((key) => this.load.image(key, inlined?.[key] ?? `assets/${key}.png`));
   }
 
   create() {
-    buildTextures(this);
+    applySheetTextures(this); // 実素材があればポーズを静止画として切り出す
+    buildTextures(this);      // 足りないものは生成グラフィックで補完
     this.scene.start('Title');
   }
 }

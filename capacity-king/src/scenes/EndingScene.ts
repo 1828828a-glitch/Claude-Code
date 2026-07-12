@@ -17,7 +17,8 @@ export class EndingScene extends Phaser.Scene {
 
   create() {
     audio.playBgm('ending');
-    this.add.image(W / 2, H / 2, 'bg_town').setAlpha(0.85);
+    const bgKey = this.textures.exists('game_keyvisual') ? 'game_keyvisual' : 'bg_town';
+    this.add.image(W / 2, H / 2, bgKey).setDisplaySize(W, H).setAlpha(0.85);
     this.add.rectangle(W / 2, H / 2, W, H, 0x0a0d1c, 0.55);
 
     // 3人が並んで見守る

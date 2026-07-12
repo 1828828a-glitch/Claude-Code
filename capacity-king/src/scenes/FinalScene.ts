@@ -150,7 +150,8 @@ export class FinalScene extends StageBase {
     gauges.add('team', 25);
 
     // 止まっていた世界が動き出し、暗かった街に色が戻る
-    const townBg = this.add.image(W / 2, H / 2, 'bg_town').setDepth(DEPTH.bg).setAlpha(0);
+    const townKey = this.textures.exists('game_keyvisual') ? 'game_keyvisual' : 'bg_town';
+    const townBg = this.add.image(W / 2, H / 2, townKey).setDisplaySize(W, H).setDepth(DEPTH.bg).setAlpha(0);
     this.tweens.add({ targets: townBg, alpha: 1, duration: 2000 });
     gorilla.setTexture('gorilla_happy');
     robot.setTexture('robot_happy');
