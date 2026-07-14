@@ -1,8 +1,11 @@
-import React from 'react';
-import {AbsoluteFill, interpolate, useCurrentFrame} from 'remotion';
+import React, {useMemo} from 'react';
+import {ThreeCanvas} from '@remotion/three';
+import * as THREE from 'three';
+import {AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig} from 'remotion';
 import {COLORS, FONT, GRADIENT} from '../theme';
 import {GradientText, QuestionScene, useRise} from '../helpers';
 import {KineticChars, Particles, ReportDoc, Underline} from '../fx';
+import {BRAIN_PARTS, makeCerebellumGeo, makeHemisphereGeo} from './BrainGeo';
 
 // ── マーケティング編（3D版スタイル） ──
 
@@ -468,6 +471,53 @@ export const SceneMReveal: React.FC = () => {
 const PRODUCTS = ['ADTURN for HR', 'ADTURN for Marketing'];
 const PRODUCTS_SUB = ['人事・採用', 'マーケティング'];
 
+
+// フィナーレ用: カラフル3D脳がダイアグラムの上で回転（デジブレの中身＝脳）
+const BrainFloat: React.FC<{appearAt: number}> = ({appearAt}) => {
+  const frame = useCurrentFrame();
+  const {width, height} = useVideoConfig();
+  const geoL = useMemo(() => makeHemisphereGeo(0.0, true), []);
+  const geoR = useMemo(() => makeHemisphereGeo(2.7, true), []);
+  const geoC = useMemo(() => makeCerebellumGeo(true), []);
+  const grow = interpolate(frame, [appearAt, appearAt + 30], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: (t) => 1 - Math.pow(1 - t, 3),
+  });
+  const s = 0.72 * grow;
+  const bob = Math.sin(frame / 32) * 0.04;
+  const mat = {vertexColors: true, roughness: 0.38, metalness: 0.12, emissiveIntensity: 0.35, emissive: new THREE.Color('#33265A')};
+  return (
+    <ThreeCanvas
+      width={width}
+      height={height}
+      gl={{antialias: true}}
+      camera={{fov: 35, position: [0, 0, 6.5]}}
+      style={{position: 'absolute', inset: 0}}
+    >
+      <ambientLight intensity={0.75} color="#8892FF" />
+      <directionalLight position={[4, 5, 3]} intensity={2.6} color="#FFFFFF" />
+      <directionalLight position={[-5, 2, -2]} intensity={1.6} color="#7A5CFF" />
+      <group position={[0, 1.18 + bob, 0]} scale={s} rotation={[0.2, frame / 80, 0.04]}>
+        <mesh geometry={geoL} position={BRAIN_PARTS.left.position} rotation={BRAIN_PARTS.left.rotation}>
+          <meshStandardMaterial {...mat} />
+        </mesh>
+        <mesh geometry={geoR} position={BRAIN_PARTS.right.position} rotation={BRAIN_PARTS.right.rotation}>
+          <meshStandardMaterial {...mat} />
+        </mesh>
+        <mesh geometry={geoC} position={BRAIN_PARTS.cerebellum.position}>
+          <meshStandardMaterial {...mat} />
+        </mesh>
+        <mesh position={BRAIN_PARTS.stem.position} rotation={BRAIN_PARTS.stem.rotation}>
+          <cylinderGeometry args={[0.13, 0.19, 0.5, 32]} />
+          <meshStandardMaterial color="#B39DDB" roughness={0.4} metalness={0.1} />
+        </mesh>
+        <pointLight color="#FF9ECF" intensity={grow * 8} distance={5} />
+      </group>
+    </ThreeCanvas>
+  );
+};
+
 export const SceneFinale: React.FC = () => {
   const frame = useCurrentFrame();
   const beat = frame < 215 ? 1 : frame < 510 ? 2 : frame < 645 ? 3 : 4;
@@ -542,7 +592,9 @@ export const SceneFinale: React.FC = () => {
       )}
 
       {beat === 2 && (
-        <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+        <>
+        <BrainFloat appearAt={224} />
+        <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', paddingTop: 150}}>
           {/* デジブレ・コア */}
           <div style={{textAlign: 'center', ...coreIn}}>
             <div
@@ -593,6 +645,7 @@ export const SceneFinale: React.FC = () => {
             それぞれの分野の、トップパフォーマーの脳を<GradientText>転写</GradientText>して実現。
           </div>
         </AbsoluteFill>
+        </>
       )}
 
       {beat === 3 && (
