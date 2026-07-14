@@ -1,7 +1,7 @@
 import React from 'react';
-import {AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame} from 'remotion';
-import {FONT, SCENES, TOTAL_FRAMES} from '../theme';
-import {Callout, DIM, GOLD, INK, LINE, LuxBackdrop, LuxHeadCanvas, RED} from './LuxDemo';
+import {AbsoluteFill, interpolate, useCurrentFrame} from 'remotion';
+import {FONT, LUX_SCENES, LUX_TOTAL_FRAMES} from '../theme';
+import {Callout, DIM, GOLD, INK, LINE, RED} from './LuxDemo';
 
 // ── ラグジュアリー版 本編シーン（暗背景・金アクセント・極小タイポの一貫言語） ──
 
@@ -40,23 +40,29 @@ export const LuxFrame: React.FC = () => {
   // シーン境界
   const starts: number[] = [];
   let at = 0;
-  for (const dur of Object.values(SCENES)) {
+  for (const dur of Object.values(LUX_SCENES)) {
     starts.push(at);
     at += dur;
   }
   const idx = starts.filter((s) => frame >= s).length - 1;
-  const PHASES = ['SCAN', 'ENGINE', 'CASE', 'Q1', 'Q2', 'Q3', 'ANSWER', 'CONTACT'];
+  const PHASES = ['SCAN', 'ENGINE', 'CASE 01', 'Q1', 'Q2', 'Q3', 'ANSWER', 'PROOF', 'CASE 02', 'M1', 'M2', 'M3', 'SCOPE', 'CONTACT'];
   const STATES = [
     'TRANSCRIBING',
     'ENGINE SPEC',
-    'CASE STUDY',
+    'CASE STUDY 01',
     'QUESTION 01',
     'QUESTION 02',
     'QUESTION 03',
     'RESOLVED',
+    'NO BOILERPLATE',
+    'CASE STUDY 02',
+    'MARKETING 01',
+    'MARKETING 02',
+    'MARKETING 03',
+    'DIAGNOSTIC SCOPE',
     'CONTACT',
   ];
-  const pct = Math.floor((frame / TOTAL_FRAMES) * 100);
+  const pct = Math.floor((frame / LUX_TOTAL_FRAMES) * 100);
   const done = idx >= 6;
 
   return (
@@ -104,14 +110,15 @@ export const LuxFrame: React.FC = () => {
           />
         </div>
         <div style={{display: 'flex', justifyContent: 'space-between', marginTop: 16, alignItems: 'baseline'}}>
-          <div style={{display: 'flex', gap: 38}}>
+          <div style={{display: 'flex', gap: 22}}>
             {PHASES.map((p, i) => (
               <div
                 key={p}
                 style={{
-                  fontSize: 15,
+                  fontSize: 12.5,
                   fontWeight: 700,
-                  letterSpacing: '0.3em',
+                  letterSpacing: '0.2em',
+                  whiteSpace: 'nowrap',
                   color: i === idx ? INK : 'rgba(232,236,240,0.28)',
                   borderBottom: i === idx ? `2px solid ${GOLD}` : '2px solid transparent',
                   paddingBottom: 6,
@@ -300,8 +307,8 @@ export const L2Engine: React.FC = () => {
   );
 };
 
-// ── L3 問いの宣言（190f） ──
-export const L3Intro: React.FC = () => {
+// ── 事例宣言の共通レイアウト ──
+const LCaseIntro: React.FC<{caps: string; headline: React.ReactNode; sub: string}> = ({caps, headline, sub}) => {
   const t0 = useFU(10);
   const t1 = useFU(24, 30);
   const t2 = useFU(64);
@@ -310,19 +317,30 @@ export const L3Intro: React.FC = () => {
   return (
     <AbsoluteFill style={{fontFamily: FONT, justifyContent: 'center', alignItems: 'center'}}>
       <div style={{textAlign: 'center'}}>
-        <Caps style={{...t0}}>CASE 01 — RECRUITMENT</Caps>
+        <Caps style={{...t0}}>{caps}</Caps>
         <div style={{width: 620, height: 1, background: LINE, margin: '38px auto 0', transform: `scaleX(${rTop})`}} />
-        <div style={{fontSize: 128, fontWeight: 800, color: INK, letterSpacing: '0.12em', margin: '40px 0', ...t1}}>
-          例えば、<span style={{color: GOLD}}>採用</span>。
+        <div style={{fontSize: 128, fontWeight: 800, color: INK, letterSpacing: '0.12em', margin: '40px 0', whiteSpace: 'nowrap', ...t1}}>
+          {headline}
         </div>
         <div style={{width: 620, height: 1, background: LINE, margin: '0 auto', transform: `scaleX(${rBot})`}} />
-        <div style={{fontSize: 26, fontWeight: 500, color: DIM, letterSpacing: '0.3em', marginTop: 40, ...t2}}>
-          貴社は、この問いに、即答できますか。
-        </div>
+        <div style={{fontSize: 26, fontWeight: 500, color: DIM, letterSpacing: '0.3em', marginTop: 40, ...t2}}>{sub}</div>
       </div>
     </AbsoluteFill>
   );
 };
+
+// ── L3 問いの宣言（190f） ──
+export const L3Intro: React.FC = () => (
+  <LCaseIntro
+    caps="CASE 01 — RECRUITMENT"
+    headline={
+      <>
+        例えば、<span style={{color: GOLD}}>採用</span>。
+      </>
+    }
+    sub="貴社は、この問いに、即答できますか。"
+  />
+);
 
 // ── 問いシーン共通 ──
 const LuxQuestion: React.FC<{
@@ -583,65 +601,358 @@ export const L7Answer: React.FC = () => {
   );
 };
 
-// ── L8 CTA（440f） ──
-export const L8CTA: React.FC = () => {
+// ── L8 一般論は、一行もない。（130f・単独シーン） ──
+export const LNoGen: React.FC = () => {
   const frame = useCurrentFrame();
-  const beat = frame < 104 ? 1 : frame < 328 ? 2 : 3;
+  const doc = useFU(6, 26);
+  const b1 = useFU(12, 26);
+  const b1s = useFU(44);
+  return (
+    <AbsoluteFill style={{fontFamily: FONT}}>
+      {/* ダークドキュメント */}
+      <div style={{position: 'absolute', left: 200, top: 240, width: 420, height: 560, background: '#111722', borderTop: `2px solid ${GOLD}`, boxShadow: '0 26px 52px rgba(0,0,0,0.5)', padding: 34, ...doc}}>
+        <Caps style={{fontSize: 13, color: GOLD}}>戦略レポート ｜ P.21</Caps>
+        <div style={{height: 1, background: LINE, margin: '20px 0 26px'}} />
+        {[88, 72, 94, 60, 84, 78, 90, 52, 86, 68].map((w, i) => {
+          const lit = Math.floor(frame / 6) % 10 === i;
+          return (
+            <div
+              key={i}
+              style={{
+                height: 9,
+                width: `${w}%`,
+                background: lit ? 'rgba(216,179,106,0.5)' : 'rgba(232,236,240,0.12)',
+                borderRadius: 4,
+                marginBottom: 20,
+              }}
+            />
+          );
+        })}
+      </div>
+      <div style={{position: 'absolute', left: 760, top: 380}}>
+        <div style={{...b1}}>
+          <Caps>NO BOILERPLATE</Caps>
+          <div style={{fontSize: 88, fontWeight: 800, color: INK, letterSpacing: '0.1em', lineHeight: 1.5, marginTop: 26}}>
+            一般論は、
+            <br />
+            <span style={{color: GOLD}}>一行もない。</span>
+          </div>
+        </div>
+        <div style={{fontSize: 23, fontWeight: 500, color: DIM, letterSpacing: '0.2em', lineHeight: 2.1, marginTop: 30, ...b1s}}>
+          貴社の公開情報から、
+          <br />
+          トップパフォーマーの「脳」が診断。
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
 
-  const doc = useFU(8, 30);
-  const b1 = useFU(20, 28);
-  const b1s = useFU(56);
+// ── M1 例えば、マーケティング。＋断言（440f） ──
+export const LMIntro: React.FC = () => {
+  const frame = useCurrentFrame();
+  const isBeat2 = frame >= 100;
+  const h = useFU(108);
+  const l1 = useFU(124, 28);
+  const l2 = useFU(146, 28);
+  const chartIn = useFU(160, 30);
+  const lossDraw = useDraw(180, 55);
+  const gainDraw = useDraw(250, 55);
 
-  const b2 = useFU(116, 30);
-  const b2u = useDraw(146, 30);
-  const b2s = useFU(160);
+  // 機会損失（灰の下降線）→ 打開策（金の上昇線）
+  const lossPts = [
+    [40, 120], [130, 150], [220, 145], [310, 200], [400, 230], [490, 300],
+  ];
+  const gainPts = [
+    [490, 300], [560, 240], [630, 210], [700, 140], [760, 90],
+  ];
+  const path = (pts: number[][], p: number) => {
+    const n = Math.max(2, Math.ceil(pts.length * p));
+    return 'M ' + pts.slice(0, n).map(([x, y]) => `${x} ${y}`).join(' L ');
+  };
 
-  const ring = useFU(336, 30);
-  const logo = useFU(348, 30);
-  const cta = useFU(370);
+  return (
+    <AbsoluteFill style={{fontFamily: FONT}}>
+      {!isBeat2 && (
+        <LCaseIntro
+          caps="CASE 02 — MARKETING"
+          headline={
+            <>
+              例えば、<span style={{color: GOLD}}>マーケティング</span>。
+            </>
+          }
+          sub="貴社のデジタル上の機会損失、見えていますか。"
+        />
+      )}
+      {isBeat2 && (
+        <>
+          <div style={{position: 'absolute', left: 70, top: 320}}>
+            <div style={{...h}}>
+              <Caps>DIGITAL OPPORTUNITY LOSS</Caps>
+            </div>
+            <div style={{fontSize: 62, fontWeight: 800, color: INK, letterSpacing: '0.08em', marginTop: 34, whiteSpace: 'nowrap', ...l1}}>
+              デジタル上の<span style={{color: GOLD}}>機会損失</span>を、可視化。
+            </div>
+            <div style={{fontSize: 62, fontWeight: 800, color: INK, letterSpacing: '0.08em', marginTop: 22, whiteSpace: 'nowrap', ...l2}}>
+              打開策を、<span style={{color: GOLD}}>具体的に出力</span>。
+            </div>
+            <div style={{fontSize: 22, fontWeight: 500, color: DIM, letterSpacing: '0.2em', marginTop: 36, ...chartIn}}>
+              トップパフォーマーの脳が、診断から打開策まで。
+            </div>
+          </div>
+          {/* 右: 損失→打開のミニチャート */}
+          <div style={{position: 'absolute', right: 110, top: 300, width: 800, height: 400, ...chartIn}}>
+            <svg width="800" height="400" viewBox="0 0 800 400">
+              <line x1="30" y1="360" x2="790" y2="360" stroke={LINE} strokeWidth="1" />
+              <line x1="30" y1="360" x2="30" y2="30" stroke={LINE} strokeWidth="1" />
+              {lossDraw > 0 && (
+                <path d={path(lossPts, lossDraw)} fill="none" stroke="rgba(232,236,240,0.35)" strokeWidth="3" strokeDasharray="10 8" />
+              )}
+              {gainDraw > 0 && <path d={path(gainPts, gainDraw)} fill="none" stroke={GOLD} strokeWidth="4" />}
+              <circle cx="490" cy="300" r="8" fill="none" stroke={GOLD} strokeWidth="2" opacity={gainDraw > 0 ? 1 : 0} />
+            </svg>
+            <div style={{position: 'absolute', left: 240, top: 330, fontSize: 15, fontWeight: 500, color: 'rgba(232,236,240,0.45)', letterSpacing: '0.3em'}}>
+              機会損失
+            </div>
+            <div style={{position: 'absolute', right: 60, top: 40, fontSize: 15, fontWeight: 700, color: GOLD, letterSpacing: '0.3em', opacity: gainDraw}}>
+              打開策
+            </div>
+          </div>
+        </>
+      )}
+    </AbsoluteFill>
+  );
+};
+
+// ── M2-M4 マーケの問い ──
+export const LM1: React.FC = () => {
+  const frame = useCurrentFrame();
+  const box = useFU(60);
+  return (
+    <LuxQuestion
+      num="1"
+      index="MARKETING 01 ／ 03"
+      lines={['検索されたとき、', '選択肢に入っていますか？']}
+      sub="比較検討の入口は、検索から始まります。"
+      extra={
+        <div style={{position: 'absolute', right: 170, top: 660, ...box}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 20, width: 480, padding: '24px 30px', border: `1px solid ${LINE}`, borderRadius: 4}}>
+            <div style={{width: 26, height: 26, borderRadius: '50%', border: `2.5px solid ${GOLD}`, position: 'relative'}}>
+              <div style={{position: 'absolute', right: -9, bottom: -7, width: 13, height: 3, background: GOLD, transform: 'rotate(45deg)'}} />
+            </div>
+            <span style={{fontSize: 26, fontWeight: 700, color: DIM, letterSpacing: '0.1em'}}>
+              おすすめ 会社{' '}
+              <span style={{opacity: 0.4 + 0.6 * Math.abs(Math.sin(frame / 10)), color: GOLD}}>▍</span>
+            </span>
+          </div>
+          <Caps style={{marginTop: 16, textAlign: 'right'}}>貴社名 ＝ 圏外？</Caps>
+        </div>
+      }
+    />
+  );
+};
+
+export const LM2: React.FC = () => {
+  const frame = useCurrentFrame();
+  const WORDS = ['技術力', '実績', 'サポート'];
+  return (
+    <LuxQuestion
+      num="2"
+      index="MARKETING 02 ／ 03"
+      lines={['営業で伝わる強みが、', 'Web上で消えていませんか？']}
+      sub="営業資料の強みと、Webの見え方は一致していますか。"
+      extra={
+        <div style={{position: 'absolute', right: 150, top: 350}}>
+          {WORDS.map((w, i) => {
+            const fade = interpolate(frame, [40 + i * 20, 110 + i * 20], [0.85, 0.15], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            });
+            return (
+              <div key={w} style={{display: 'flex', alignItems: 'baseline', gap: 14, marginBottom: 34, opacity: fade}}>
+                <span style={{fontSize: 13, fontWeight: 500, color: GOLD, letterSpacing: '0.2em'}}>営業では伝わる</span>
+                <span style={{fontSize: 30, fontWeight: 700, color: INK, letterSpacing: '0.16em'}}>{w}</span>
+              </div>
+            );
+          })}
+          <Caps style={{marginTop: 6, textAlign: 'right'}}>WEB上では ＝ 不可視</Caps>
+        </div>
+      }
+    />
+  );
+};
+
+export const LM3: React.FC = () => {
+  const frame = useCurrentFrame();
+  const fun = useFU(50);
+  const STEPS = ['流入', '比較', '問い合わせ'];
+  return (
+    <LuxQuestion
+      num="3"
+      index="MARKETING 03 ／ 03"
+      lines={['見込み客を、', '問い合わせまで運べていますか？']}
+      sub="流入から問い合わせまでの導線、途切れていませんか。"
+      extra={
+        <div style={{position: 'absolute', right: 130, top: 680, display: 'flex', alignItems: 'center', gap: 0, ...fun}}>
+          {STEPS.map((s, i) => (
+            <React.Fragment key={s}>
+              <div
+                style={{
+                  padding: '16px 30px',
+                  border: i === 1 ? `1.5px dashed rgba(229,72,77,0.7)` : `1px solid ${LINE}`,
+                  borderRadius: 4,
+                  fontSize: 24,
+                  fontWeight: 700,
+                  color: i === 1 ? 'rgba(232,236,240,0.4)' : INK,
+                  letterSpacing: '0.14em',
+                }}
+              >
+                {s}
+                {i === 1 && (
+                  <span style={{marginLeft: 12, color: RED, opacity: 0.5 + 0.5 * Math.abs(Math.sin(frame / 9)), fontSize: 20}}>
+                    ✕
+                  </span>
+                )}
+              </div>
+              {i < 2 && <div style={{width: 46, height: 1.5, background: i === 0 ? LINE : 'rgba(229,72,77,0.4)'}} />}
+            </React.Fragment>
+          ))}
+        </div>
+      }
+    />
+  );
+};
+
+// ── M5 診断範囲 → 優先順位 → ロードマップ（520f） ──
+const SCOPE_ITEMS = ['競合比較', '検索導線', 'コンテンツ', 'AI検索'];
+const SCOPE_EN = ['COMPETITIVE', 'SEARCH PATH', 'CONTENT', 'AI SEARCH'];
+const ROADMAP = ['施策の優先順位', '実装仕様', '実行ロードマップ'];
+const ROADMAP_EN = ['PRIORITY', 'SPEC', 'ROADMAP'];
+
+export const LMScope: React.FC = () => {
+  const frame = useCurrentFrame();
+  const beat = frame < 160 ? 1 : frame < 310 ? 2 : 3;
+  const h1 = useFU(6);
+  const b2 = useFU(172, 28);
+  const b2r = useDraw(200, 30);
+  const h3 = useFU(318);
+  const lineDraw = useDraw(336, 60);
 
   return (
     <AbsoluteFill style={{fontFamily: FONT}}>
       {beat === 1 && (
         <>
-          {/* ダークドキュメント */}
-          <div style={{position: 'absolute', left: 200, top: 240, width: 420, height: 560, background: '#111722', borderTop: `2px solid ${GOLD}`, boxShadow: '0 26px 52px rgba(0,0,0,0.5)', padding: 34, ...doc}}>
-            <Caps style={{fontSize: 13, color: GOLD}}>戦略レポート ｜ P.21</Caps>
-            <div style={{height: 1, background: LINE, margin: '20px 0 26px'}} />
-            {[88, 72, 94, 60, 84, 78, 90, 52, 86, 68].map((w, i) => {
-              const lit = Math.floor(frame / 6) % 10 === i;
+          <div style={{position: 'absolute', left: 0, right: 0, top: 260, textAlign: 'center', ...h1}}>
+            <Caps>DIAGNOSTIC SCOPE — 診断範囲</Caps>
+          </div>
+          <div style={{position: 'absolute', left: '50%', top: 400, transform: 'translateX(-50%)', display: 'flex', gap: 30}}>
+            {SCOPE_ITEMS.map((s, i) => {
+              const p = interpolate(frame, [14 + i * 11, 32 + i * 11], [0, 1], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+                easing: easeOut,
+              });
               return (
                 <div
-                  key={i}
+                  key={s}
                   style={{
-                    height: 9,
-                    width: `${w}%`,
-                    background: lit ? 'rgba(216,179,106,0.5)' : 'rgba(232,236,240,0.12)',
-                    borderRadius: 4,
-                    marginBottom: 20,
+                    width: 340,
+                    padding: '38px 0',
+                    textAlign: 'center',
+                    background: '#111722',
+                    borderTop: `2px solid ${GOLD}`,
+                    boxShadow: '0 22px 44px rgba(0,0,0,0.45)',
+                    opacity: p,
+                    transform: `translateY(${(1 - p) * 24}px)`,
                   }}
-                />
+                >
+                  <Caps style={{fontSize: 12, color: GOLD}}>
+                    {String(i + 1).padStart(2, '0')} — {SCOPE_EN[i]}
+                  </Caps>
+                  <div style={{fontSize: 36, fontWeight: 800, color: INK, letterSpacing: '0.12em', marginTop: 14}}>{s}</div>
+                </div>
               );
             })}
-          </div>
-          <div style={{position: 'absolute', left: 760, top: 380}}>
-            <div style={{...b1}}>
-              <Caps>NO BOILERPLATE</Caps>
-              <div style={{fontSize: 88, fontWeight: 800, color: INK, letterSpacing: '0.1em', lineHeight: 1.5, marginTop: 26}}>
-                一般論は、
-                <br />
-                <span style={{color: GOLD}}>一行もない。</span>
-              </div>
-            </div>
-            <div style={{fontSize: 23, fontWeight: 500, color: DIM, letterSpacing: '0.2em', lineHeight: 2.1, marginTop: 30, ...b1s}}>
-              貴社の公開情報から、人事・採用
-              <br />
-              トップパフォーマーの「脳」が診断。
-            </div>
           </div>
         </>
       )}
 
+      {beat === 2 && (
+        <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+          <div style={{textAlign: 'center', ...b2}}>
+            <Caps>WHAT ／ IN WHAT ORDER ／ HOW</Caps>
+            <div style={{fontSize: 76, fontWeight: 800, color: INK, letterSpacing: '0.1em', marginTop: 40, whiteSpace: 'nowrap'}}>
+              何を、<span style={{color: GOLD}}>どの順番で</span>、どう直すべきか。
+            </div>
+            <div style={{width: 760, height: 2, background: GOLD, margin: '44px auto 0', transform: `scaleX(${b2r})`}} />
+          </div>
+        </AbsoluteFill>
+      )}
+
+      {beat === 3 && (
+        <>
+          <div style={{position: 'absolute', left: 0, right: 0, top: 300, textAlign: 'center', ...h3}}>
+            <Caps>FROM DIAGNOSIS TO EXECUTION</Caps>
+            <div style={{fontSize: 44, fontWeight: 800, color: INK, letterSpacing: '0.12em', marginTop: 26}}>
+              診断で、終わらせない。
+            </div>
+          </div>
+          <div style={{position: 'absolute', left: '50%', top: 520, transform: 'translateX(-50%)', display: 'flex', alignItems: 'center'}}>
+            {ROADMAP.map((r, i) => {
+              const p = interpolate(frame, [340 + i * 26, 366 + i * 26], [0, 1], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+                easing: easeOut,
+              });
+              return (
+                <React.Fragment key={r}>
+                  <div
+                    style={{
+                      width: 380,
+                      padding: '40px 0',
+                      textAlign: 'center',
+                      background: '#111722',
+                      borderTop: `2px solid ${GOLD}`,
+                      boxShadow: '0 22px 44px rgba(0,0,0,0.45)',
+                      opacity: p,
+                      transform: `translateY(${(1 - p) * 22}px)`,
+                    }}
+                  >
+                    <Caps style={{fontSize: 12, color: GOLD}}>
+                      {String(i + 1).padStart(2, '0')} — {ROADMAP_EN[i]}
+                    </Caps>
+                    <div style={{fontSize: 32, fontWeight: 800, color: INK, letterSpacing: '0.1em', marginTop: 14, whiteSpace: 'nowrap'}}>{r}</div>
+                  </div>
+                  {i < 2 && (
+                    <div style={{width: 90, height: 2, background: GOLD, opacity: Math.min(1, lineDraw * 3 - i), position: 'relative'}}>
+                      <div style={{position: 'absolute', right: -2, top: -5, width: 12, height: 12, borderTop: `2px solid ${GOLD}`, borderRight: `2px solid ${GOLD}`, transform: 'rotate(45deg)'}} />
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </AbsoluteFill>
+  );
+};
+
+// ── L9 CTA（380f）: もう出せます → エンドカード ──
+export const L8CTA: React.FC = () => {
+  const frame = useCurrentFrame();
+  const beat = frame < 225 ? 2 : 3;
+
+  const b2 = useFU(12, 30);
+  const b2u = useDraw(42, 30);
+  const b2s = useFU(56);
+
+  const ring = useFU(232, 30);
+  const logo = useFU(244, 30);
+  const cta = useFU(266);
+
+  return (
+    <AbsoluteFill style={{fontFamily: FONT}}>
       {beat === 2 && (
         <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
           <div style={{textAlign: 'center'}}>
@@ -692,4 +1003,3 @@ export const L8CTA: React.FC = () => {
   );
 };
 
-export const LuxBackground: React.FC = LuxBackdrop;

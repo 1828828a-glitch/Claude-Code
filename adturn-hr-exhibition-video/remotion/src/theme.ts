@@ -27,4 +27,25 @@ export const SCENES = {
   cta: 440, // S8 CTA 14.7s
 };
 
+// ラグジュアリー版専用タイムライン（total 4175 ≈ 139s）
+// 構成: 人事編 → 一般論は一行もない → マーケティング編 → 共通エンディング（各文は一度だけ）
+export const LUX_SCENES = {
+  tech: 315, // L1 技術宣言 10.5s
+  engine: 400, // L2 技術の中身 13.3s
+  intro: 190, // L3 例えば、採用。6.3s
+  q1: 250, // L4 Q1 8.3s
+  q2: 295, // L5 Q2 9.8s
+  q3: 240, // L6 Q3 8s
+  answer: 460, // L7 答え 15.3s
+  nogen: 130, // L8 一般論は、一行もない。4.3s
+  mintro: 440, // M1 例えば、マーケティング。＋断言 14.7s
+  mq1: 180, // M2 検索されたとき 6s
+  mq2: 195, // M3 営業で伝わる強み 6.5s
+  mq3: 180, // M4 見込み客 6s
+  mscope: 520, // M5 診断範囲→優先順位→ロードマップ 17.3s
+  cta: 380, // L9 もう出せます→エンドカード 12.7s
+};
+
+export const LUX_TOTAL_FRAMES = Object.values(LUX_SCENES).reduce((a, b) => a + b, 0);
+
 export const TOTAL_FRAMES = Object.values(SCENES).reduce((a, b) => a + b, 0);
