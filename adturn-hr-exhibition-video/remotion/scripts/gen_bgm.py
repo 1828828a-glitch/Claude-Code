@@ -1,7 +1,7 @@
 import numpy as np, wave, struct
 
 SR = 44100
-DUR = 143.0
+DUR = 165.0
 N = int(SR * DUR)
 t = np.arange(N) / SR
 

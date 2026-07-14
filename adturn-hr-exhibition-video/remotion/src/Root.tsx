@@ -5,15 +5,15 @@ import {CollageDemo} from './collage/CollageDemo';
 import {AdturnCollageVideo} from './CollageVideo';
 import {LuxDemo} from './lux/LuxDemo';
 import {AdturnLuxVideo} from './LuxVideo';
-import {FPS, LUX_TOTAL_FRAMES, TOTAL_FRAMES} from './theme';
+import {FPS, LUX_TOTAL_FRAMES, TOTAL_FRAMES, V3D_TOTAL_FRAMES} from './theme';
 
 export const RemotionRoot: React.FC = () => (
   <>
-    {/* 3D版（人事編＋マーケティング編のフル構成） */}
+    {/* 3D版（人事編＋マーケティング編＋デジブレフィナーレのフル構成） */}
     <Composition
       id="AdturnForHR"
       component={AdturnVideo}
-      durationInFrames={LUX_TOTAL_FRAMES}
+      durationInFrames={V3D_TOTAL_FRAMES}
       fps={FPS}
       width={1920}
       height={1080}

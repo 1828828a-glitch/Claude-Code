@@ -404,3 +404,276 @@ export const SceneMScope: React.FC = () => {
     </AbsoluteFill>
   );
 };
+
+// M6 アドターン for マーケティング リビール（200f）
+export const SceneMReveal: React.FC = () => {
+  const frame = useCurrentFrame();
+  const ringIn = useRise(8, 40);
+  const sub = useRise(64, 30);
+  const glowP = interpolate(frame, [4, 40], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  return (
+    <AbsoluteFill style={{background: COLORS.ink, fontFamily: FONT, overflow: 'hidden', justifyContent: 'center', alignItems: 'center'}}>
+      <AbsoluteFill
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)',
+          backgroundSize: '120px 120px',
+        }}
+      />
+      <Particles count={44} seed="mrev" color="rgba(139,92,246,0.55)" />
+      <div
+        style={{
+          position: 'absolute',
+          width: 980,
+          height: 980,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(67,83,255,0.28) 0%, rgba(139,92,246,0.12) 45%, transparent 70%)',
+          transform: `scale(${glowP})`,
+        }}
+      />
+      <div style={{display: 'flex', justifyContent: 'center', ...ringIn}}>
+        <div
+          style={{
+            width: 150,
+            height: 150,
+            borderRadius: '50%',
+            border: '36px solid transparent',
+            background: `linear-gradient(${COLORS.ink}, ${COLORS.ink}) padding-box, ${GRADIENT} border-box`,
+            transform: `rotate(${frame}deg)`,
+            filter: 'drop-shadow(0 0 50px rgba(99,102,241,0.5))',
+          }}
+        />
+      </div>
+      <div style={{height: 50}} />
+      <div style={{display: 'flex', alignItems: 'baseline'}}>
+        <KineticChars text="ADTURN" delay={22} stagger={2.4} style={{fontSize: 108, fontWeight: 900, color: COLORS.white}} />
+        <span style={{width: 30}} />
+        <KineticChars
+          text="for Marketing"
+          delay={40}
+          stagger={2}
+          gradientRange={[0, 13]}
+          style={{fontSize: 108, fontWeight: 900, color: COLORS.white}}
+        />
+      </div>
+      <div style={{height: 36}} />
+      <div style={{fontSize: 40, fontWeight: 700, color: 'rgba(255,255,255,0.75)', ...sub}}>
+        デジタル上の機会損失に、すべての打開策を。
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// フィナーレ（780f）: 2プロダクト → デジブレ転写 → 貴社専用カスタマイズ → デジブレ
+const PRODUCTS = ['ADTURN for HR', 'ADTURN for Marketing'];
+const PRODUCTS_SUB = ['人事・採用', 'マーケティング'];
+
+export const SceneFinale: React.FC = () => {
+  const frame = useCurrentFrame();
+  const beat = frame < 215 ? 1 : frame < 510 ? 2 : frame < 645 ? 3 : 4;
+
+  const h1 = useRise(6, 30);
+  const p1r = useRise(22, 40);
+  const p2r = useRise(106, 40);
+
+  const coreIn = useRise(224, 40);
+  const armIn = interpolate(frame, [258, 300], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const prodIn = useRise(292, 36);
+  const transferSub = useRise(330, 30);
+
+  const b3In = useRise(520, 40);
+
+  const glow = interpolate(frame, [648, 690], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const b4Logo = useRise(658, 40);
+  const b4Sub = useRise(676, 30);
+  const b4Cta = useRise(694, 30);
+  const pull = interpolate(frame, [560, 720], [0, 0.72], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+
+  const lockup = (name: string, subT: string, anim: {opacity: number; transform: string}, key: string) => (
+    <div
+      key={key}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 34,
+        padding: '30px 60px',
+        borderRadius: 26,
+        background: 'rgba(255,255,255,0.05)',
+        border: '2px solid rgba(139,92,246,0.4)',
+        boxShadow: '0 0 50px rgba(99,102,241,0.15)',
+        ...anim,
+      }}
+    >
+      <div
+        style={{
+          width: 54,
+          height: 54,
+          borderRadius: '50%',
+          border: '14px solid transparent',
+          background: `linear-gradient(${COLORS.ink}, ${COLORS.ink}) padding-box, ${GRADIENT} border-box`,
+        }}
+      />
+      <div>
+        <div style={{fontSize: 54, fontWeight: 900, color: COLORS.white}}>{name}</div>
+        <div style={{fontSize: 24, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.14em', marginTop: 4}}>{subT}</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <AbsoluteFill style={{background: COLORS.ink, fontFamily: FONT, overflow: 'hidden'}}>
+      <AbsoluteFill
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)',
+          backgroundSize: '120px 120px',
+        }}
+      />
+      <Particles count={50} seed="finale" color="rgba(139,92,246,0.5)" pull={pull} />
+
+      {beat === 1 && (
+        <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', gap: 44}}>
+          <div style={{fontSize: 30, fontWeight: 700, letterSpacing: '0.35em', color: 'rgba(255,255,255,0.5)', ...h1}}>
+            PRODUCTS — デジブレから生まれたプロダクト
+          </div>
+          {lockup(PRODUCTS[0], PRODUCTS_SUB[0], p1r, 'p0')}
+          {lockup(PRODUCTS[1], PRODUCTS_SUB[1], p2r, 'p1')}
+        </AbsoluteFill>
+      )}
+
+      {beat === 2 && (
+        <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+          {/* デジブレ・コア */}
+          <div style={{textAlign: 'center', ...coreIn}}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 26,
+                padding: '26px 64px',
+                borderRadius: 999,
+                background: GRADIENT,
+                boxShadow: '0 0 80px rgba(99,102,241,0.5)',
+              }}
+            >
+              <div style={{width: 44, height: 44, borderRadius: '50%', border: `12px solid ${COLORS.white}`}} />
+              <span style={{fontSize: 62, fontWeight: 900, color: COLORS.white}}>デジブレ</span>
+            </div>
+          </div>
+          {/* 転写アーム */}
+          <svg width="900" height="130" viewBox="0 0 900 130" style={{opacity: armIn}}>
+            <path d="M 450 0 L 450 40 L 205 40 L 205 120" fill="none" stroke="rgba(139,92,246,0.7)" strokeWidth="4" />
+            <path d="M 450 40 L 695 40 L 695 120" fill="none" stroke="rgba(139,92,246,0.7)" strokeWidth="4" />
+            <circle cx="205" cy="120" r="8" fill="#8B5CF6" />
+            <circle cx="695" cy="120" r="8" fill="#8B5CF6" />
+          </svg>
+          {/* 2プロダクト */}
+          <div style={{display: 'flex', gap: 90, ...prodIn}}>
+            {PRODUCTS.map((p, i) => (
+              <div
+                key={p}
+                style={{
+                  padding: '24px 44px',
+                  borderRadius: 22,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '2px solid rgba(139,92,246,0.4)',
+                  fontSize: 40,
+                  fontWeight: 900,
+                  color: COLORS.white,
+                }}
+              >
+                {p}
+                <div style={{fontSize: 21, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginTop: 4, textAlign: 'center'}}>
+                  {PRODUCTS_SUB[i]}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{fontSize: 36, fontWeight: 700, color: 'rgba(255,255,255,0.75)', marginTop: 56, ...transferSub}}>
+            それぞれの分野の、トップパフォーマーの脳を<GradientText>転写</GradientText>して実現。
+          </div>
+        </AbsoluteFill>
+      )}
+
+      {beat === 3 && (
+        <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+          <div style={{textAlign: 'center', ...b3In}}>
+            <div style={{fontSize: 30, fontWeight: 700, letterSpacing: '0.35em', color: 'rgba(255,255,255,0.5)', marginBottom: 40}}>
+              NEXT — YOUR OWN MODEL
+            </div>
+            <div style={{fontSize: 92, fontWeight: 900, color: COLORS.white}}>
+              さあ、次は<GradientText>貴社専用</GradientText>に
+            </div>
+            <div style={{fontSize: 92, fontWeight: 900, color: COLORS.white, marginTop: 16}}>カスタマイズを。</div>
+          </div>
+        </AbsoluteFill>
+      )}
+
+      {beat === 4 && (
+        <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+          <div
+            style={{
+              position: 'absolute',
+              width: 940,
+              height: 940,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(67,83,255,0.30) 0%, rgba(139,92,246,0.14) 45%, transparent 70%)',
+              transform: `scale(${glow})`,
+            }}
+          />
+          <div style={{display: 'flex', justifyContent: 'center', ...b4Logo}}>
+            <div
+              style={{
+                width: 170,
+                height: 170,
+                borderRadius: '50%',
+                border: '40px solid transparent',
+                background: `linear-gradient(${COLORS.ink}, ${COLORS.ink}) padding-box, ${GRADIENT} border-box`,
+                transform: `rotate(${frame}deg)`,
+                filter: 'drop-shadow(0 0 60px rgba(99,102,241,0.55))',
+              }}
+            />
+          </div>
+          <div style={{height: 46}} />
+          <div style={{fontSize: 128, fontWeight: 900, color: COLORS.white, ...b4Logo}}>
+            デジ<GradientText>ブレ</GradientText>
+          </div>
+          <div style={{height: 26}} />
+          <div style={{fontSize: 30, fontWeight: 700, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.18em', ...b4Sub}}>
+            世界初のAIエンジン ｜ 特許出願中 ｜ ADTURN for HR ／ ADTURN for Marketing
+          </div>
+          <div style={{height: 44}} />
+          <div style={{display: 'flex', alignItems: 'center', gap: 30, ...b4Cta}}>
+            <div
+              style={{
+                padding: '18px 46px',
+                borderRadius: 999,
+                background: GRADIENT,
+                fontSize: 38,
+                fontWeight: 900,
+                color: COLORS.white,
+                boxShadow: '0 0 50px rgba(99,102,241,0.5)',
+              }}
+            >
+              デモ実施中
+            </div>
+            <div style={{fontSize: 38, fontWeight: 700, color: 'rgba(255,255,255,0.9)'}}>ぜひブースでご体験ください</div>
+          </div>
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 60,
+              fontSize: 32,
+              fontWeight: 700,
+              letterSpacing: '0.25em',
+              color: 'rgba(255,255,255,0.6)',
+              ...b4Cta,
+            }}
+          >
+            ADTANK GP
+          </div>
+        </AbsoluteFill>
+      )}
+    </AbsoluteFill>
+  );
+};

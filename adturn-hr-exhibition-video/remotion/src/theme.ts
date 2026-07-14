@@ -48,4 +48,26 @@ export const LUX_SCENES = {
 
 export const LUX_TOTAL_FRAMES = Object.values(LUX_SCENES).reduce((a, b) => a + b, 0);
 
+// 3D版専用タイムライン（total 4775 ≈ 159s）
+// マーケ編の締めに「アドターン for マーケティング」リビール、最後はデジブレで締めるフィナーレ
+export const V3D_SCENES = {
+  tech: 315,
+  engine: 400,
+  intro: 190,
+  q1: 250,
+  q2: 295,
+  q3: 240,
+  answer: 460,
+  nogen: 130, // 一般論は、一行もない。
+  mintro: 440, // 例えば、マーケティング。＋断言
+  mq1: 180,
+  mq2: 195,
+  mq3: 180,
+  mscope: 520, // 診断範囲→優先順位→ロードマップ
+  mreveal: 200, // アドターン for マーケティング リビール
+  finale: 780, // 2プロダクト→デジブレ転写→貴社専用カスタマイズ→デジブレ
+};
+
+export const V3D_TOTAL_FRAMES = Object.values(V3D_SCENES).reduce((a, b) => a + b, 0);
+
 export const TOTAL_FRAMES = Object.values(SCENES).reduce((a, b) => a + b, 0);

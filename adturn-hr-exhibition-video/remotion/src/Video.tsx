@@ -1,17 +1,16 @@
 import React from 'react';
 import {AbsoluteFill, Audio, Sequence, interpolate, staticFile, useCurrentFrame} from 'remotion';
-import {LUX_SCENES, LUX_TOTAL_FRAMES} from './theme';
+import {V3D_SCENES, V3D_TOTAL_FRAMES} from './theme';
 import {Scene1Tech} from './scenes/Scene1Tech';
 import {Scene2Engine} from './scenes/Scene2Engine';
 import {Scene3Intro} from './scenes/Scene3Intro';
 import {Scene4Q1, Scene5Q2, Scene6Q3, QuestionProgress} from './scenes/SceneQuestions';
 import {Scene7Answer} from './scenes/Scene7Answer';
-import {Scene8CTA} from './scenes/Scene8CTA';
-import {SceneMIntro, SceneMQ1, SceneMQ2, SceneMQ3, SceneMScope, SceneNoGen} from './scenes/SceneMarketing';
+import {SceneFinale, SceneMIntro, SceneMQ1, SceneMQ2, SceneMQ3, SceneMReveal, SceneMScope, SceneNoGen} from './scenes/SceneMarketing';
 
-// 3D版もマーケティング編込みのフルタイムライン（LUX_SCENES: 4175f ≈ 139s）を使用
-const SCENES = LUX_SCENES;
-const TOTAL = LUX_TOTAL_FRAMES;
+// 3D版専用タイムライン（4775f ≈ 159s）: マーケリビール＋デジブレフィナーレ込み
+const SCENES = V3D_SCENES;
+const TOTAL = V3D_TOTAL_FRAMES;
 
 // Cross-fade wrapper: fades a scene out over its last `overlap` frames
 const CrossFade: React.FC<{duration: number; overlap?: number; children: React.ReactNode}> = ({
@@ -68,8 +67,11 @@ const NARRATION: Array<[string, number]> = [
   ['m5', 3283], // M5 競合比較、検索導線、コンテンツ、AI検索。（速）
   ['m6', 3444], // M5 何を、どの順番で、どう直すべきか。（遅）
   ['m7', 3597], // M5 実行ロードマップまで。（着地）
-  ['n8b', 3809], // S9 もう出せます
-  ['n8c', 4025], // S9 デモはブースで
+  ['p0', 3805], // M6 アドターン for マーケティング（リビール）
+  ['p1', 4005], // F 2プロダクトの列挙
+  ['p2', 4222], // F デジブレに脳を転写して実現
+  ['p3', 4515], // F さあ、次は貴社専用にカスタマイズを
+  ['p4', 4668], // F デジブレ。
 ];
 
 // 問いのセクション（人事Q・マーケQ）はBGMを絞って「余白」をつくる
@@ -198,8 +200,13 @@ export const AdturnVideo: React.FC = () => {
           </CameraDrift>
         </CrossFade>
       </Sequence>
-      <Sequence from={starts.cta} durationInFrames={s.cta} name="S9 CTA">
-        <Scene8CTA />
+      <Sequence from={starts.mreveal} durationInFrames={s.mreveal} name="M6 アドターン for マーケティング">
+        <CrossFade duration={s.mreveal}>
+          <SceneMReveal />
+        </CrossFade>
+      </Sequence>
+      <Sequence from={starts.finale} durationInFrames={s.finale} name="F フィナーレ=デジブレ">
+        <SceneFinale />
       </Sequence>
     </AbsoluteFill>
   );
