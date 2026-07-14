@@ -15,6 +15,7 @@ import * as THREE from 'three';
 import {useThree} from '@react-three/fiber';
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {DRACOLoader} from 'three/examples/jsm/loaders/DRACOLoader.js';
+import {BRAIN_PARTS, makeCerebellumGeo, makeHemisphereGeo} from './BrainGeo';
 
 // ── モデル読み込み（Draco圧縮GLB） ──
 let headGeoPromise: Promise<THREE.BufferGeometry> | null = null;
@@ -77,27 +78,31 @@ export const useHeadGeometry = () => {
   return geo;
 };
 
-// カラフル脳テクスチャ（キャンバスの外でロードすること — GLBと同じ再描画問題を避ける）
-let brainTexPromise: Promise<THREE.Texture> | null = null;
-export const useBrainTexture = () => {
+// 画像テクスチャ（キャンバスの外でロードすること — GLBと同じ再描画問題を避ける）
+const texPromises = new Map<string, Promise<THREE.Texture>>();
+export const useImageTexture = (file: string) => {
   const [tex, setTex] = useState<THREE.Texture | null>(null);
-  const [handle] = useState(() => delayRender('loading brain.png'));
+  const [handle] = useState(() => delayRender(`loading ${file}`));
   useEffect(() => {
-    if (!brainTexPromise) {
-      brainTexPromise = new Promise((resolve, reject) => {
-        new THREE.TextureLoader().load(
-          staticFile('img/brain.png'),
-          (t) => {
-            t.colorSpace = THREE.SRGBColorSpace;
-            resolve(t);
-          },
-          undefined,
-          reject
-        );
-      });
+    if (!texPromises.has(file)) {
+      texPromises.set(
+        file,
+        new Promise((resolve, reject) => {
+          new THREE.TextureLoader().load(
+            staticFile(file),
+            (t) => {
+              t.colorSpace = THREE.SRGBColorSpace;
+              resolve(t);
+            },
+            undefined,
+            reject
+          );
+        })
+      );
     }
     let mounted = true;
-    brainTexPromise
+    texPromises
+      .get(file)!
       .then((t) => {
         if (mounted) {
           setTex(t);
@@ -108,14 +113,26 @@ export const useBrainTexture = () => {
     return () => {
       mounted = false;
     };
-  }, [handle]);
+  }, [handle, file]);
   return tex;
 };
 
+export const useBrainTexture = () => useImageTexture('img/brain.png');
+
 // ── カラフル脳の浮上（割れた頭の中から現れ、最後はリングへ転写される） ──
-const BrainRise: React.FC<{tex: THREE.Texture; riseStart: number}> = ({tex, riseStart}) => {
+// カラフルな3D脳（半球×2＋小脳＋脳幹）が浮上し、左上へ少しずれて回転 → リングへ転写される
+const BrainRise: React.FC<{riseStart: number}> = ({riseStart}) => {
   const frame = useCurrentFrame();
+  const geoL = useMemo(() => makeHemisphereGeo(0.0, true), []);
+  const geoR = useMemo(() => makeHemisphereGeo(2.7, true), []);
+  const geoC = useMemo(() => makeCerebellumGeo(true), []);
   const rise = interpolate(frame, [riseStart, riseStart + 55], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: (t) => 1 - Math.pow(1 - t, 3),
+  });
+  // 浮上後、頭と重ならない左上へドリフト
+  const drift = interpolate(frame, [riseStart + 40, riseStart + 90], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: (t) => 1 - Math.pow(1 - t, 3),
@@ -127,20 +144,29 @@ const BrainRise: React.FC<{tex: THREE.Texture; riseStart: number}> = ({tex, rise
     easing: (t) => t * t * (3 - 2 * t),
   });
   if (frame < riseStart || absorb >= 1) return null;
-  const bx = 0;
-  const by = 0.2 + rise * 1.05 + Math.sin(frame / 22) * 0.05;
+  const bx = -1.5 * drift + Math.sin(frame / 46) * 0.04;
+  const by = 0.5 + rise * 0.85 + drift * 0.15 + Math.sin(frame / 26) * 0.05;
   const x = bx + (RING_POS.x - bx) * absorb;
   const y = by + (RING_POS.y - by) * absorb;
-  const z = 0 + (RING_POS.z - 0) * absorb;
-  const scale = (0.2 + rise * 0.78) * (1 - absorb * 0.9);
-  const sway = Math.sin(frame / 30) * 0.06;
+  const z = 0.35 * drift * (1 - absorb) + RING_POS.z * absorb;
+  const scale = (0.16 + rise * 0.56) * (1 - absorb * 0.9);
+  const mat = {vertexColors: true, roughness: 0.38, metalness: 0.12, emissiveIntensity: 0.35, emissive: new THREE.Color('#33265A')};
   return (
-    <group position={[x, y, z]} scale={scale} rotation={[-0.12, 0, sway]}>
-      <mesh>
-        <planeGeometry args={[2.3, 2.3]} />
-        <meshBasicMaterial map={tex} transparent side={THREE.DoubleSide} depthWrite={false} />
+    <group position={[x, y, z]} scale={scale} rotation={[0.16, frame / 85, Math.sin(frame / 30) * 0.05]}>
+      <mesh geometry={geoL} position={BRAIN_PARTS.left.position} rotation={BRAIN_PARTS.left.rotation}>
+        <meshStandardMaterial {...mat} />
       </mesh>
-      <pointLight color="#FF9ECF" intensity={rise * 25 * (1 - absorb)} distance={7} />
+      <mesh geometry={geoR} position={BRAIN_PARTS.right.position} rotation={BRAIN_PARTS.right.rotation}>
+        <meshStandardMaterial {...mat} />
+      </mesh>
+      <mesh geometry={geoC} position={BRAIN_PARTS.cerebellum.position}>
+        <meshStandardMaterial {...mat} />
+      </mesh>
+      <mesh position={BRAIN_PARTS.stem.position} rotation={BRAIN_PARTS.stem.rotation}>
+        <cylinderGeometry args={[0.13, 0.19, 0.5, 32]} />
+        <meshStandardMaterial color="#B39DDB" roughness={0.4} metalness={0.1} />
+      </mesh>
+      <pointLight color="#FF9ECF" intensity={rise * 20 * (1 - absorb)} distance={7} />
     </group>
   );
 };
@@ -296,7 +322,7 @@ const DigibreRing: React.FC<{appear: number}> = ({appear}) => {
 // ロード完了後にGLキャンバスが再描画されず、静止画レンダリングで頭部が消える。
 // クリッピング平面はワールド空間評価なので、フタ側はフタのワールド変換に平面を毎フレーム追従させる。
 // （固定平面だと、回転したフタ＝頭全体のコピーのうち平面より上に来た部分＝顔が突き抜けて見えるバグになる）
-const SplitHead: React.FC<{split: number; geo: THREE.BufferGeometry}> = ({split, geo}) => {
+const SplitHead: React.FC<{split: number; geo: THREE.BufferGeometry; lidFade?: number}> = ({split, geo, lidFade = 1}) => {
   const frame = useCurrentFrame();
   const CUT = 0.85; // 眉上あたりの水平カット高さ（ローカル座標）
 
@@ -342,17 +368,19 @@ const SplitHead: React.FC<{split: number; geo: THREE.BufferGeometry}> = ({split,
       <mesh geometry={geo} scale={1.002}>
         <meshBasicMaterial color="#8F7CFF" wireframe transparent opacity={0.3} clippingPlanes={[planeBottom]} />
       </mesh>
-      {/* 頭頂部のフタ: 後頭部を支点に後ろへ起き上がる */}
-      <group position={[0, CUT + lidLift, -0.55]} rotation={[-lid, 0, 0]}>
-        <group position={[0, -CUT, 0.55]}>
-          <mesh geometry={geo}>
-            <meshStandardMaterial {...common} clippingPlanes={[planeTop]} />
-          </mesh>
-          <mesh geometry={geo} scale={1.002}>
-            <meshBasicMaterial color="#8F7CFF" wireframe transparent opacity={0.3} clippingPlanes={[planeTop]} />
-          </mesh>
+      {/* 頭頂部のフタ: 後頭部を支点に後ろへ起き上がり、開き切ったらフェードアウト（転写のため取り外されるイメージ） */}
+      {lidFade > 0 && (
+        <group position={[0, CUT + lidLift, -0.55]} rotation={[-lid, 0, 0]}>
+          <group position={[0, -CUT, 0.55]}>
+            <mesh geometry={geo}>
+              <meshStandardMaterial {...common} transparent opacity={lidFade} clippingPlanes={[planeTop]} />
+            </mesh>
+            <mesh geometry={geo} scale={1.002}>
+              <meshBasicMaterial color="#8F7CFF" wireframe transparent opacity={0.3 * lidFade} clippingPlanes={[planeTop]} />
+            </mesh>
+          </group>
         </group>
-      </group>
+      )}
       {/* 開口部の発光（暗黙知の源） */}
       <pointLight position={[0, 0.7, 0]} color="#9F7CFF" intensity={split * 50} distance={12} />
     </group>
@@ -370,12 +398,16 @@ export const HeadSplitScene: React.FC<{
   const {width, height} = useVideoConfig();
   // キャンバスの外でロード → ロード完了でThreeCanvasごと再レンダリング＆再描画される
   const geo = useHeadGeometry();
-  const brainTex = useBrainTexture();
+
 
   const split = interpolate(frame, [splitStart, splitStart + splitDur], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: (t) => 1 - Math.pow(1 - t, 3),
+  });
+  const lidFade = interpolate(frame, [splitStart + splitDur + 8, splitStart + splitDur + 40], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
   });
   const streamStrength = interpolate(frame, [streamStart, streamStart + 30], [0, 1], {
     extrapolateLeft: 'clamp',
@@ -407,8 +439,8 @@ export const HeadSplitScene: React.FC<{
       <ambientLight intensity={0.7} color="#8892FF" />
       <directionalLight position={[4, 5, 3]} intensity={2.4} color="#B9C2FF" />
       <directionalLight position={[-5, 2, -2]} intensity={3.2} color="#7A5CFF" />
-      {geo && <SplitHead split={split} geo={geo} />}
-      {brainTex && <BrainRise tex={brainTex} riseStart={splitStart + 8} />}
+      {geo && <SplitHead split={split} geo={geo} lidFade={lidFade} />}
+      <BrainRise riseStart={splitStart + 8} />
       <ColorOrbs burstAt={splitStart + 12} />
       <KnowledgeStream start={streamStart} strength={streamStrength} />
       <DigibreRing appear={ringAppear} />

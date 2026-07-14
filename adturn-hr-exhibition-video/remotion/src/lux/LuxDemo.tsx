@@ -1,10 +1,11 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useMemo} from 'react';
 import {ThreeCanvas} from '@remotion/three';
 import {AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig} from 'remotion';
 import * as THREE from 'three';
 import {useThree} from '@react-three/fiber';
 import {FONT} from '../theme';
-import {useBrainTexture, useHeadGeometry} from '../scenes/Head3D';
+import {useHeadGeometry} from '../scenes/Head3D';
+import {BRAIN_PARTS, makeCerebellumGeo, makeHemisphereGeo} from '../scenes/BrainGeo';
 
 // ── ラグジュアリー「プロダクト・ラボ」スタイル共通パーツ＋スタイルデモ ──
 // 参考: 暗背景に単一の精密3Dオブジェクト、スローターンテーブル、
@@ -37,8 +38,14 @@ export const LuxHead: React.FC<{geo: THREE.BufferGeometry; openStart: number; op
     extrapolateRight: 'clamp',
     easing: (t) => 1 - Math.pow(1 - t, 3),
   });
+  // フタは開いたあとフェードアウト（転写のため取り外されるイメージ）。
+  // ヒンジ回転だと頭の真上に振り上がって「卵」のように残ってしまうため。
   const lid = split * 1.05;
   const lidLift = split * 0.16;
+  const lidOpacity = interpolate(frame, [openStart + openDur, openStart + openDur + 32], [1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
 
   // ターンテーブル（ごくゆっくり）
   const yRot = -0.42 + frame / 620;
@@ -76,39 +83,67 @@ export const LuxHead: React.FC<{geo: THREE.BufferGeometry; openStart: number; op
       <mesh geometry={geo} scale={1.0025}>
         <meshBasicMaterial color={GOLD} wireframe transparent opacity={0.1} clippingPlanes={[planeBottom]} />
       </mesh>
-      <group position={[0, CUT + lidLift, -0.55]} rotation={[-lid, 0, 0]}>
-        <group position={[0, -CUT, 0.55]}>
-          <mesh geometry={geo}>
-            <meshStandardMaterial {...common} clippingPlanes={[planeTop]} />
-          </mesh>
-          <mesh geometry={geo} scale={1.0025}>
-            <meshBasicMaterial color={GOLD} wireframe transparent opacity={0.1} clippingPlanes={[planeTop]} />
-          </mesh>
+      {lidOpacity > 0 && (
+        <group position={[0, CUT + lidLift, -0.55]} rotation={[-lid, 0, 0]}>
+          <group position={[0, -CUT, 0.55]}>
+            <mesh geometry={geo}>
+              <meshStandardMaterial {...common} transparent opacity={lidOpacity} clippingPlanes={[planeTop]} />
+            </mesh>
+            <mesh geometry={geo} scale={1.0025}>
+              <meshBasicMaterial color={GOLD} wireframe transparent opacity={0.1 * lidOpacity} clippingPlanes={[planeTop]} />
+            </mesh>
+          </group>
         </group>
-      </group>
+      )}
       <pointLight position={[0, 1.1, 0.2]} color="#FFD9A0" intensity={split * 26} distance={9} />
     </group>
   );
 };
 
-// ── 3D: 脳の浮上 ──
-export const LuxBrain: React.FC<{tex: THREE.Texture; riseStart: number}> = ({tex, riseStart}) => {
+// ── 3D: ゴールドの脳が浮上 → 左上へ流れて頭とは重ならない位置で回転し続ける ──
+export const LuxBrain: React.FC<{riseStart: number}> = ({riseStart}) => {
   const frame = useCurrentFrame();
-  const rise = interpolate(frame, [riseStart, riseStart + 75], [0, 1], {
+  const geoL = useMemo(() => makeHemisphereGeo(0.0), []);
+  const geoR = useMemo(() => makeHemisphereGeo(2.7), []);
+  const geoC = useMemo(() => makeCerebellumGeo(), []);
+  const rise = interpolate(frame, [riseStart, riseStart + 70], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+    easing: (t) => 1 - Math.pow(1 - t, 3),
+  });
+  const drift = interpolate(frame, [riseStart + 45, riseStart + 100], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: (t) => 1 - Math.pow(1 - t, 3),
   });
   if (frame < riseStart) return null;
-  const y = 0.35 + rise * 1.35 + Math.sin(frame / 34) * 0.05;
-  const s = 0.25 + rise * 0.72;
+  const x = -1.45 * drift + Math.sin(frame / 46) * 0.04;
+  const y = 0.5 + rise * 0.8 + drift * 0.05 + Math.sin(frame / 34) * 0.05;
+  const z = 0.4 * drift;
+  const s = (0.2 + rise * 0.62) * (1 + Math.sin(frame / 28) * 0.015);
+  const gold = {
+    color: new THREE.Color('#C9A45C'),
+    metalness: 0.85,
+    roughness: 0.32,
+    emissive: new THREE.Color('#4A3B1C'),
+    emissiveIntensity: 0.5,
+  };
   return (
-    <group position={[0, y, 0]} scale={s} rotation={[-0.1, 0, Math.sin(frame / 40) * 0.05]}>
-      <mesh>
-        <planeGeometry args={[2.2, 2.2]} />
-        <meshBasicMaterial map={tex} transparent side={THREE.DoubleSide} depthWrite={false} />
+    <group position={[x, y, z]} scale={s} rotation={[0.16, frame / 90, 0.05]}>
+      <mesh geometry={geoL} position={[-0.42, 0, 0]} rotation={[0, 0, 0.07]}>
+        <meshStandardMaterial {...gold} />
       </mesh>
-      <pointLight color="#FF9ECF" intensity={rise * 14} distance={6} />
+      <mesh geometry={geoR} position={[0.42, 0, 0]} rotation={[0, 0, -0.07]}>
+        <meshStandardMaterial {...gold} />
+      </mesh>
+      <mesh geometry={geoC} position={[0, -0.62, -0.55]}>
+        <meshStandardMaterial {...gold} />
+      </mesh>
+      <mesh position={[0, -0.72, -0.2]} rotation={[0.55, 0, 0]}>
+        <cylinderGeometry args={[0.13, 0.19, 0.5, 32]} />
+        <meshStandardMaterial {...gold} />
+      </mesh>
+      <pointLight color="#FFD9A0" intensity={rise * 12} distance={6} />
     </group>
   );
 };
@@ -135,7 +170,6 @@ export const LuxHeadCanvas: React.FC<{openStart?: number; openDur?: number}> = (
 }) => {
   const {width, height} = useVideoConfig();
   const geo = useHeadGeometry();
-  const brainTex = useBrainTexture();
   return (
     <ThreeCanvas
       width={width}
@@ -153,7 +187,7 @@ export const LuxHeadCanvas: React.FC<{openStart?: number; openDur?: number}> = (
       <directionalLight position={[-5, 2, -1]} intensity={1.4} color="#6E86C4" />
       <directionalLight position={[0, 3, -5]} intensity={2.2} color="#8FA6D8" />
       {geo && <LuxHead geo={geo} openStart={openStart} openDur={openDur} />}
-      {brainTex && <LuxBrain tex={brainTex} riseStart={openStart + 20} />}
+      <LuxBrain riseStart={openStart + 20} />
     </ThreeCanvas>
   );
 };

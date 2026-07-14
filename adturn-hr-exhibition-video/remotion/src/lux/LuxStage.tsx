@@ -3,7 +3,7 @@ import {ThreeCanvas} from '@remotion/three';
 import {AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig} from 'remotion';
 import * as THREE from 'three';
 import {useThree} from '@react-three/fiber';
-import {useBrainTexture, useHeadGeometry} from '../scenes/Head3D';
+import {useHeadGeometry} from '../scenes/Head3D';
 import {LuxBrain, LuxHead} from './LuxDemo';
 
 // ── 常設3Dステージ（全編通し） ──
@@ -70,7 +70,6 @@ export const LuxStage: React.FC = () => {
   const frame = useCurrentFrame();
   const {width, height} = useVideoConfig();
   const geo = useHeadGeometry();
-  const brainTex = useBrainTexture();
   const opacity = track(frame, 3) * interpolate(frame, [0, 14], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
 
   return (
@@ -92,7 +91,7 @@ export const LuxStage: React.FC = () => {
         <directionalLight position={[0, 3, -5]} intensity={2.2} color="#8FA6D8" />
         {geo && <LuxHead geo={geo} openStart={62} openDur={50} xOff={track(frame, 1)} />}
         <group position={[track(frame, 1), 0, 0]}>
-          {brainTex && <LuxBrain tex={brainTex} riseStart={82} />}
+          <LuxBrain riseStart={82} />
         </group>
       </ThreeCanvas>
     </AbsoluteFill>

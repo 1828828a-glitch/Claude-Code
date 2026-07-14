@@ -9,10 +9,11 @@ import {FPS, LUX_TOTAL_FRAMES, TOTAL_FRAMES} from './theme';
 
 export const RemotionRoot: React.FC = () => (
   <>
+    {/* 3D版（人事編＋マーケティング編のフル構成） */}
     <Composition
       id="AdturnForHR"
       component={AdturnVideo}
-      durationInFrames={TOTAL_FRAMES}
+      durationInFrames={LUX_TOTAL_FRAMES}
       fps={FPS}
       width={1920}
       height={1080}

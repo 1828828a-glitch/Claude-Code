@@ -4,31 +4,26 @@ import {COLORS, FONT, GRADIENT} from '../theme';
 import {GradientText, useRise} from '../helpers';
 import {KineticChars, Particles, ReportDoc} from '../fx';
 
-// S8 信頼の担保＋CTA（14.7s）: パーティクル収束→エンドカード
-// Beat 1: 0-104 一般論は一行もない / Beat 2: 104-328 もう出せます / Beat 3: 328-440 エンドカード
+// S9 CTA（12.7s）: もう出せます → エンドカード（「一般論は一行もない」はSceneNoGenへ分離）
+// Beat 2: 0-225 もう出せます / Beat 3: 225-380 エンドカード
 export const Scene8CTA: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
 
-  const b1Sub = useRise(46, 30);
-  const b1Out = interpolate(frame, [88, 102], [1, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const b2SubIn = useRise(160, 30);
-  const b2Out = interpolate(frame, [312, 326], [1, 0], {
+  const b2SubIn = useRise(58, 30);
+  const b2Out = interpolate(frame, [209, 223], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
 
-  const glow = spring({frame: frame - 332, fps, config: {damping: 18, stiffness: 70}});
+  const glow = spring({frame: frame - 229, fps, config: {damping: 18, stiffness: 70}});
   const pulse = 1 + Math.sin(frame / 12) * 0.05;
-  const b3Text = useRise(346, 40);
-  const b3Cta = useRise(362, 30);
+  const b3Text = useRise(243, 40);
+  const b3Cta = useRise(259, 30);
   const ctaPulse = 1 + Math.sin(frame / 10) * 0.03;
 
   // パーティクルがエンドカードに向かって中心に収束していく
-  const pull = interpolate(frame, [240, 380], [0, 0.72], {
+  const pull = interpolate(frame, [130, 300], [0, 0.72], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -43,52 +38,8 @@ export const Scene8CTA: React.FC = () => {
         }}
       />
       <Particles count={55} seed="s8" color="rgba(139,92,246,0.55)" pull={pull} />
-      {/* Beat 1: 光る戦略レポート誌面 ＋「一般論は、一行もない。」 */}
-      {frame < 104 && (
-        <AbsoluteFill
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: 110,
-            opacity: b1Out,
-          }}
-        >
-          <ReportDoc
-            delay={6}
-            width={430}
-            height={580}
-            header="戦略レポート｜p.21"
-            lineCount={11}
-            seed="s8doc"
-            glow
-            fontSize={26}
-          />
-          <div>
-            <KineticChars
-              text="一般論は、"
-              delay={12}
-              stagger={2.6}
-              style={{fontSize: 110, fontWeight: 900, color: COLORS.white}}
-            />
-            <KineticChars
-              text="一行もない。"
-              delay={26}
-              stagger={2.6}
-              gradientRange={[0, 4]}
-              style={{fontSize: 110, fontWeight: 900, color: COLORS.white}}
-            />
-            <div style={{height: 40}} />
-            <div style={{fontSize: 38, fontWeight: 500, color: 'rgba(255,255,255,0.72)', lineHeight: 1.7, ...b1Sub}}>
-              貴社の公開情報から、人事・採用
-              <br />
-              トップパフォーマーの「脳」が診断。
-            </div>
-          </div>
-        </AbsoluteFill>
-      )}
       {/* Beat 2 */}
-      {frame >= 104 && frame < 328 && (
+      {frame < 225 && (
         <AbsoluteFill
           style={{
             justifyContent: 'center',
@@ -99,7 +50,7 @@ export const Scene8CTA: React.FC = () => {
         >
           <KineticChars
             text="貴社の「答え」は、もう出せます。"
-            delay={108}
+            delay={12}
             stagger={2.2}
             gradientRange={[9, 14]}
             style={{fontSize: 112, fontWeight: 900, color: COLORS.white}}
@@ -111,7 +62,7 @@ export const Scene8CTA: React.FC = () => {
         </AbsoluteFill>
       )}
       {/* Beat 3: エンドカード */}
-      {frame >= 328 && (
+      {frame >= 225 && (
         <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', flexDirection: 'column'}}>
           <div
             style={{

@@ -1,12 +1,17 @@
 import React from 'react';
 import {AbsoluteFill, Audio, Sequence, interpolate, staticFile, useCurrentFrame} from 'remotion';
-import {SCENES, TOTAL_FRAMES} from './theme';
+import {LUX_SCENES, LUX_TOTAL_FRAMES} from './theme';
 import {Scene1Tech} from './scenes/Scene1Tech';
 import {Scene2Engine} from './scenes/Scene2Engine';
 import {Scene3Intro} from './scenes/Scene3Intro';
 import {Scene4Q1, Scene5Q2, Scene6Q3, QuestionProgress} from './scenes/SceneQuestions';
 import {Scene7Answer} from './scenes/Scene7Answer';
 import {Scene8CTA} from './scenes/Scene8CTA';
+import {SceneMIntro, SceneMQ1, SceneMQ2, SceneMQ3, SceneMScope, SceneNoGen} from './scenes/SceneMarketing';
+
+// 3D版もマーケティング編込みのフルタイムライン（LUX_SCENES: 4175f ≈ 139s）を使用
+const SCENES = LUX_SCENES;
+const TOTAL = LUX_TOTAL_FRAMES;
 
 // Cross-fade wrapper: fades a scene out over its last `overlap` frames
 const CrossFade: React.FC<{duration: number; overlap?: number; children: React.ReactNode}> = ({
@@ -43,7 +48,7 @@ const CameraDrift: React.FC<{phase?: number; children: React.ReactNode}> = ({pha
   );
 };
 
-// Narration placements: [file, absolute start frame]
+// 人事編 → 一般論は一行もない → マーケティング編 → 共通エンディング（各文は一度だけ）
 const NARRATION: Array<[string, number]> = [
   ['n1', 15], // S1 技術宣言
   ['n2a', 327], // S2 約40名コピー済み
@@ -54,22 +59,28 @@ const NARRATION: Array<[string, number]> = [
   ['n6', 1459], // S6 Q3
   ['n7a', 1696], // S7 答え=ADTURN for HR
   ['n7b', 1862], // S7 レポート内容
-  ['n8a', 2159], // S8 一般論は一行もない
-  ['n8b', 2284], // S8 もう出せます
-  ['n8c', 2492], // S8 デモはブースで
+  ['n8a', 2159], // S8 一般論は、一行もない。
+  ['m0', 2298], // M1 例えば、マーケティング。（0.6sの間を置いて）
+  ['m1', 2395], // M1 機会損失を可視化し打開策を出力（断言）
+  ['m2', 2732], // M2 検索されたとき
+  ['m3', 2912], // M3 営業で伝わる強み
+  ['m4', 3107], // M4 見込み客
+  ['m5', 3283], // M5 競合比較、検索導線、コンテンツ、AI検索。（速）
+  ['m6', 3444], // M5 何を、どの順番で、どう直すべきか。（遅）
+  ['m7', 3597], // M5 実行ロードマップまで。（着地）
+  ['n8b', 3809], // S9 もう出せます
+  ['n8c', 4025], // S9 デモはブースで
 ];
 
-// BGM: ambient pad, ducked from the voice scene through the question section (静かな「余白」)
-const QUESTIONS_START = 715;
-const QUESTIONS_END = 1690;
+// 問いのセクション（人事Q・マーケQ）はBGMを絞って「余白」をつくる
+const duckWin = (f: number, s: number, e: number) =>
+  interpolate(f, [s - 30, s + 30, e - 30, e + 30], [0, 0.12, 0.12, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
 const bgmVolume = (f: number) => {
-  const base = interpolate(
-    f,
-    [QUESTIONS_START - 30, QUESTIONS_START + 30, QUESTIONS_END - 30, QUESTIONS_END + 30],
-    [0.3, 0.18, 0.18, 0.3],
-    {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}
-  );
-  const endFade = interpolate(f, [TOTAL_FRAMES - 70, TOTAL_FRAMES - 5], [1, 0], {
+  const base = 0.3 - duckWin(f, 715, 1690) - duckWin(f, 2720, 3275);
+  const endFade = interpolate(f, [TOTAL - 70, TOTAL - 5], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -142,7 +153,52 @@ export const AdturnVideo: React.FC = () => {
           </CameraDrift>
         </CrossFade>
       </Sequence>
-      <Sequence from={starts.cta} durationInFrames={s.cta} name="S8 CTA">
+      <Sequence from={starts.nogen} durationInFrames={s.nogen} name="S8 一般論は一行もない">
+        <CrossFade duration={s.nogen}>
+          <CameraDrift phase={49}>
+            <SceneNoGen />
+          </CameraDrift>
+        </CrossFade>
+      </Sequence>
+      <Sequence from={starts.mintro} durationInFrames={s.mintro} name="M1 例えば、マーケティング。">
+        <CrossFade duration={s.mintro}>
+          <CameraDrift phase={56}>
+            <SceneMIntro />
+          </CameraDrift>
+        </CrossFade>
+      </Sequence>
+      <Sequence from={starts.mq1} durationInFrames={s.mq1} name="M2 検索されたとき">
+        <CrossFade duration={s.mq1}>
+          <CameraDrift phase={63}>
+            <SceneMQ1 />
+            <QuestionProgress active={0} />
+          </CameraDrift>
+        </CrossFade>
+      </Sequence>
+      <Sequence from={starts.mq2} durationInFrames={s.mq2} name="M3 営業で伝わる強み">
+        <CrossFade duration={s.mq2}>
+          <CameraDrift phase={70}>
+            <SceneMQ2 />
+            <QuestionProgress active={1} dark />
+          </CameraDrift>
+        </CrossFade>
+      </Sequence>
+      <Sequence from={starts.mq3} durationInFrames={s.mq3} name="M4 見込み客">
+        <CrossFade duration={s.mq3}>
+          <CameraDrift phase={77}>
+            <SceneMQ3 />
+            <QuestionProgress active={2} />
+          </CameraDrift>
+        </CrossFade>
+      </Sequence>
+      <Sequence from={starts.mscope} durationInFrames={s.mscope} name="M5 診断範囲→ロードマップ">
+        <CrossFade duration={s.mscope}>
+          <CameraDrift phase={84}>
+            <SceneMScope />
+          </CameraDrift>
+        </CrossFade>
+      </Sequence>
+      <Sequence from={starts.cta} durationInFrames={s.cta} name="S9 CTA">
         <Scene8CTA />
       </Sequence>
     </AbsoluteFill>
