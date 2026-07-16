@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>リアルタイム リップシンク アバター</title>
+<style>
+  :root {
+    --panel-bg: rgba(20, 22, 30, 0.92);
+    --panel-fg: #e8eaf0;
+    --accent: #4f8cff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #111;
+    font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+    overflow: hidden;
+  }
+  #stage {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  #panel {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    width: 320px;
+    max-height: calc(100% - 32px);
+    overflow-y: auto;
+    background: var(--panel-bg);
+    color: var(--panel-fg);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.45);
+    backdrop-filter: blur(6px);
+    transition: opacity .25s, transform .25s;
+  }
+  body.clean #panel { opacity: 0; transform: translateX(-12px); pointer-events: none; }
+  body.clean { cursor: none; }
+  #panel h1 { font-size: 15px; margin: 0 0 12px; letter-spacing: .04em; }
+  .row { margin-bottom: 12px; }
+  .row label { display: block; font-size: 12px; opacity: .85; margin-bottom: 4px; }
+  select, input[type="color"], button {
+    width: 100%;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #3a3f4e;
+    background: #262a36;
+    color: var(--panel-fg);
+    font-size: 13px;
+  }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); font-weight: 700; }
+  button.primary.stop { background: #e05555; border-color: #e05555; }
+  .bg-presets { display: flex; gap: 6px; }
+  .bg-presets button { width: 34px; height: 28px; padding: 0; border: 2px solid #3a3f4e; }
+  #meter {
+    height: 8px;
+    border-radius: 4px;
+    background: #262a36;
+    overflow: hidden;
+  }
+  #meter > div {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #37d67a, #ffd644, #ff6b6b);
+    transition: width .05s linear;
+  }
+  details { font-size: 12px; line-height: 1.7; }
+  details summary { cursor: pointer; font-weight: 700; margin-bottom: 6px; }
+  details ol { padding-left: 18px; margin: 6px 0; }
+  .hint { font-size: 11px; opacity: .6; margin-top: 10px; }
+  #toast {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel-bg);
+    color: var(--panel-fg);
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity .3s;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+
+<div id="panel">
+  <h1>🎙️ リアルタイム リップシンク アバター</h1>
+
+  <div class="row">
+    <button id="startBtn" class="primary">▶ マイク開始</button>
+  </div>
+
+  <div class="row">
+    <label>マイク</label>
+    <select id="micSelect"><option value="">（開始すると一覧が出ます）</option></select>
+  </div>
+
+  <div class="row">
+    <label>入力レベル</label>
+    <div id="meter"><div></div></div>
+  </div>
+
+  <div class="row">
+    <label>感度: <span id="sensVal"></span></label>
+    <input type="range" id="sens" min="1" max="30" step="0.5" value="10">
+  </div>
+
+  <div class="row">
+    <label>ノイズゲート: <span id="gateVal"></span></label>
+    <input type="range" id="gate" min="0" max="0.05" step="0.001" value="0.008">
+  </div>
+
+  <div class="row">
+    <label>背景色（緑にするとOBSでクロマキー合成できます）</label>
+    <div class="bg-presets">
+      <button data-bg="#00ff00" style="background:#00ff00" title="グリーンバック"></button>
+      <button data-bg="#0000ff" style="background:#0000ff" title="ブルーバック"></button>
+      <button data-bg="#1e2430" style="background:#1e2430" title="ダーク"></button>
+      <button data-bg="#f5f0e8" style="background:#f5f0e8" title="ライト"></button>
+      <input type="color" id="bgColor" value="#1e2430" style="flex:1; height:28px; padding:2px;">
+    </div>
+  </div>
+
+  <div class="row">
+    <label>アバター画像（任意・複数可）<br>口を閉じた画像→開いた画像の順で選択すると、その画像で喋ります</label>
+    <input type="file" id="frames" accept="image/*" multiple>
+    <button id="resetFrames" style="margin-top:6px;">内蔵アバターに戻す</button>
+  </div>
+
+  <div class="row">
+    <button id="cleanBtn">🎥 配信モード（UIを隠す / Hキー）</button>
+  </div>
+
+  <details>
+    <summary>Zoom / Google Meet で使う方法</summary>
+    <b>方法1: 画面共有（いちばん簡単）</b>
+    <ol>
+      <li>このページでマイクを開始し、Hキーで UI を隠す</li>
+      <li>Meet / Zoom で「画面を共有」→ このタブ（またはウィンドウ）を選ぶ</li>
+      <li>声はふつうにマイクから入るので、アバターが口パクします</li>
+    </ol>
+    <b>方法2: カメラ映像として映す（OBS）</b>
+    <ol>
+      <li>OBS Studio で「ウィンドウキャプチャ」にこのページを追加</li>
+      <li>背景を緑にしてクロマキーを掛ければ好きな背景と合成可能</li>
+      <li>OBS の「仮想カメラ開始」を押す</li>
+      <li>Zoom / Meet のカメラ設定で「OBS Virtual Camera」を選択</li>
+    </ol>
+  </details>
+
+  <div class="hint">設定は自動保存されます。Hキーで UI 表示/非表示を切り替え。</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  const canvas = document.getElementById("stage");
+  const ctx = canvas.getContext("2d");
+  const meterBar = document.querySelector("#meter > div");
+  const startBtn = document.getElementById("startBtn");
+  const micSelect = document.getElementById("micSelect");
+  const sensInput = document.getElementById("sens");
+  const gateInput = document.getElementById("gate");
+  const sensVal = document.getElementById("sensVal");
+  const gateVal = document.getElementById("gateVal");
+  const bgColorInput = document.getElementById("bgColor");
+  const framesInput = document.getElementById("frames");
+  const toast = document.getElementById("toast");
+
+  // ---- 設定（localStorage に保存） ----
+  const store = {
+    load() {
+      try { return JSON.parse(localStorage.getItem("lipsync-avatar") || "{}"); }
+      catch { return {}; }
+    },
+    save(patch) {
+      const cur = store.load();
+      localStorage.setItem("lipsync-avatar", JSON.stringify({ ...cur, ...patch }));
+    },
+  };
+  const saved = store.load();
+  if (saved.sens) sensInput.value = saved.sens;
+  if (saved.gate) gateInput.value = saved.gate;
+  if (saved.bg) bgColorInput.value = saved.bg;
+
+  let bg = bgColorInput.value;
+  let sensitivity = parseFloat(sensInput.value);
+  let gate = parseFloat(gateInput.value);
+
+  const updateLabels = () => {
+    sensVal.textContent = sensitivity.toFixed(1);
+    gateVal.textContent = gate.toFixed(3);
+  };
+  updateLabels();
+
+  sensInput.addEventListener("input", () => {
+    sensitivity = parseFloat(sensInput.value);
+    store.save({ sens: sensInput.value });
+    updateLabels();
+  });
+  gateInput.addEventListener("input", () => {
+    gate = parseFloat(gateInput.value);
+    store.save({ gate: gateInput.value });
+    updateLabels();
+  });
+  bgColorInput.addEventListener("input", () => {
+    bg = bgColorInput.value;
+    store.save({ bg });
+  });
+  document.querySelectorAll(".bg-presets button[data-bg]").forEach((b) => {
+    b.addEventListener("click", () => {
+      bg = b.dataset.bg;
+      bgColorInput.value = bg;
+      store.save({ bg });
+    });
+  });
+
+  function showToast(msg, ms = 2500) {
+    toast.textContent = msg;
+    toast.classList.add("show");
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => toast.classList.remove("show"), ms);
+  }
+
+  // ---- 配信モード（UI隠し） ----
+  const toggleClean = () => {
+    document.body.classList.toggle("clean");
+    if (document.body.classList.contains("clean")) {
+      showToast("配信モード: Hキーで UI を再表示");
+    }
+  };
+  document.getElementById("cleanBtn").addEventListener("click", toggleClean);
+  window.addEventListener("keydown", (e) => {
+    if (e.key.toLowerCase() === "h" && !e.repeat) toggleClean();
+  });
+
+  // ---- キャンバスサイズ ----
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(innerWidth * dpr);
+    canvas.height = Math.round(innerHeight * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  // ---- 音声解析 ----
+  let audioCtx = null;
+  let analyser = null;
+  let currentStream = null;
+  let timeBuf = null;
+  let freqBuf = null;
+  let running = false;
+
+  async function startMic(deviceId) {
+    stopMic();
+    const constraints = {
+      audio: {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        echoCancellation: false,
+        noiseSuppression: true,
+        autoGainControl: false,
+      },
+    };
+    currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    await audioCtx.resume();
+    const src = audioCtx.createMediaStreamSource(currentStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 1024;
+    analyser.smoothingTimeConstant = 0.4;
+    src.connect(analyser);
+    timeBuf = new Float32Array(analyser.fftSize);
+    freqBuf = new Uint8Array(analyser.frequencyBinCount);
+    running = true;
+    startBtn.textContent = "■ マイク停止";
+    startBtn.classList.add("stop");
+    await refreshMicList();
+  }
+
+  function stopMic() {
+    running = false;
+    if (currentStream) {
+      currentStream.getTracks().forEach((t) => t.stop());
+      currentStream = null;
+    }
+    if (audioCtx) {
+      audioCtx.close();
+      audioCtx = null;
+    }
+    analyser = null;
+    startBtn.textContent = "▶ マイク開始";
+    startBtn.classList.remove("stop");
+  }
+
+  async function refreshMicList() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const mics = devices.filter((d) => d.kind === "audioinput");
+    const selected = micSelect.value;
+    micSelect.innerHTML = "";
+    mics.forEach((d, i) => {
+      const opt = document.createElement("option");
+      opt.value = d.deviceId;
+      opt.textContent = d.label || `マイク ${i + 1}`;
+      micSelect.appendChild(opt);
+    });
+    if (selected && [...micSelect.options].some((o) => o.value === selected)) {
+      micSelect.value = selected;
+    }
+  }
+
+  startBtn.addEventListener("click", async () => {
+    if (running) {
+      stopMic();
+      return;
+    }
+    try {
+      await startMic(micSelect.value || undefined);
+      showToast("マイク接続OK！喋るとアバターが口パクします");
+    } catch (err) {
+      showToast("マイクを取得できませんでした: " + err.message, 4000);
+    }
+  });
+
+  micSelect.addEventListener("change", () => {
+    if (running) startMic(micSelect.value).catch((e) => showToast(e.message, 4000));
+  });
+
+  // ---- 口パクの計算 ----
+  // level: 0..1（口の開き具合） / wide: 0..1（口の横広がり＝高音成分）
+  let level = 0;
+  let wide = 0;
+
+  function analyze() {
+    if (!analyser) {
+      level *= 0.9;
+      return;
+    }
+    analyser.getFloatTimeDomainData(timeBuf);
+    let sum = 0;
+    for (let i = 0; i < timeBuf.length; i++) sum += timeBuf[i] * timeBuf[i];
+    const rms = Math.sqrt(sum / timeBuf.length);
+
+    const raw = Math.max(0, Math.min(1, (rms - gate) * sensitivity));
+    // アタック速め・リリース遅めで自然な口パクに
+    level += (raw - level) * (raw > level ? 0.55 : 0.18);
+
+    // スペクトル重心で「い・え」っぽい横広がりを推定
+    analyser.getByteFrequencyData(freqBuf);
+    let num = 0, den = 0;
+    const hzPerBin = (audioCtx.sampleRate / 2) / freqBuf.length;
+    for (let i = 0; i < freqBuf.length; i++) {
+      num += freqBuf[i] * i * hzPerBin;
+      den += freqBuf[i];
+    }
+    const centroid = den > 0 ? num / den : 0;
+    const rawWide = Math.max(0, Math.min(1, (centroid - 500) / 2500));
+    wide += (rawWide - wide) * 0.15;
+
+    meterBar.style.width = (raw * 100).toFixed(0) + "%";
+  }
+
+  // ---- カスタム画像フレーム ----
+  let frames = []; // 口閉じ → 口開き の順
+  framesInput.addEventListener("change", async () => {
+    const files = [...framesInput.files].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { numeric: true })
+    );
+    const loaded = [];
+    for (const f of files) {
+      const img = new Image();
+      img.src = URL.createObjectURL(f);
+      await img.decode().catch(() => {});
+      if (img.naturalWidth > 0) loaded.push(img);
+    }
+    frames = loaded;
+    if (frames.length) showToast(`画像 ${frames.length} 枚を読み込みました`);
+  });
+  document.getElementById("resetFrames").addEventListener("click", () => {
+    frames = [];
+    framesInput.value = "";
+    showToast("内蔵アバターに戻しました");
+  });
+
+  // ---- まばたき ----
+  let nextBlink = performance.now() + 2000;
+  let blinkStart = -1;
+  const BLINK_DUR = 140;
+
+  function blinkAmount(now) {
+    if (blinkStart < 0 && now >= nextBlink) blinkStart = now;
+    if (blinkStart >= 0) {
+      const t = (now - blinkStart) / BLINK_DUR;
+      if (t >= 1) {
+        blinkStart = -1;
+        nextBlink = now + 1800 + Math.random() * 4200;
+        return 0;
+      }
+      return Math.sin(t * Math.PI); // 0→1→0
+    }
+    return 0;
+  }
+
+  // ---- 描画 ----
+  function drawBuiltinAvatar(now, w, h) {
+    const cx = w / 2;
+    const cy = h / 2;
+    const R = Math.min(w, h) * 0.28;
+    const bob = Math.sin(now / 900) * R * 0.02 - level * R * 0.06;
+    const blink = blinkAmount(now);
+
+    ctx.save();
+    ctx.translate(cx, cy + bob);
+
+    // 体（丸いキャラ）
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#22242c";
+    ctx.lineWidth = R * 0.06;
+    ctx.beginPath();
+    ctx.arc(0, 0, R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // ほっぺ
+    ctx.fillStyle = "rgba(255,140,150,0.55)";
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * R * 0.52, R * 0.18, R * 0.14, R * 0.09, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 目
+    ctx.fillStyle = "#22242c";
+    const eyeH = R * 0.13 * (1 - blink * 0.92);
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * R * 0.32, -R * 0.12, R * 0.09, Math.max(eyeH, R * 0.015), 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 口
+    const mouthW = R * (0.22 + wide * 0.16);
+    const mouthH = R * (0.02 + level * 0.30);
+    ctx.fillStyle = "#7a2430";
+    ctx.beginPath();
+    ctx.ellipse(0, R * 0.32, mouthW, mouthH, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (level > 0.25) {
+      // 舌
+      ctx.fillStyle = "#e2707e";
+      ctx.beginPath();
+      ctx.ellipse(0, R * 0.32 + mouthH * 0.45, mouthW * 0.6, mouthH * 0.45, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  function drawFrames(now, w, h) {
+    const idx = Math.min(frames.length - 1, Math.round(level * (frames.length - 1)));
+    const img = frames[idx];
+    const maxH = h * 0.72;
+    const scale = Math.min(maxH / img.naturalHeight, (w * 0.8) / img.naturalWidth);
+    const dw = img.naturalWidth * scale;
+    const dh = img.naturalHeight * scale;
+    const bob = Math.sin(now / 900) * 6 - level * 14;
+    ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2 + bob, dw, dh);
+  }
+
+  function frame(now) {
+    analyze();
+    const w = innerWidth;
+    const h = innerHeight;
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    if (frames.length > 0) drawFrames(now, w, h);
+    else drawBuiltinAvatar(now, w, h);
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
