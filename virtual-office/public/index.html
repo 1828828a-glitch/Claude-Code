@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI会社 バーチャルオフィス</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>🏢 AI会社 バーチャルオフィス</h1>
+    <div class="buttons">
+      <button id="btn-demo">▶ デモ再生</button>
+      <button id="btn-showcase">👁 観賞モード</button>
+    </div>
+  </header>
+  <main>
+    <div class="canvas-wrap">
+      <canvas id="office"></canvas>
+    </div>
+    <aside id="sidepanel">
+      <section>
+        <h2>出社中の社員</h2>
+        <ul id="attendance"><li class="empty">まだ誰も出社していません</li></ul>
+      </section>
+      <section>
+        <h2>社内の動き</h2>
+        <ul id="ticker"></ul>
+      </section>
+    </aside>
+  </main>
+  <script src="js/layout.js"></script>
+  <script src="js/roster.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/panel.js"></script>
+  <script src="js/translate.js"></script>
+  <script src="js/demo.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

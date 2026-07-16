@@ -1,2 +1,4 @@
 __pycache__/
 *.pyc
+virtual-office/data/events.jsonl
+nohup.out

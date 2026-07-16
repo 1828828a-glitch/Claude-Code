@@ -3,6 +3,14 @@
 このリポジトリは「Claude CodeでAI社員を作って会社を運営する」ための土台です。
 AI社員は**役職ではなく業務単位**で定義されています。小さく任せて、人間が確認し、うまくいったものだけ広げます。
 
+事業内容は `company/knowledge/company-profile.md` を参照（AI導入支援・AIコンテンツ・AIツール開発）。
+
+## バーチャルオフィス（AI社員の可視化）
+
+`node virtual-office/server.js` で起動 → http://localhost:3777
+Claude Codeが作業するたび、hooks経由で画面のドット絵社員が本当に働きます（詳細: `virtual-office/README.md`）。
+メインセッション＝秘書つむぎ、サブエージェント＝各担当社員として表示されます。
+
 ## 組織図（AI社員一覧）
 
 | AI社員 | 担当業務（狭く定義） | 呼び出し方 |
