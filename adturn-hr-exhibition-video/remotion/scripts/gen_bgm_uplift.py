@@ -6,7 +6,7 @@ N = int(SR * DUR)
 L = np.zeros(N); R = np.zeros(N)
 rng = np.random.default_rng(77)
 
-BPM = 106
+BPM = 116
 BEAT = 60 / BPM
 BAR = BEAT * 4
 
@@ -105,6 +105,11 @@ def lead(freq, dur=0.5, vel=1.0):
     kern = np.ones(14)/14
     return np.convolve(x*env, kern, 'same') * vel
 
+# サビ: ADTURN for HRリビール / for マーケリビール / フィナーレ
+CHORUS = [(56.0, 72.0), (126.5, 140.0), (148.0, 165.0)]
+def is_chorus(t):
+    return any(a <= t < b for a, b in CHORUS)
+
 total_bars = int(DUR / BAR) + 2
 K, SN = kick(), snare()
 
@@ -113,6 +118,13 @@ for bar in range(total_bars):
     ch = CHORDS[bar % 4]
     tones = ch['tones']
     energy = min(1.0, 0.35 + bar / 22)  # だんだん盛り上がる
+    chorus = is_chorus(t0)
+    boost = 1.4 if chorus else 1.0
+    energy = min(1.45, energy * boost)
+    # サビ頭にクラッシュ
+    prev_chorus = is_chorus(t0 - BAR)
+    if chorus and not prev_chorus:
+        place(crash(), t0, 0.05)
 
     # パッド
     for j, tone in enumerate(tones[:4]):
@@ -123,7 +135,7 @@ for bar in range(total_bars):
     seq = [0, 2, 3, 4, 3, 2, 3, 4]
     for i8 in range(8):
         tone = tones[seq[i8] % len(tones)]
-        oct_up = 2 if (bar % 8 >= 6 and i8 % 2 == 0) else 1
+        oct_up = 2 if (chorus and i8 % 2 == 0) or (bar % 8 >= 6 and i8 % 2 == 0) else 1
         vel = (0.5 + 0.35*energy) * rng.uniform(0.8, 1.0) * (1.15 if i8 == 0 else 1.0)
         pan = 0.3 * np.sin(i8 * 1.3)
         place(pluck(nfreq(tone)*oct_up, vel), t0 + i8*BEAT/2, 0.10*(1-pan), 0.10*(1+pan))
@@ -132,21 +144,21 @@ for bar in range(total_bars):
     if bar >= 4:
         BASS_SLOTS = [(0, 1.0, 1), (3, 0.7, 1), (6, 0.85, 2), (8, 1.0, 1), (11, 0.7, 1), (14, 0.85, 2)]
         for slot, v, octv in BASS_SLOTS:
-            place(bassnote(nfreq(ch['root']) * octv, 0.2), t0 + slot*BEAT/4, 0.16*v*energy*1.2)
+            place(bassnote(nfreq(ch['root']) * octv, 0.2), t0 + slot*BEAT/4, 0.19*v*energy*1.2)
 
     # ドラム（バー8以降: 4つ打ち＋シンコペキック、2・4拍クラップ、16分ハット＆シェイカー）
     if bar >= 6:
         # キック: 4つ打ち＋バー後半のシンコペーション
         for b in range(4):
-            place(K, t0 + b*BEAT, 0.15*energy)
+            place(K, t0 + b*BEAT, 0.19*energy)
         if bar % 2 == 1:
             place(K, t0 + 3.75*BEAT, 0.085*energy)
         if bar % 4 == 3:
             place(K, t0 + 1.75*BEAT, 0.07*energy)
         # クラップ/スネア: 2・4拍しっかり
         for b in (1, 3):
-            place(SN, t0 + b*BEAT, 0.075*energy)
-            place(SN, t0 + b*BEAT + 0.006, 0.05*energy)
+            place(SN, t0 + b*BEAT, 0.10*energy)
+            place(SN, t0 + b*BEAT + 0.006, 0.065*energy)
         # ハット: 8分＋16分ゴースト、アクセントは裏拍
         for i16 in range(16):
             tt = t0 + i16*BEAT/4
@@ -165,7 +177,7 @@ for bar in range(total_bars):
         place(hat(True), t0 + 3.5*BEAT, 0.035*energy)
 
     # リード（バー16以降、2小節に1回のモチーフ）
-    if bar >= 16 and bar % 2 == 0:
+    if (bar >= 16 and bar % 2 == 0) or (chorus and bar % 2 == 0):
         motif = [(0.0, 4, 0.5), (1.0, 3, 0.4), (1.5, 4, 0.45), (2.5, 2, 0.6), (3.0, 4, 0.5)]
         for beat, ti, d in motif:
             tone = tones[ti % len(tones)]
