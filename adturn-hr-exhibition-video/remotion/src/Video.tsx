@@ -81,7 +81,7 @@ const duckWin = (f: number, s: number, e: number) =>
     extrapolateRight: 'clamp',
   });
 const bgmVolume = (f: number) => {
-  const base = 0.3 - duckWin(f, 715, 1690) - duckWin(f, 2720, 3275);
+  const base = 0.45 - duckWin(f, 715, 1690) - duckWin(f, 2720, 3275);
   const endFade = interpolate(f, [TOTAL - 70, TOTAL - 5], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
