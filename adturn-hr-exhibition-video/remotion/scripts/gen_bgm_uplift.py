@@ -83,6 +83,12 @@ def crash():
     x = rng.standard_normal(n) * np.exp(-np.arange(n)/(0.45*SR))
     kern = np.ones(16)/16
     return (x - np.convolve(x, kern, 'same')) * 0.8
+def shaker():
+    n = int(0.05*SR)
+    x = rng.standard_normal(n) * np.exp(-np.arange(n)/(0.012*SR))
+    kern = np.ones(30)/30
+    return x - np.convolve(x, kern, 'same')
+
 def snare():
     n = int(0.18*SR); t = np.arange(n)/SR
     x = rng.standard_normal(n) * np.exp(-t*26)
@@ -122,21 +128,41 @@ for bar in range(total_bars):
         pan = 0.3 * np.sin(i8 * 1.3)
         place(pluck(nfreq(tone)*oct_up, vel), t0 + i8*BEAT/2, 0.10*(1-pan), 0.10*(1+pan))
 
-    # ベース（バー4以降、8分で刻む）
+    # ベース（バー4以降、16分のシンコペーション: root-root-oct のダンスグルーヴ）
     if bar >= 4:
-        for i8 in range(8):
-            v = 0.16 if i8 % 2 == 0 else 0.11
-            place(bassnote(nfreq(ch['root'])), t0 + i8*BEAT/2, v*energy*1.2)
+        BASS_SLOTS = [(0, 1.0, 1), (3, 0.7, 1), (6, 0.85, 2), (8, 1.0, 1), (11, 0.7, 1), (14, 0.85, 2)]
+        for slot, v, octv in BASS_SLOTS:
+            place(bassnote(nfreq(ch['root']) * octv, 0.2), t0 + slot*BEAT/4, 0.16*v*energy*1.2)
 
-    # ドラム（バー8以降: 4つ打ち＋2・4拍スネア気配＋裏ハット）
-    if bar >= 8:
+    # ドラム（バー8以降: 4つ打ち＋シンコペキック、2・4拍クラップ、16分ハット＆シェイカー）
+    if bar >= 6:
+        # キック: 4つ打ち＋バー後半のシンコペーション
         for b in range(4):
-            place(K, t0 + b*BEAT, 0.135*energy)
-            place(hat(), t0 + (b+0.5)*BEAT, 0.035*energy)
-            if b in (1, 3):
-                place(SN, t0 + b*BEAT, 0.045*energy)
-        if bar % 8 == 7:
-            place(hat(True), t0 + 3.5*BEAT, 0.05)
+            place(K, t0 + b*BEAT, 0.15*energy)
+        if bar % 2 == 1:
+            place(K, t0 + 3.75*BEAT, 0.085*energy)
+        if bar % 4 == 3:
+            place(K, t0 + 1.75*BEAT, 0.07*energy)
+        # クラップ/スネア: 2・4拍しっかり
+        for b in (1, 3):
+            place(SN, t0 + b*BEAT, 0.075*energy)
+            place(SN, t0 + b*BEAT + 0.006, 0.05*energy)
+        # ハット: 8分＋16分ゴースト、アクセントは裏拍
+        for i16 in range(16):
+            tt = t0 + i16*BEAT/4
+            if i16 % 4 == 2:
+                place(hat(), tt, 0.045*energy)
+            elif i16 % 2 == 0:
+                place(hat(), tt, 0.026*energy)
+            else:
+                place(hat(), tt, 0.013*energy)
+        # シェイカー: 16分で常時（前ノリの推進力）
+        SH = shaker()
+        for i16 in range(16):
+            acc = (1.0, 0.4, 0.7, 0.4)[i16 % 4]
+            place(SH, t0 + i16*BEAT/4, 0.016*acc*energy)
+        # オープンハット: 各バーの4拍裏
+        place(hat(True), t0 + 3.5*BEAT, 0.035*energy)
 
     # リード（バー16以降、2小節に1回のモチーフ）
     if bar >= 16 and bar % 2 == 0:
