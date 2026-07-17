@@ -135,9 +135,19 @@
   </div>
 
   <div class="row">
-    <label>アバター画像（任意・複数可）<br>口を閉じた画像→開いた画像の順で選択すると、その画像で喋ります</label>
+    <label>アバター画像（任意）<br>・1枚だけ → 口を自動で重ねて動かします（位置はクリックで指定）<br>・複数枚 → 口閉じ→口開きの順で選択すると差分アニメになります</label>
     <input type="file" id="frames" accept="image/*" multiple>
     <button id="resetFrames" style="margin-top:6px;">内蔵アバターに戻す</button>
+  </div>
+
+  <div class="row" id="mouthCtrl" style="display:none; border:1px solid #3a3f4e; border-radius:10px; padding:10px;">
+    <label style="font-weight:700;">👄 口の設定（キャラの口の位置を画面上でクリック）</label>
+    <label>大きさ: <span id="mouthSizeVal"></span></label>
+    <input type="range" id="mouthSize" min="0.02" max="0.18" step="0.005" value="0.06">
+    <label>角度: <span id="mouthAngleVal"></span>°</label>
+    <input type="range" id="mouthAngle" min="-60" max="60" step="1" value="0">
+    <label>口の色</label>
+    <input type="color" id="mouthColor" value="#5a2a33">
   </div>
 
   <div class="row">
@@ -376,6 +386,57 @@
     meterBar.style.width = (raw * 100).toFixed(0) + "%";
   }
 
+  // ---- 1枚モードの口オーバーレイ設定 ----
+  const mouthCtrl = document.getElementById("mouthCtrl");
+  const mouthSizeInput = document.getElementById("mouthSize");
+  const mouthAngleInput = document.getElementById("mouthAngle");
+  const mouthColorInput = document.getElementById("mouthColor");
+  const mouthSizeVal = document.getElementById("mouthSizeVal");
+  const mouthAngleVal = document.getElementById("mouthAngleVal");
+
+  const mouth = Object.assign(
+    { x: 0.5, y: 0.65, size: 0.06, angle: 0, color: "#5a2a33" },
+    saved.mouth || {}
+  );
+  mouthSizeInput.value = mouth.size;
+  mouthAngleInput.value = mouth.angle;
+  mouthColorInput.value = mouth.color;
+
+  const updateMouthLabels = () => {
+    mouthSizeVal.textContent = Number(mouth.size).toFixed(3);
+    mouthAngleVal.textContent = mouth.angle;
+  };
+  updateMouthLabels();
+
+  const saveMouth = () => store.save({ mouth });
+  mouthSizeInput.addEventListener("input", () => {
+    mouth.size = parseFloat(mouthSizeInput.value);
+    updateMouthLabels();
+    saveMouth();
+  });
+  mouthAngleInput.addEventListener("input", () => {
+    mouth.angle = parseInt(mouthAngleInput.value, 10);
+    updateMouthLabels();
+    saveMouth();
+  });
+  mouthColorInput.addEventListener("input", () => {
+    mouth.color = mouthColorInput.value;
+    saveMouth();
+  });
+
+  // 直近フレームの画像描画位置（クリック→画像内相対座標の変換に使う）
+  let lastRect = null;
+  canvas.addEventListener("click", (e) => {
+    if (frames.length !== 1 || !lastRect || document.body.classList.contains("clean")) return;
+    const rx = (e.clientX - lastRect.x) / lastRect.dw;
+    const ry = (e.clientY - lastRect.y) / lastRect.dh;
+    if (rx < 0 || rx > 1 || ry < 0 || ry > 1) return;
+    mouth.x = rx;
+    mouth.y = ry;
+    saveMouth();
+    showToast("口の位置を設定しました。喋る（または感度を上げる）と口が動きます");
+  });
+
   // ---- カスタム画像フレーム ----
   let frames = []; // 口閉じ → 口開き の順
   framesInput.addEventListener("change", async () => {
@@ -390,11 +451,17 @@
       if (img.naturalWidth > 0) loaded.push(img);
     }
     frames = loaded;
-    if (frames.length) showToast(`画像 ${frames.length} 枚を読み込みました`);
+    mouthCtrl.style.display = frames.length === 1 ? "block" : "none";
+    if (frames.length === 1) {
+      showToast("1枚モード:画面上でキャラの口の位置をクリックしてください", 4000);
+    } else if (frames.length > 1) {
+      showToast(`画像 ${frames.length} 枚を読み込みました（差分アニメモード）`);
+    }
   });
   document.getElementById("resetFrames").addEventListener("click", () => {
     frames = [];
     framesInput.value = "";
+    mouthCtrl.style.display = "none";
     showToast("内蔵アバターに戻しました");
   });
 
@@ -472,6 +539,13 @@
     ctx.restore();
   }
 
+  function lighten(hex, amt) {
+    const n = parseInt(hex.slice(1), 16);
+    const ch = (v) => Math.min(255, Math.round(v + (255 - v) * amt));
+    const r = ch((n >> 16) & 255), g = ch((n >> 8) & 255), b = ch(n & 255);
+    return `rgb(${r},${g},${b})`;
+  }
+
   function drawFrames(now, w, h) {
     const idx = Math.min(frames.length - 1, Math.round(level * (frames.length - 1)));
     const img = frames[idx];
@@ -480,7 +554,57 @@
     const dw = img.naturalWidth * scale;
     const dh = img.naturalHeight * scale;
     const bob = Math.sin(now / 900) * 6 - level * 14;
-    ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2 + bob, dw, dh);
+    const x = (w - dw) / 2;
+    const y = (h - dh) / 2 + bob;
+    lastRect = { x, y, dw, dh };
+
+    if (frames.length === 1) {
+      // 1枚モード:ゆっくり揺らして生きてる感を出しつつ、口を重ねて描く
+      const sway = Math.sin(now / 2300) * 0.012 + level * 0.01;
+      ctx.save();
+      ctx.translate(x + dw / 2, y + dh / 2);
+      ctx.rotate(sway);
+      ctx.translate(-(x + dw / 2), -(y + dh / 2));
+      ctx.drawImage(img, x, y, dw, dh);
+      drawMouthOverlay(now, x, y, dw, dh);
+      ctx.restore();
+    } else {
+      ctx.drawImage(img, x, y, dw, dh);
+    }
+  }
+
+  function drawMouthOverlay(now, x, y, dw, dh) {
+    // 元画像に口が描いてある前提で、喋っているときだけ上から口を描く
+    if (level < 0.05) return;
+    const mx = x + mouth.x * dw;
+    const my = y + mouth.y * dh;
+    const base = dh * mouth.size;
+    const mw = base * (0.75 + wide * 0.45);
+    const mh = base * (0.12 + level * 0.95);
+
+    ctx.save();
+    ctx.translate(mx, my);
+    ctx.rotate((mouth.angle * Math.PI) / 180);
+
+    // 口の中
+    ctx.fillStyle = mouth.color;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, mw, mh, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 輪郭を軽く締める
+    ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.lineWidth = Math.max(1, base * 0.06);
+    ctx.stroke();
+
+    // 舌（大きく開いたときだけ）
+    if (level > 0.3) {
+      ctx.fillStyle = lighten(mouth.color, 0.35);
+      ctx.beginPath();
+      ctx.ellipse(0, mh * 0.5, mw * 0.55, mh * 0.42, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   function frame(now) {
