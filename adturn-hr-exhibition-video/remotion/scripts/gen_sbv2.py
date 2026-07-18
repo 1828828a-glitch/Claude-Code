@@ -58,6 +58,7 @@ for name, text, style, sw, length, sdp in SEGS:
         sdp_ratio=sdp,
         noise=0.5,
         noise_w=0.7,
+        pitch_scale=0.85,  # 約3半音下げて低い声に
     )
     a = np.asarray(audio)
     if a.dtype != np.int16:
