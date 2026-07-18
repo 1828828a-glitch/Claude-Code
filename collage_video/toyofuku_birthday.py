@@ -3,7 +3,9 @@
 絵コンテ(約60秒・6シーン)に沿って、紙の切り抜き+マスキングテープ+
 破り紙テロップのコラージュアニメーションを生成する。
 人物は参照ビジュアル(黒シャツ・黒髪短髪)に寄せたペーパーカット風
-イラストで描画。BGM(やわらかいコード進行)も自動生成して合成する。
+イラストで描画。BGM(やわらかいコード進行)を自動生成し、edge-tts
+(ja-JP-KeitaNeural)によるナレーション音声をダッキング付きでミックス
+する。edge-ttsが使えない環境では自動的にBGMのみになる。
 
 使い方:
     python3 toyofuku_birthday.py [出力ファイル.mp4]
@@ -21,7 +23,8 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 W, H = 1280, 720
 FPS = 30
-DURATION = 62.0
+DURATION = 69.0
+SR = 22050
 
 JP_FONT = "/usr/share/fonts/truetype/fonts-japanese-gothic.ttf"
 EN_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -287,14 +290,17 @@ NARRATION = [
     (13.0, 17.7, "事情まで想像して、まず受け止めてくれる。"),
     (18.3, 23.0, "その許容力が、人を守り、挑戦する余白をつくり、"),
     (23.0, 27.7, "crackらしい温度を育ててきた。"),
-    (28.3, 33.0, "でも、何でも入る大きな器には、つい入れすぎてしまう。"),
-    (33.0, 37.7, "思いも、決断も、次の一歩も、豊福の中で渋滞する。"),
-    (38.3, 43.8, "だからこれからの一年は、受け止めたものを形にする一年であってほしい。"),
-    (43.8, 49.7, "完璧になる前に出す。決めたら動く。そして、仲間に任せる。"),
-    (50.3, 53.4, "これまで、crackも、社外も、何度も豊福に受け止めてもらった。"),
-    (53.4, 55.9, "今度は私たちが、その大きな器を支える番だ。"),
-    (56.2, 61.2, "豊福の決断が、crackの未来を動かす一年になりますように。"),
+    (28.3, 33.2, "でも、何でも入る大きな器には、つい入れすぎてしまう。"),
+    (33.2, 37.9, "思いも、決断も、次の一歩も、豊福の中で渋滞する。"),
+    (38.3, 44.4, "だからこれからの一年は、受け止めたものを形にする一年であってほしい。"),
+    (44.4, 49.8, "完璧になる前に出す。決めたら動く。そして、仲間に任せる。"),
+    (50.3, 55.2, "これまで、crackも、社外も、何度も豊福に受け止めてもらった。"),
+    (55.2, 58.4, "今度は私たちが、その大きな器を支える番だ。"),
+    (58.4, 62.3, "豊福の決断が、crackの未来を動かす一年になりますように。"),
 ]
+
+SHOUT_T = 62.5
+SHOUT_TEXT = "豊福、誕生日おめでとう！"
 
 
 def make_subtitles():
@@ -310,11 +316,10 @@ def make_subtitles():
     return subs
 
 
-# ---------------------------------------------------------------- BGM
+# ---------------------------------------------------------------- 音声
 
-def make_music(path, dur=DURATION):
-    sr = 22050
-    t = np.arange(int(sr * dur)) / sr
+def make_music(dur=DURATION):
+    t = np.arange(int(SR * dur)) / SR
     audio = np.zeros_like(t)
     # C - G - Am - F をやわらかい音色で
     chords = [(261.6, 329.6, 392.0), (196.0, 246.9, 392.0),
@@ -333,19 +338,94 @@ def make_music(path, dur=DURATION):
             2 * math.pi * chord[0] / 2 * ts)
     # ラストのキラキラ
     rng = np.random.default_rng(3)
-    for _ in range(30):
-        st = 50.5 + rng.uniform(0, 10)
+    for _ in range(35):
+        st = 50.5 + rng.uniform(0, dur - 52.5)
         f = rng.uniform(900, 2600)
         seg = (t >= st) & (t < st + 0.5)
         ts = t[seg] - st
         audio[seg] += 0.05 * np.exp(-ts / 0.12) * np.sin(2 * math.pi * f * ts)
-    fade = np.minimum(1, np.minimum(t / 1.5, (dur - t) / 2.0))
-    audio = np.tanh(audio) * 0.85 * fade
+    return audio
+
+
+def _decode_audio(path):
+    raw = subprocess.run(
+        [find_ffmpeg(), "-i", path, "-f", "s16le", "-ac", "1",
+         "-ar", str(SR), "-"],
+        capture_output=True).stdout
+    return np.frombuffer(raw, np.int16).astype(np.float64) / 32768
+
+
+def synth_narration(cache_dir):
+    """edge-ttsでナレーション音声を生成する(キャッシュあり)。
+
+    ネットワークやパッケージが無い環境では None を返し、BGMのみになる。
+    戻り値: [(開始秒, 最大尺, mp3パス), ...]
+    """
+    try:
+        import asyncio
+        import edge_tts
+    except ImportError:
+        print("※ edge-tts が無いためナレーションなし (pip install edge-tts)")
+        return None
+    os.makedirs(cache_dir, exist_ok=True)
+    starts = [s for s, _, _ in NARRATION] + [SHOUT_T, DURATION - 1.2]
+    items = []
+    for i, (s, _, text) in enumerate(NARRATION):
+        items.append((s, starts[i + 1] - s - 0.15, text, "-4%"))
+    items.append((SHOUT_T, DURATION - 1.2 - SHOUT_T, SHOUT_TEXT, "+8%"))
+
+    async def gen(text, rate, path):
+        c = edge_tts.Communicate(text, voice="ja-JP-KeitaNeural", rate=rate)
+        await c.save(path)
+
+    result = []
+    for i, (s, max_len, text, rate) in enumerate(items):
+        path = os.path.join(cache_dir, f"line{i:02d}.mp3")
+        if not os.path.exists(path) or os.path.getsize(path) == 0:
+            try:
+                asyncio.run(gen(text, rate, path))
+            except Exception as e:
+                print(f"※ ナレーション生成に失敗: {e}")
+                return None
+        result.append((s, max_len, path))
+    return result
+
+
+def build_audio(path):
+    """BGM+ナレーションをミックスしてwavに書き出す。"""
+    n = int(SR * DURATION)
+    music = make_music(DURATION)[:n]
+    narr = np.zeros(n)
+    duck = np.ones(n)
+    cache = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "narration_cache")
+    items = synth_narration(cache)
+    if items:
+        for s, max_len, p in items:
+            seg = _decode_audio(p)
+            dur = len(seg) / SR
+            if dur > max_len:  # 枠に収まらない行は少しだけ早口に
+                tempo = min(1.4, dur / max_len)
+                fit = p + ".fit.wav"
+                subprocess.run([find_ffmpeg(), "-y", "-i", p, "-filter:a",
+                                f"atempo={tempo:.3f}", fit],
+                               capture_output=True)
+                seg = _decode_audio(fit)
+                os.remove(fit)
+            i0 = int(s * SR)
+            i1 = min(n, i0 + len(seg))
+            narr[i0:i1] += seg[:i1 - i0]
+            duck[i0:i1] = 0.42
+        k = int(SR * 0.25)
+        duck = np.convolve(duck, np.ones(k) / k, "same")
+    fade = np.minimum(1, np.minimum(np.arange(n) / SR / 1.5,
+                                    (DURATION - np.arange(n) / SR) / 2.0))
+    mix = np.tanh(music * 0.8 * duck + narr * 1.15) * 0.9 * fade
     with wave.open(path, "w") as w:
         w.setnchannels(1)
         w.setsampwidth(2)
-        w.setframerate(sr)
-        w.writeframes((audio * 32767).astype(np.int16).tobytes())
+        w.setframerate(SR)
+        w.writeframes((mix * 32767).astype(np.int16).tobytes())
 
 
 # ---------------------------------------------------------------- 各シーン
@@ -635,22 +715,22 @@ def scene6(A, frame, t):
             d2.rectangle([x, y, x + s, y + s * 0.7],
                          fill=pc["color"] + (235,))
         frame.alpha_composite(layer)
-    popped(frame, A.bub_hb, (640, 130), t, 56.4, seed=77, dur=0.5)
+    popped(frame, A.bub_hb, (640, 130), t, SHOUT_T, seed=77, dur=0.5)
     # エンディングカード
-    if t > 58.2:
-        ov = min(1.0, (t - 58.2) / 0.8)
+    if t > 64.6:
+        ov = min(1.0, (t - 64.6) / 0.8)
         overlay = Image.new("RGBA", (W, H),
                             (244, 234, 214, int(215 * ov)))
         frame.alpha_composite(overlay)
-        popped(frame, A.t_fin1, (640, 460), t, 58.6, seed=78, angle=-1.5)
-        st2 = pop(t, 59.4, 0.55)
+        popped(frame, A.t_fin1, (640, 460), t, 65.0, seed=78, angle=-1.5)
+        st2 = pop(t, 65.8, 0.55)
         if st2:
             place(frame, A.t_hb, (640, 300), t, seed=79,
                   scale=st2[0] * 1.05, alpha=st2[1], angle=st2[2] * 0.3 - 1)
 
 
 SCENES = [(0, 8, 0, scene1), (8, 18, 1, scene2), (18, 28, 2, scene3),
-          (28, 38, 3, scene4), (38, 50, 4, scene5), (50, 62.5, 5, scene6)]
+          (28, 38, 3, scene4), (38, 50, 4, scene5), (50, 69.5, 5, scene6)]
 
 
 # ---------------------------------------------------------------- メイン
@@ -669,7 +749,8 @@ def main():
     A = Assets()
     music_path = os.path.join(os.path.dirname(os.path.abspath(out_path)) or ".",
                               "_bgm_tmp.wav")
-    make_music(music_path)
+    print("ナレーションとBGMを準備中...")
+    build_audio(music_path)
 
     ffmpeg = find_ffmpeg()
     proc = subprocess.Popen(
