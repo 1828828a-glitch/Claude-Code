@@ -9,9 +9,9 @@ _bm = bert_models.load_model(Languages.JP, "ku-nlp/deberta-v2-large-japanese-cha
 _bm.float()  # CPU推論: fp16→fp32に統一
 bert_models.load_tokenizer(Languages.JP, "ku-nlp/deberta-v2-large-japanese-char-wwm")
 
-A = "/root/sbv2_assets/jvnv-M1-jp"
+A = "/root/sbv2_assets/jvnv-M2-jp"
 model = TTSModel(
-    model_path=f"{A}/jvnv-M1-jp_e158_s14000.safetensors",
+    model_path=f"{A}/jvnv-M2-jp_e159_s17000.safetensors",
     config_path=f"{A}/config.json",
     style_vec_path=f"{A}/style_vectors.npy",
     device="cpu",
@@ -58,7 +58,7 @@ for name, text, style, sw, length, sdp in SEGS:
         sdp_ratio=sdp,
         noise=0.5,
         noise_w=0.7,
-        pitch_scale=0.85,  # 約3半音下げて低い声に
+        pitch_scale=0.88,  # ダンディな低さ（下げすぎず自然に）
     )
     a = np.asarray(audio)
     if a.dtype != np.int16:
