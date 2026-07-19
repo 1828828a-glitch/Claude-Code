@@ -11,6 +11,7 @@ import {AdturnCosmosVideo} from './cosmos/CosmosVideo';
 import {VaienceDemo} from './vaience/VaienceDemo';
 import {PosterDemo} from './poster/PosterDemo';
 import {NatGeoDemo} from './natgeo/NatGeoDemo';
+import {WhiteDemo} from './white/WhiteDemo';
 import {KeynoteDemo} from './keynote/KeynoteDemo';
 import {FPS, LUX_TOTAL_FRAMES, TOTAL_FRAMES, V3D_TOTAL_FRAMES} from './theme';
 
@@ -44,6 +45,8 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="AdturnCosmos" component={AdturnCosmosVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
     {/* エディトリアル・キネティック(スイスポスター)スタイルデモ */}
     <Composition id="PosterDemo" component={PosterDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
+    {/* ホワイトスタジオ スタイルデモ */}
+    <Composition id="WhiteDemo" component={WhiteDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
     {/* ナショジオ風ドキュメンタリー スタイルデモ */}
     <Composition id="NatGeoDemo" component={NatGeoDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
     {/* バイエンス風スタイルデモ */}
