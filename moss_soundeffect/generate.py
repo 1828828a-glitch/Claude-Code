@@ -30,11 +30,16 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=0, help="乱数シード")
     parser.add_argument("--model-dir", default=MODEL_ID, help="モデルの HF ID またはローカルパス")
     parser.add_argument("--device", default=None, help="cuda / cpu (省略時は自動判定)")
+    parser.add_argument(
+        "--dtype",
+        default="bfloat16",
+        choices=["float32", "float16", "bfloat16"],
+        help="モデルの精度 (メモリが少ない環境では bfloat16 推奨)",
+    )
     args = parser.parse_args()
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
-    # bfloat16 は GPU 前提。CPU では float32 の方が安全かつ速い。
-    dtype = torch.bfloat16 if device == "cuda" else torch.float32
+    dtype = getattr(torch, args.dtype)
     if device == "cpu":
         print("警告: GPU が見つからないため CPU で実行します。生成には長時間かかります。")
 
