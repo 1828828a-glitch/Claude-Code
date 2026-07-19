@@ -52,6 +52,7 @@ python moss_soundeffect/generate.py \
 | `--cfg-scale` | 4.0 | プロンプトへの忠実度 |
 | `--seed` | 0 | 乱数シード |
 | `--device` | 自動判定 | `cuda` / `cpu` |
+| `--dtype` | `bfloat16` | モデル精度 (`float32` はメモリ2倍消費。RAM 15GB の CPU 環境では OOM になるので注意) |
 
 ### Python から使う
 
@@ -71,7 +72,11 @@ audio = pipe(
     num_inference_steps=100,
     cfg_scale=4.0,
 )
-pipe.save_audio(audio, "out.wav")
+
+# 保存は soundfile 推奨 (pipe.save_audio は torchaudio 経由のため
+# 推論専用インストールでは torchcodec 不足で失敗する)
+import soundfile as sf
+sf.write("out.wav", audio[0].detach().cpu().to(torch.float32).numpy().T, pipe.sample_rate)
 ```
 
 ### Gradio デモ (ブラウザ UI)
@@ -85,4 +90,6 @@ SOUNDEFFECT_MODEL_DIR=OpenMOSS-Team/MOSS-SoundEffect-v2.0 python ../clis/moss_so
 ## 注意
 
 - `moss_soundeffect/.venv` と `moss_soundeffect/MOSS-TTS` は git 管理外 (`.gitignore` 済み)。環境を作り直すときは両方削除して `setup.sh` を再実行する。
-- CPU 実行時は `--steps 30 --seconds 5` あたりに下げると待ち時間を短縮できる。
+- CPU 実行時は `--steps 30 --seconds 5` あたりに下げると待ち時間を短縮できる (目安: CPUでは1ステップあたり1〜2分)。
+- モデルは初回実行時に `~/.cache/huggingface` にダウンロードされる (約 11GB)。
+- CPU (16GB RAM) 環境で `--dtype bfloat16` によるセットアップ〜生成〜wav保存の動作確認済み。
