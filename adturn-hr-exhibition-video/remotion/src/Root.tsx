@@ -8,6 +8,8 @@ import {AdturnLuxVideo} from './LuxVideo';
 import {AdturnCinemaVideo} from './cinema/CinemaVideo';
 import {AdturnAtlasVideo} from './atlas/AtlasVideo';
 import {AdturnCosmosVideo} from './cosmos/CosmosVideo';
+import {VaienceDemo} from './vaience/VaienceDemo';
+import {KeynoteDemo} from './keynote/KeynoteDemo';
 import {FPS, LUX_TOTAL_FRAMES, TOTAL_FRAMES, V3D_TOTAL_FRAMES} from './theme';
 
 export const RemotionRoot: React.FC = () => (
@@ -38,6 +40,10 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="AdturnAtlas" component={AdturnAtlasVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
     {/* ⑤ Cosmos版 */}
     <Composition id="AdturnCosmos" component={AdturnCosmosVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
+    {/* バイエンス風スタイルデモ */}
+    <Composition id="VaienceDemo" component={VaienceDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
+    {/* キーノート風スタイルデモ */}
+    <Composition id="KeynoteDemo" component={KeynoteDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
     {/* ラグジュアリー「プロダクト・ラボ」スタイルデモ（高見え路線） */}
     <Composition id="LuxDemo" component={LuxDemo} durationInFrames={450} fps={FPS} width={1920} height={1080} />
     {/* 本編のラグジュアリー版（人事編＋マーケティング編） */}
