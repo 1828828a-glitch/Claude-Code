@@ -4,10 +4,12 @@ Turns a single ~5-second spoken line into a 9:16, 5-second editorial
 paper-collage explainer clip — halftone cut-outs assembling piece by piece on a
 bold flat color field, optionally with a fitted voiceover.
 
-Vendored from [MegaTroll222/VOX-COLLAGE-BROLL](https://github.com/MegaTroll222/VOX-COLLAGE-BROLL)
+Adapted from [MegaTroll222/VOX-COLLAGE-BROLL](https://github.com/MegaTroll222/VOX-COLLAGE-BROLL)
 (MIT), itself an English adaptation of
 [pyang5166/gbro-collage-broll](https://github.com/pyang5166/gbro-collage-broll).
-See `LICENSE` in this folder.
+See `LICENSE` in this folder. **This copy is modified to call the Gemini and
+ElevenLabs APIs directly** (bring your own keys) instead of the MaxFusion MCP
+the upstream version uses.
 
 ## How it works
 
@@ -31,18 +33,37 @@ measured), and muxes it in.
 
 - **ffmpeg** installed locally — frame prep, QA contact sheets, audio
   stripping, and muxing all run locally.
-- **MaxFusion MCP** connected and authenticated — all image, video, and speech
-  generation goes through it:
+- **python3** (any recent version; macOS ships with one). The bundled
+  `scripts/` use only the standard library — nothing to `pip install`.
+- **Two API keys, set as environment variables:**
+
+  | Variable | Used for | Where to get it |
+  |---|---|---|
+  | `GEMINI_API_KEY` | stills + video (pay-as-you-go) | https://aistudio.google.com/apikey |
+  | `ELEVENLABS_API_KEY` | voiceover (free tier available) | https://elevenlabs.io → profile → API keys |
+
+  On macOS (zsh), add them once to your shell profile:
 
   ```bash
-  claude mcp add --transport http maxfusion https://mcp.maxfusion.ai/mcp
+  echo 'export GEMINI_API_KEY="your-key-here"' >> ~/.zshrc
+  echo 'export ELEVENLABS_API_KEY="your-key-here"' >> ~/.zshrc
   ```
 
-  To run without MaxFusion instead, you need a Google AI Studio API key (stills
-  + the Gemini video model) and an ElevenLabs API key (voiceover), and the
-  `maxfusion_*` tool calls in `SKILL.md` swapped for scripts against those
-  APIs. Everything else (templates, gates, ffmpeg steps, QA) is unchanged —
-  ask Claude to adapt the skill if you go this route.
+  then open a new terminal window.
+
+Optional overrides (only if a script reports your key can't use a default
+model — run `python3 scripts/list_models.py` to see what's available):
+`COLLAGE_IMAGE_MODEL`, `COLLAGE_VIDEO_MODEL`, `COLLAGE_TTS_MODEL`.
+
+## Bundled scripts
+
+| Script | Does |
+|---|---|
+| `scripts/generate_still.py` | Gate 2 stills via the Gemini API (9:16 PNG) |
+| `scripts/generate_video.py` | Gate 3 clip via the Gemini video API, first+last frame refs, polls and downloads the MP4 |
+| `scripts/tts_elevenlabs.py` | voiceover line as MP3 via ElevenLabs |
+| `scripts/list_voices.py` | lists your ElevenLabs voices (id + name) |
+| `scripts/list_models.py` | lists model ids your Gemini key can use |
 
 ## Usage
 

@@ -18,8 +18,10 @@ The two confirmation gates are part of the workflow, not overhead. They let the 
 
 ## Runtime requirements
 
-- **MaxFusion MCP** connected and authenticated (`https://mcp.maxfusion.ai/mcp`). All image, video, and speech generation runs through it. If it is not connected, stop and walk the user through connecting before doing anything else.
-- **Local file access and ffmpeg** (e.g. Claude Code): frame preparation, video QA, silent delivery, and voiceover fitting download assets and process them locally. A sandboxed agent (no local downloads) can still run all three gates and display results in the MaxFusion widget, but must tell the user that frame preparation falls back to prompt-only color matching and that frame-by-frame self-QA, audio stripping, and voiceover fitting were skipped — the user should judge the clip by eye and mute it in their editor.
+- **API keys in the environment**: `GEMINI_API_KEY` (Google AI Studio — stills and video) and, for the optional voiceover stage, `ELEVENLABS_API_KEY`. All generation runs through the bundled scripts in this skill's `scripts/` directory (Python 3 standard library only — nothing to install). If a required key is missing, stop and walk the user through setting it before doing anything else.
+- **Local file access, `python3`, and ffmpeg** (e.g. Claude Code): generation, frame preparation, video QA, silent delivery, and voiceover fitting all run locally.
+
+Below, `<skill-dir>` means this skill's own directory (where this SKILL.md and `scripts/` live). If a script reports a 404 for its default model id, run `python3 <skill-dir>/scripts/list_models.py` and set `COLLAGE_IMAGE_MODEL` / `COLLAGE_VIDEO_MODEL` to an available id.
 
 ## Mandatory approval protocol
 
@@ -42,9 +44,9 @@ If the user approves only some of the numbered items, only the approved items ad
 
 ### Gate 2: Still-frame confirmation
 
-Only after the metaphor is confirmed do you write the visual spec and the image prompt, and generate the final still with `maxfusion_generate_image`.
+Only after the metaphor is confirmed do you write the visual spec and the image prompt, and generate the final still with `scripts/generate_still.py`.
 
-Save the originals into the project directory, build a numbered still contact sheet, display every still to the user (`maxfusion_display_generation`, one call per image, plus the numbered mapping), and stop again. At this stage you still do not generate any video.
+Save the originals into the project directory, build a numbered still contact sheet, display every still to the user (plus the numbered mapping), and stop again. At this stage you still do not generate any video.
 
 If the user approves only some stills, only the approved items advance to Gate 3; regenerate the rejected stills and re-confirm them first.
 
@@ -117,7 +119,7 @@ Recommended structure for batch projects:
 └── 02-<concept-name>/...
 ```
 
-Also create a MaxFusion project via `maxfusion_create_project` (same name) and pass its id as `project_id` / `project_group_id` on every generation in the batch, so all assets stay grouped in the workspace. Track per item: the confirmed metaphor text, image job id + image id of the confirmed still, uploaded first/last frame `file_id`s, video job id + video id, and the QA verdict — and report these ids to the user with each gate so any item can be referenced or re-run individually.
+Track per item: the confirmed metaphor text, the exact still prompt and path of the confirmed still, the video job's operation name, and the QA verdict — and report these to the user with each gate so any item can be referenced or re-run individually.
 
 ## Phase 1: Design the visual metaphor
 
@@ -197,7 +199,15 @@ Subjects stay mostly black-and-white halftone, but every colored cardstock accen
 
 ### Image prompt template
 
-Generate with `maxfusion_generate_image` (default model, `aspect_ratio: "9_16"`, `quality: "high"`):
+Save the prompt as `<item>/still-prompt.txt`, then generate:
+
+```bash
+python3 <skill-dir>/scripts/generate_still.py \
+  --prompt-file <item>/still-prompt.txt \
+  --out <item>/frames/last-frame-original.png
+```
+
+Prompt template:
 
 ```text
 Use case: ads-marketing
@@ -213,7 +223,7 @@ Avoid: no typography, no readable letters, no numerals, no logos, no watermark, 
 
 If the scene contains any dial, clock face, gauge, or counter, add an explicit constraint that every mark on it is a plain tick line — never Roman numerals or digits. If the scene contains a sleeping figure, explicitly ban "Zzz" marks. Video models love sneaking these in.
 
-Poll the job with `maxfusion_get_job` (`wait: 60`); download each still from its asset URL into `<item>/frames/last-frame-original.png` and record the image job id + image id.
+The script writes the PNG straight to `<item>/frames/last-frame-original.png`; keep `still-prompt.txt` next to it as the record of exactly what produced the still.
 
 ### Still QA
 
@@ -224,7 +234,7 @@ Poll the job with `maxfusion_get_job` (`wait: 60`); download each still from its
 - 3–6 clear large groups, not a screen full of confetti
 - Across the batch: unified texture, varied field colors
 
-Copy the passing originals into the project directory, build a numbered still contact sheet, show it to the user (plus `maxfusion_display_generation` per image), and stop for Gate 2 confirmation. Write the still QA verdicts to `<project>/gate2-qa.md`.
+Copy the passing originals into the project directory, build a numbered still contact sheet, show it to the user, and stop for Gate 2 confirmation. Write the still QA verdicts to `<project>/gate2-qa.md`.
 
 If the user asks to regenerate some stills, regenerate only those and produce `still-contact-sheet-v2.jpg` (v3, v4… on later rounds), keeping the old contact sheets for comparison — never overwrite them, and never reuse a rejected still downstream.
 
@@ -251,7 +261,7 @@ ffmpeg -y -f lavfi -i color=c=0x<HEX>:s=1080x1920 \
 
 Only if the user explicitly asks not to start from a fully blank field may the first frame retain one base structural object.
 
-Upload both frames to MaxFusion with `maxfusion_upload_asset` (`purpose: "image_reference"`, `content_type: "image/png"`, exact `size_bytes`, `filename`): the tool returns an upload session — POST a multipart form to `upload.url` with every key/value from `upload.fields` exactly as given plus the file bytes as the final part named `file` (any 2xx = success), then use each returned `file_id`. Record the two `file_id`s per item.
+No upload step is needed — `scripts/generate_video.py` reads both frames from disk and sends them inline as the tagged references.
 
 ### 2. Write the Omni animation prompt
 
@@ -277,19 +287,18 @@ Every prompt must state that Image 1 is the empty first frame and Image 2 is the
 
 ### 3. Submit the generation
 
-One `maxfusion_generate_video` call per item. The reference-image order carries the frame roles: the empty first frame is the FIRST id, the normalized last frame is the SECOND, matching "Image 1" / "Image 2" in the prompt.
+One `scripts/generate_video.py` call per item. The flags carry the frame roles: `--first-frame` is the empty field ("Image 1"), `--last-frame` is the normalized confirmed still ("Image 2"), matching the prompt.
 
-```text
-video_model: gemini-omni-flash
-ref_image_file_ids: [<first-frame file_id>, <last-frame file_id>]
-prompt: <omni animation prompt>
-duration: 5
-aspect_ratio: 9_16
-resolution: 720p
-project_group_id: <batch project id>
+```bash
+python3 <skill-dir>/scripts/generate_video.py \
+  --prompt-file <item>/omni-prompt.txt \
+  --first-frame <item>/frames/first-frame.png \
+  --last-frame <item>/frames/last-frame.png \
+  --out <item>/omni/run-v01/final-5s.mp4 \
+  --duration 5 --aspect-ratio 9:16 --resolution 720p
 ```
 
-Record the submitted jobs in `<project>/omni-jobs.json` (prompt, frame file_ids, job id, output path per item). Poll each job with `maxfusion_get_job` (`wait: 60`) until terminal, then download each finished video to `<item>/omni/run-v01/final-5s.mp4`. If an individual job fails, re-run only that job — never re-run items that already passed.
+The video model defaults to `gemini-omni-flash` (the `COLLAGE_VIDEO_MODEL` environment variable exists only for API availability fixes — still never offer a model choice to the user). The script polls the long-running job itself and downloads the finished MP4 to `--out`. Record the submitted jobs in `<project>/omni-jobs.json` (prompt, frame paths, operation name, output path per item). If an individual job fails, re-run only that job — never re-run items that already passed.
 
 ### 4. Enforce silent delivery
 
@@ -342,15 +351,21 @@ Write the per-item QA verdicts — including the reasoning for any pass-with-not
 
 ## Phase 4: Voiceover (optional)
 
-When the user wants the spoken line on the clip, generate it through MaxFusion and fit it locally.
+When the user wants the spoken line on the clip, generate it through the ElevenLabs API and fit it locally.
 
 ### 1. Choose a voice
 
-List voices with `maxfusion_list_platform_voices` (and `maxfusion_list_my_voices` if the user has saved voices) and ask the user to pick one. Do not design a new voice unless the user explicitly asks. Reuse the same voice for every item in a batch.
+List voices with `python3 <skill-dir>/scripts/list_voices.py` (shows every voice in the user's ElevenLabs library, id + name + labels) and ask the user to pick one. Do not design a new voice unless the user explicitly asks. Reuse the same voice for every item in a batch.
 
 ### 2. Generate and trim
 
-Generate each line with `maxfusion_generate_speech` (the chosen `voice_id`, default `speed: 1.1` for a brisk read), download the mp3, and strip the trailing silence:
+Generate each line (default `--speed 1.1` for a brisk read), then strip the trailing silence:
+
+```bash
+python3 <skill-dir>/scripts/tts_elevenlabs.py \
+  --text "<the spoken line>" --voice-id <voice_id> \
+  --out <item>/voiceover-raw.mp3
+```
 
 ```bash
 ffmpeg -y -i <item>/voiceover-raw.mp3 \
@@ -365,7 +380,7 @@ Measure with ffprobe. The trimmed line must land between 4.0 and 5.0 seconds —
 Fix ladder, in order:
 
 1. Trim silence (already done above)
-2. Too short → lengthen the copy slightly; too long → tighten it; regenerate at `speed: 1`
+2. Too short → lengthen the copy slightly; too long → tighten it; regenerate at `--speed 1`
 3. Last resort for a slightly-long line: inaudible tempo nudge, `-af "atempo=1.05"` maximum
 
 ### 4. Mux
@@ -382,15 +397,15 @@ ffmpeg -y -i <run>/final-5s-noaudio.mp4 -i <item>/voiceover-trim.mp3 \
 
 Deliver to the user:
 
-- Each item's `<item>/omni/run-v01/final-5s-noaudio.mp4` — or `final-5s-voiced.mp4` when the voiceover stage ran (and display the generation in the MaxFusion widget via `maxfusion_display_generation`)
+- Each item's `<item>/omni/run-v01/final-5s-noaudio.mp4` — or `final-5s-voiced.mp4` when the voiceover stage ran
 - Each item's contact sheet
 - The batch overview contact sheet
 - The end-frame comparison images
 - One sentence per item explaining how the script line became its visual metaphor
-- The batch's MaxFusion project name and the per-item ids needed to re-run or reference anything
+- The project directory path and the per-item prompts/paths needed to re-run or reference anything
 
 If a defect stems from Omni's fast-generation limits, say so plainly; only suggest switching to a layered animation tool when precise layer control is genuinely required.
 
 ## Credits
 
-The visual language, three-gate flow, prompt templates, color semantics, and QA/repair playbook originate from [gbro-collage-broll](https://github.com/pyang5166/gbro-collage-broll) by [pyang5166](https://github.com/pyang5166), originally written in Chinese for Codex with local Gemini scripts. This version is an English adaptation for Claude Code + MaxFusion MCP, with an added voiceover-fitting stage.
+The visual language, three-gate flow, prompt templates, color semantics, and QA/repair playbook originate from [gbro-collage-broll](https://github.com/pyang5166/gbro-collage-broll) by [pyang5166](https://github.com/pyang5166), originally written in Chinese for Codex with local Gemini scripts. This version is the English adaptation from [VOX-COLLAGE-BROLL](https://github.com/MegaTroll222/VOX-COLLAGE-BROLL) (which added the voiceover-fitting stage), further modified to call the Gemini and ElevenLabs APIs directly via the bundled `scripts/` instead of the MaxFusion MCP.
