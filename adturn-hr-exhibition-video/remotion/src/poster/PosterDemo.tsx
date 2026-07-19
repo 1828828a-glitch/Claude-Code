@@ -6,22 +6,22 @@ import {FONT} from '../theme';
 // スイスポスター×モーショングラフィックス: 明るいベタ塗り色面 / 巨大タイポが主役 /
 // ビート同期のハードカット / フラットイラストの「頭がパカーン」 / 3D CG不使用
 
-const BLUE = '#2447E0';
-const RED = '#E8442E';
-const BLACK = '#141412';
-const PAPER = '#F7F5F0';
-const PINK = '#FF7BAC';
-const YELLOW = '#FFC24B';
+export const BLUE = '#2447E0';
+export const RED = '#E8442E';
+export const BLACK = '#141412';
+export const PAPER = '#F7F5F0';
+export const PINK = '#FF7BAC';
+export const YELLOW = '#FFC24B';
 
 // ── ビート同期パルス(120bpm = 15f毎にわずかに脈打つ) ──
-const useBeatPulse = (amount = 0.012) => {
+export const useBeatPulse = (amount = 0.012) => {
   const frame = useCurrentFrame();
   const sinceBeat = frame % 15;
   return 1 + amount * Math.exp(-sinceBeat / 3);
 };
 
 // ── 色面ワイプ(次の色面が左から一気に走ってくる) ──
-const Wipe: React.FC<{at: number; color: string}> = ({at, color}) => {
+export const Wipe: React.FC<{at: number; color: string}> = ({at, color}) => {
   const frame = useCurrentFrame();
   const p = interpolate(frame, [at, at + 9], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   if (p <= 0 || p >= 1) return null;
@@ -29,7 +29,7 @@ const Wipe: React.FC<{at: number; color: string}> = ({at, color}) => {
 };
 
 // ── スプリングで叩き込まれる言葉 ──
-const Slam: React.FC<{delay: number; children: React.ReactNode; style?: React.CSSProperties}> = ({delay, children, style}) => {
+export const Slam: React.FC<{delay: number; children: React.ReactNode; style?: React.CSSProperties}> = ({delay, children, style}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const s = spring({frame: frame - delay, fps, config: {damping: 14, stiffness: 160}});
@@ -144,11 +144,11 @@ const SecDeclare: React.FC = () => {
 };
 
 // ══ S3(f270-450): 朱赤地 → フラットイラスト「頭がパカーン」 ══
-const HEAD_FACE =
+export const HEAD_FACE =
   'M -150 -120 C -158 -92 -158 -66 -170 -44 C -184 -20 -186 -12 -168 -8 C -158 -6 -156 -2 -160 10 C -163 20 -158 26 -148 27 C -152 38 -148 47 -136 49 C -126 51 -124 58 -128 70 C -133 88 -120 100 -98 100 L -76 100 C -58 100 -48 110 -48 128 L -48 150 C -100 162 -146 190 -166 240 L 250 240 C 242 174 210 130 162 112 C 148 60 174 -44 158 -120 Z';
-const HEAD_DOME = 'M -150 -120 C -152 -178 -92 -212 -6 -212 C 84 -212 158 -176 158 -120 Z';
+export const HEAD_DOME = 'M -150 -120 C -152 -178 -92 -212 -6 -212 C 84 -212 158 -176 158 -120 Z';
 
-const FlatBrain: React.FC<{pop: number}> = ({pop}) => (
+export const FlatBrain: React.FC<{pop: number}> = ({pop}) => (
   <g transform={`scale(${pop})`} opacity={pop > 0.01 ? 1 : 0}>
     <path
       d="M -120 10 C -128 -34 -96 -66 -56 -64 C -46 -92 -6 -100 22 -84 C 58 -100 102 -84 112 -48 C 138 -36 144 4 124 24 C 128 52 100 72 68 66 C 50 84 10 86 -12 70 C -52 84 -96 68 -104 42 C -116 36 -122 24 -120 10 Z"

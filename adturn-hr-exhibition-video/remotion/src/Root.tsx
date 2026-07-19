@@ -12,6 +12,10 @@ import {VaienceDemo} from './vaience/VaienceDemo';
 import {PosterDemo} from './poster/PosterDemo';
 import {NatGeoDemo} from './natgeo/NatGeoDemo';
 import {WhiteDemo} from './white/WhiteDemo';
+import {AdturnKineticVideo} from './kinetic/KineticVideo';
+import {AdturnVaienceVideo} from './vaience/VaienceVideo';
+import {AdturnNatGeoVideo} from './natgeo/NatGeoVideo';
+import {AdturnWhiteVideo} from './white/WhiteVideo';
 import {KeynoteDemo} from './keynote/KeynoteDemo';
 import {FPS, LUX_TOTAL_FRAMES, TOTAL_FRAMES, V3D_TOTAL_FRAMES} from './theme';
 
@@ -43,6 +47,14 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="AdturnAtlas" component={AdturnAtlasVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
     {/* ⑤ Cosmos版 */}
     <Composition id="AdturnCosmos" component={AdturnCosmosVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
+    {/* フル版: エディトリアル・キネティック */}
+    <Composition id="AdturnKinetic" component={AdturnKineticVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
+    {/* フル版: バイエンス風 */}
+    <Composition id="AdturnVaience" component={AdturnVaienceVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
+    {/* フル版: ナショジオ風ドキュメンタリー */}
+    <Composition id="AdturnNatGeo" component={AdturnNatGeoVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
+    {/* フル版: ホワイトスタジオ */}
+    <Composition id="AdturnWhite" component={AdturnWhiteVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
     {/* エディトリアル・キネティック(スイスポスター)スタイルデモ */}
     <Composition id="PosterDemo" component={PosterDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
     {/* ホワイトスタジオ スタイルデモ */}

@@ -10,29 +10,31 @@ import {BRAIN_PARTS, makeCerebellumGeo, makeHemisphereGeo} from '../scenes/Brain
 // レターボックス+フィルムグレイン / 琥珀色の光の黒曜石頭部+金の脳 /
 // 生物図鑑的な注釈ラベル(和名+学名風スモールキャップス) / セリフ体見出し / 弦楽ドキュメンタリー劇伴
 
-const SERIF = "'Noto Serif CJK JP', 'Noto Serif JP', serif";
-const SANS = "'Noto Sans CJK JP', 'Noto Sans JP', sans-serif";
-const AMBER = '#E8A34C';
-const CREAM = '#F4E8D8';
-const DIM = 'rgba(244,232,216,0.55)';
-const BG = '#050403';
-const BAR = 132; // レターボックス
+export const SERIF = "'Noto Serif CJK JP', 'Noto Serif JP', serif";
+export const SANS = "'Noto Sans CJK JP', 'Noto Sans JP', sans-serif";
+export const AMBER = '#E8A34C';
+export const CREAM = '#F4E8D8';
+export const G_DIM = 'rgba(244,232,216,0.55)';
+export const G_BG = '#050403';
+export const BAR = 132; // レターボックス
+const DIM = G_DIM;
+const BG = G_BG;
 
 const OPEN_START = 250;
 const OPEN_DUR = 60;
 
 // ── 3D: 黒曜石の頭部(フタ開き) ──
-const GHead: React.FC<{geo: THREE.BufferGeometry}> = ({geo}) => {
+const GHead: React.FC<{geo: THREE.BufferGeometry; openStart?: number; openDur?: number}> = ({geo, openStart = OPEN_START, openDur = OPEN_DUR}) => {
   const frame = useCurrentFrame();
   const CUT = 0.85;
-  const split = interpolate(frame, [OPEN_START, OPEN_START + OPEN_DUR], [0, 1], {
+  const split = interpolate(frame, [openStart, openStart + openDur], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: (t) => 1 - Math.pow(1 - t, 3),
   });
   const lid = split * 1.05;
   const lidLift = split * 0.16;
-  const lidOpacity = interpolate(frame, [OPEN_START + OPEN_DUR, OPEN_START + OPEN_DUR + 32], [1, 0], {
+  const lidOpacity = interpolate(frame, [openStart + openDur, openStart + openDur + 32], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -80,9 +82,8 @@ const GHead: React.FC<{geo: THREE.BufferGeometry}> = ({geo}) => {
 };
 
 // ── 3D: 金の脳 ──
-const GBrain: React.FC = () => {
+const GBrain: React.FC<{riseStart?: number}> = ({riseStart = OPEN_START + 22}) => {
   const frame = useCurrentFrame();
-  const riseStart = OPEN_START + 22;
   const geoL = useMemo(() => makeHemisphereGeo(0.0), []);
   const geoR = useMemo(() => makeHemisphereGeo(2.7), []);
   const geoC = useMemo(() => makeCerebellumGeo(), []);
@@ -144,10 +145,10 @@ const Dust: React.FC = () => {
   );
 };
 
-const GCamera: React.FC = () => {
+const GCamera: React.FC<{dur?: number}> = ({dur = 600}) => {
   const frame = useCurrentFrame();
   const {camera} = useThree();
-  const z = interpolate(frame, [0, 600], [8.8, 6.5], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const z = interpolate(frame, [0, dur], [8.8, 6.5], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   useEffect(() => {
     camera.position.set(Math.sin(frame / 340) * 0.4 - 0.2, 0.66 + Math.sin(frame / 260) * 0.05, z);
     camera.lookAt(0, 0.5, 0);
@@ -156,7 +157,11 @@ const GCamera: React.FC = () => {
   return null;
 };
 
-const GCanvas: React.FC = () => {
+export const GCanvas: React.FC<{openStart?: number; openDur?: number; dur?: number}> = ({
+  openStart = OPEN_START,
+  openDur = OPEN_DUR,
+  dur = 600,
+}) => {
   const {width, height} = useVideoConfig();
   const geo = useHeadGeometry();
   return (
@@ -170,21 +175,21 @@ const GCanvas: React.FC = () => {
       camera={{fov: 35, position: [-0.2, 0.66, 8.8]}}
       style={{position: 'absolute', inset: 0}}
     >
-      <GCamera />
+      <GCamera dur={dur} />
       {/* 夕陽のような琥珀の逆光+わずかな冷色のフィル */}
       <ambientLight intensity={0.2} color="#4A3A28" />
       <directionalLight position={[6, 3, 2]} intensity={5.2} color="#FFB35C" />
       <directionalLight position={[-4, 2, -4]} intensity={2.4} color="#FF8E3C" />
       <directionalLight position={[-3, 3, 5]} intensity={0.5} color="#7A8CB8" />
-      {geo && <GHead geo={geo} />}
-      <GBrain />
+      {geo && <GHead geo={geo} openStart={openStart} openDur={openDur} />}
+      <GBrain riseStart={openStart + 22} />
       <Dust />
     </ThreeCanvas>
   );
 };
 
 // ── フィルムルック: レターボックス+グレイン+ビネット ──
-const FilmChrome: React.FC = () => {
+export const FilmChrome: React.FC = () => {
   const frame = useCurrentFrame();
   const gx = Math.floor(random(`gx${frame}`) * 240);
   const gy = Math.floor(random(`gy${frame}`) * 240);
@@ -239,7 +244,7 @@ const FilmChrome: React.FC = () => {
 };
 
 // ── 図鑑的ロウワーサード(和名+学名風) ──
-const LowerThird: React.FC<{at: number; out: number; jp: string; en: string}> = ({at, out, jp, en}) => {
+export const LowerThird: React.FC<{at: number; out: number; jp: string; en: string}> = ({at, out, jp, en}) => {
   const frame = useCurrentFrame();
   const p = interpolate(frame, [at, at + 24], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const o = interpolate(frame, [out, out + 20], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
@@ -254,7 +259,7 @@ const LowerThird: React.FC<{at: number; out: number; jp: string; en: string}> = 
 };
 
 // ── 脳への注釈ラベル(図鑑の引き出し線) ──
-const Annotation: React.FC<{at: number; x1: number; y1: number; x2: number; y2: number; side: 'left' | 'right'; jp: string; en: string}> = ({
+export const Annotation: React.FC<{at: number; x1: number; y1: number; x2: number; y2: number; side: 'left' | 'right'; jp: string; en: string}> = ({
   at,
   x1,
   y1,

@@ -11,27 +11,31 @@ import {BRAIN_PARTS, makeCerebellumGeo, makeHemisphereGeo} from '../scenes/Brain
 // 漆黒の宇宙的背景 / 青白いリムライトで浮かぶ被写体 / シミュレーションHUD /
 // 大きな白テキスト+キーワードのみ黄色ハイライト / ゆっくり寄るカメラ / ダークアンビエントBGM
 
-const CYAN = '#54D8FF';
-const YELLOW = '#FFD84A';
-const WHITE = '#EAF4FF';
-const DIM = 'rgba(234,244,255,0.5)';
-const BG = '#010409';
+export const CYAN = '#54D8FF';
+export const V_YELLOW = '#FFD84A';
+export const V_WHITE = '#EAF4FF';
+export const V_DIM = 'rgba(234,244,255,0.5)';
+export const V_BG = '#010409';
+const YELLOW = V_YELLOW;
+const WHITE = V_WHITE;
+const DIM = V_DIM;
+const BG = V_BG;
 
 const OPEN_START = 250;
 const OPEN_DUR = 60;
 
 // ── 3D: 頭部(フタ開き) — 暗い物体に青白リム ──
-const VHead: React.FC<{geo: THREE.BufferGeometry}> = ({geo}) => {
+const VHead: React.FC<{geo: THREE.BufferGeometry; openStart?: number; openDur?: number}> = ({geo, openStart = OPEN_START, openDur = OPEN_DUR}) => {
   const frame = useCurrentFrame();
   const CUT = 0.85;
-  const split = interpolate(frame, [OPEN_START, OPEN_START + OPEN_DUR], [0, 1], {
+  const split = interpolate(frame, [openStart, openStart + openDur], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: (t) => 1 - Math.pow(1 - t, 3),
   });
   const lid = split * 1.05;
   const lidLift = split * 0.16;
-  const lidOpacity = interpolate(frame, [OPEN_START + OPEN_DUR, OPEN_START + OPEN_DUR + 32], [1, 0], {
+  const lidOpacity = interpolate(frame, [openStart + openDur, openStart + openDur + 32], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -80,9 +84,8 @@ const VHead: React.FC<{geo: THREE.BufferGeometry}> = ({geo}) => {
 };
 
 // ── 3D: 標本のように発光する脳 ──
-const VBrain: React.FC = () => {
+const VBrain: React.FC<{riseStart?: number}> = ({riseStart = OPEN_START + 22}) => {
   const frame = useCurrentFrame();
-  const riseStart = OPEN_START + 22;
   const geoL = useMemo(() => makeHemisphereGeo(0.0), []);
   const geoR = useMemo(() => makeHemisphereGeo(2.7), []);
   const geoC = useMemo(() => makeCerebellumGeo(), []);
@@ -119,9 +122,8 @@ const VBrain: React.FC = () => {
 
 // ── 3D: 開口部から立ち上るニューラル粒子 ──
 const NEURAL_COUNT = 240;
-const NeuralRise: React.FC = () => {
+const NeuralRise: React.FC<{start?: number}> = ({start = OPEN_START + 26}) => {
   const frame = useCurrentFrame();
-  const start = OPEN_START + 26;
   const positions = useMemo(() => new Float32Array(NEURAL_COUNT * 3), []);
   const geoRef = React.useRef<THREE.BufferGeometry>(null);
   for (let i = 0; i < NEURAL_COUNT; i++) {
@@ -148,10 +150,10 @@ const NeuralRise: React.FC = () => {
   );
 };
 
-const VCamera: React.FC = () => {
+const VCamera: React.FC<{dur?: number}> = ({dur = 600}) => {
   const frame = useCurrentFrame();
   const {camera} = useThree();
-  const z = interpolate(frame, [0, 600], [8.6, 6.3], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const z = interpolate(frame, [0, dur], [8.6, 6.3], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   useEffect(() => {
     camera.position.set(Math.sin(frame / 320) * 0.35, 0.72 + Math.sin(frame / 240) * 0.06, z);
     camera.lookAt(0, 0.55, 0);
@@ -160,7 +162,11 @@ const VCamera: React.FC = () => {
   return null;
 };
 
-const VCanvas: React.FC = () => {
+export const VCanvas: React.FC<{openStart?: number; openDur?: number; dur?: number}> = ({
+  openStart = OPEN_START,
+  openDur = OPEN_DUR,
+  dur = 600,
+}) => {
   const {width, height} = useVideoConfig();
   const geo = useHeadGeometry();
   return (
@@ -174,21 +180,21 @@ const VCanvas: React.FC = () => {
       camera={{fov: 36, position: [0, 0.72, 8.6]}}
       style={{position: 'absolute', inset: 0}}
     >
-      <VCamera />
+      <VCamera dur={dur} />
       {/* 青白リムライト主体: 逆光2灯+ごく暗いキー */}
       <ambientLight intensity={0.16} color="#20406A" />
       <directionalLight position={[-3, 3, -6]} intensity={7.5} color="#4FD8FF" />
       <directionalLight position={[4, 1.5, -5]} intensity={4.0} color="#3D7BFF" />
       <directionalLight position={[2, 3, 5]} intensity={0.55} color="#8FB8E8" />
-      {geo && <VHead geo={geo} />}
-      <VBrain />
-      <NeuralRise />
+      {geo && <VHead geo={geo} openStart={openStart} openDur={openDur} />}
+      <VBrain riseStart={openStart + 22} />
+      <NeuralRise start={openStart + 26} />
     </ThreeCanvas>
   );
 };
 
 // ── 背景: 星+ごく薄いネビュラ ──
-const SpaceBackdrop: React.FC = () => {
+export const SpaceBackdrop: React.FC = () => {
   const frame = useCurrentFrame();
   const stars = useMemo(
     () =>
@@ -219,7 +225,7 @@ const SpaceBackdrop: React.FC = () => {
 };
 
 // ── HUD: コーナーブラケット+計測テキスト ──
-const Bracket: React.FC<{x: number; y: number; flipX?: boolean; flipY?: boolean; o: number}> = ({x, y, flipX, flipY, o}) => (
+export const Bracket: React.FC<{x: number; y: number; flipX?: boolean; flipY?: boolean; o: number}> = ({x, y, flipX, flipY, o}) => (
   <div
     style={{
       position: 'absolute',

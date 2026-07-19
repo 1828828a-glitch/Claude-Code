@@ -11,27 +11,31 @@ import {BRAIN_PARTS, makeCerebellumGeo, makeHemisphereGeo} from '../scenes/Brain
 // 白ホリゾント+磁器の頭部+柔らかい影 / 黒の巨大タイポ / カラフル脳がプロダクトヒーロー /
 // ライトモードのプレミアム(Apple白スタジオの製品写真イメージ)
 
-const INK = '#1D1D1F';
-const GRAY = 'rgba(29,29,31,0.55)';
-const GRAD = 'linear-gradient(100deg, #0A84FF 0%, #BF5AF2 50%, #FF375F 100%)';
-const BG = '#F4F4F6';
+export const W_INK = '#1D1D1F';
+export const W_GRAY = 'rgba(29,29,31,0.55)';
+export const W_GRAD = 'linear-gradient(100deg, #0A84FF 0%, #BF5AF2 50%, #FF375F 100%)';
+export const W_BG = '#F4F4F6';
+const INK = W_INK;
+const GRAY = W_GRAY;
+const GRAD = W_GRAD;
+const BG = W_BG;
 
 const HEAD_IN = 300;
 const OPEN_START = 368;
 const OPEN_DUR = 55;
 
 // ── 3D: 磁器の頭部(フタ開き) ──
-const WHead: React.FC<{geo: THREE.BufferGeometry}> = ({geo}) => {
+const WHead: React.FC<{geo: THREE.BufferGeometry; openStart?: number; openDur?: number}> = ({geo, openStart = OPEN_START, openDur = OPEN_DUR}) => {
   const frame = useCurrentFrame();
   const CUT = 0.85;
-  const split = interpolate(frame, [OPEN_START, OPEN_START + OPEN_DUR], [0, 1], {
+  const split = interpolate(frame, [openStart, openStart + openDur], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: (t) => 1 - Math.pow(1 - t, 3),
   });
   const lid = split * 1.05;
   const lidLift = split * 0.16;
-  const lidOpacity = interpolate(frame, [OPEN_START + OPEN_DUR, OPEN_START + OPEN_DUR + 30], [1, 0], {
+  const lidOpacity = interpolate(frame, [openStart + openDur, openStart + openDur + 30], [1, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -79,9 +83,8 @@ const WHead: React.FC<{geo: THREE.BufferGeometry}> = ({geo}) => {
 };
 
 // ── 3D: カラフル脳(白の上で最も映える) ──
-const WBrain: React.FC = () => {
+const WBrain: React.FC<{riseStart?: number}> = ({riseStart = OPEN_START + 20}) => {
   const frame = useCurrentFrame();
-  const riseStart = OPEN_START + 20;
   const geoL = useMemo(() => makeHemisphereGeo(0.0, true), []);
   const geoR = useMemo(() => makeHemisphereGeo(2.7, true), []);
   const geoC = useMemo(() => makeCerebellumGeo(true), []);
@@ -109,10 +112,10 @@ const WBrain: React.FC = () => {
   );
 };
 
-const WCamera: React.FC = () => {
+const WCamera: React.FC<{from?: number; dur?: number}> = ({from = HEAD_IN, dur = 600}) => {
   const frame = useCurrentFrame();
   const {camera} = useThree();
-  const z = interpolate(frame, [HEAD_IN, 600], [7.8, 6.5], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const z = interpolate(frame, [from, dur], [7.8, 6.5], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   useEffect(() => {
     camera.position.set(Math.sin(frame / 280) * 0.55, 0.7, z);
     camera.lookAt(0, 0.5, 0);
@@ -121,7 +124,12 @@ const WCamera: React.FC = () => {
   return null;
 };
 
-const WCanvas: React.FC = () => {
+export const WCanvas: React.FC<{openStart?: number; openDur?: number; camFrom?: number; dur?: number}> = ({
+  openStart = OPEN_START,
+  openDur = OPEN_DUR,
+  camFrom = HEAD_IN,
+  dur = 600,
+}) => {
   const {width, height} = useVideoConfig();
   const geo = useHeadGeometry();
   return (
@@ -136,14 +144,14 @@ const WCanvas: React.FC = () => {
       camera={{fov: 35, position: [0, 0.7, 7.8]}}
       style={{position: 'absolute', inset: 0}}
     >
-      <WCamera />
+      <WCamera from={camFrom} dur={dur} />
       {/* 白ホリ撮影: 大きく柔らかい光+薄い冷色フィル */}
       <ambientLight intensity={1.15} color="#FFFFFF" />
       <directionalLight position={[4, 6, 4]} intensity={2.6} color="#FFFFFF" />
       <directionalLight position={[-5, 3, 2]} intensity={1.1} color="#DCE4F2" />
       <directionalLight position={[0, 3, -6]} intensity={1.6} color="#FFFFFF" />
-      {geo && <WHead geo={geo} />}
-      <WBrain />
+      {geo && <WHead geo={geo} openStart={openStart} openDur={openDur} />}
+      <WBrain riseStart={openStart + 20} />
     </ThreeCanvas>
   );
 };
@@ -170,7 +178,7 @@ const Beat: React.FC<{from: number; to: number; children: React.ReactNode}> = ({
   );
 };
 
-const GradText: React.FC<{children: React.ReactNode}> = ({children}) => (
+export const GradText: React.FC<{children: React.ReactNode}> = ({children}) => (
   <span style={{background: GRAD, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent'}}>{children}</span>
 );
 
