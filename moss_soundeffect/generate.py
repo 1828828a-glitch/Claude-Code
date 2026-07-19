@@ -12,8 +12,8 @@
 import argparse
 import os
 
+import soundfile as sf
 import torch
-import torchaudio
 
 from moss_soundeffect_v2 import MossSoundEffectPipeline
 
@@ -60,7 +60,9 @@ def main() -> None:
 
     output_path = os.path.abspath(args.output)
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-    torchaudio.save(output_path, audio[0].detach().cpu(), pipe.sample_rate)
+    # torchaudio.save は torchcodec 依存になったため soundfile で保存する
+    wav = audio[0].detach().cpu().to(torch.float32).numpy().T  # (C, T) -> (T, C)
+    sf.write(output_path, wav, pipe.sample_rate)
     print(f"Saved: {output_path}")
 
 
