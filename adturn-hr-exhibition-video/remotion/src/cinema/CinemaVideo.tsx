@@ -11,6 +11,7 @@ import {useHeadGeometry} from '../scenes/Head3D';
 // 「発明のドキュメンタリー」— 一つの被写体（頭部）を照明で語る
 
 const SERIF = "'Noto Serif CJK JP', serif";
+const SANS = "'Noto Sans CJK JP', sans-serif";
 const AMBER = '#E8A34C';
 const CREAM = '#F4E8D8';
 const DIM = 'rgba(244,232,216,0.55)';
@@ -29,7 +30,7 @@ const useRule = (at: number, dur = 34) => {
 };
 
 const Caps: React.FC<{children: React.ReactNode; style?: React.CSSProperties}> = ({children, style}) => (
-  <div style={{fontFamily: SERIF, fontSize: 17, fontWeight: 700, color: DIM, letterSpacing: '0.5em', ...style}}>{children}</div>
+  <div style={{fontFamily: SANS, fontSize: 16, fontWeight: 700, color: DIM, letterSpacing: '0.5em', ...style}}>{children}</div>
 );
 
 // ── 常設3Dステージ（琥珀ライティングの黒曜石ヘッド） ──
@@ -121,10 +122,10 @@ const FilmChrome: React.FC = () => {
       <div style={{position: 'absolute', top: 0, left: 0, right: 0, height: 132, background: '#000'}} />
       <div style={{position: 'absolute', bottom: 0, left: 0, right: 0, height: 132, background: '#000'}} />
       {/* 帯上の小さなクレジット */}
-      <div style={{position: 'absolute', top: 96, left: 80, fontFamily: SERIF, fontSize: 15, fontWeight: 700, letterSpacing: '0.5em', color: 'rgba(244,232,216,0.4)'}}>
+      <div style={{position: 'absolute', top: 96, left: 80, fontFamily: SANS, fontSize: 14, fontWeight: 700, letterSpacing: '0.5em', color: 'rgba(244,232,216,0.4)'}}>
         ADTANK GP
       </div>
-      <div style={{position: 'absolute', top: 96, right: 80, fontFamily: SERIF, fontSize: 15, fontWeight: 700, letterSpacing: '0.5em', color: 'rgba(244,232,216,0.4)'}}>
+      <div style={{position: 'absolute', top: 96, right: 80, fontFamily: SANS, fontSize: 14, fontWeight: 700, letterSpacing: '0.5em', color: 'rgba(244,232,216,0.4)'}}>
         A DOCUMENT OF INVENTION
       </div>
     </AbsoluteFill>
@@ -138,7 +139,7 @@ const LowerThird: React.FC<{at: number; en: string; jp: string}> = ({at, en, jp}
   return (
     <div style={{position: 'absolute', left: 84, bottom: 176, ...f}}>
       <div style={{width: 46, height: 2, background: AMBER, transform: `scaleX(${r})`, transformOrigin: 'left'}} />
-      <div style={{fontFamily: SERIF, fontSize: 15, fontWeight: 700, letterSpacing: '0.5em', color: DIM, marginTop: 14}}>{en}</div>
+      <div style={{fontFamily: SANS, fontSize: 14, fontWeight: 700, letterSpacing: '0.5em', color: DIM, marginTop: 14}}>{en}</div>
       <div style={{fontFamily: SERIF, fontSize: 30, fontWeight: 700, color: CREAM, letterSpacing: '0.12em', marginTop: 8}}>{jp}</div>
     </div>
   );
