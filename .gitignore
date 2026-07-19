@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+moss_soundeffect/.venv/
+moss_soundeffect/MOSS-TTS/
+*.wav
