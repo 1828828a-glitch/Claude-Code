@@ -16,6 +16,9 @@ import {AdturnKineticVideo} from './kinetic/KineticVideo';
 import {AdturnVaienceVideo} from './vaience/VaienceVideo';
 import {AdturnNatGeoVideo} from './natgeo/NatGeoVideo';
 import {AdturnWhiteVideo} from './white/WhiteVideo';
+import {NeuroDemo} from './neuro/NeuroDemo';
+import {OpeDemo} from './ope/OpeDemo';
+import {SemDemo} from './sem/SemDemo';
 import {KeynoteDemo} from './keynote/KeynoteDemo';
 import {FPS, LUX_TOTAL_FRAMES, TOTAL_FRAMES, V3D_TOTAL_FRAMES} from './theme';
 
@@ -57,6 +60,10 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="AdturnWhite" component={AdturnWhiteVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
     {/* エディトリアル・キネティック(スイスポスター)スタイルデモ */}
     <Composition id="PosterDemo" component={PosterDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
+    {/* サイエンス3案デモ: ニューロン/オペ/電子顕微鏡 */}
+    <Composition id="NeuroDemo" component={NeuroDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
+    <Composition id="OpeDemo" component={OpeDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
+    <Composition id="SemDemo" component={SemDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
     {/* ホワイトスタジオ スタイルデモ */}
     <Composition id="WhiteDemo" component={WhiteDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
     {/* ナショジオ風ドキュメンタリー スタイルデモ */}
