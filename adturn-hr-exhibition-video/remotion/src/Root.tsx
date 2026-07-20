@@ -19,6 +19,8 @@ import {AdturnWhiteVideo} from './white/WhiteVideo';
 import {NeuroDemo} from './neuro/NeuroDemo';
 import {NeuroPlateDemo} from './neuro/NeuroPlateDemo';
 import {AdturnNeuroVideo} from './neuro/NeuroVideo';
+import {AdturnOpeVideo} from './ope/OpeVideo';
+import {AdturnSemVideo} from './sem/SemVideo';
 import {OpeDemo} from './ope/OpeDemo';
 import {SemDemo} from './sem/SemDemo';
 import {KeynoteDemo} from './keynote/KeynoteDemo';
@@ -54,6 +56,10 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="AdturnCosmos" component={AdturnCosmosVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
     {/* フル版: ニューロン・マイクロスコピー(Runwayプレート合成) */}
     <Composition id="AdturnNeuro" component={AdturnNeuroVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
+    {/* フル版: 脳移植オペレーション(Runwayプレート合成) */}
+    <Composition id="AdturnOpe" component={AdturnOpeVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
+    {/* フル版: 電子顕微鏡×論文図版(Runwayプレート合成) */}
+    <Composition id="AdturnSem" component={AdturnSemVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
     {/* フル版: エディトリアル・キネティック */}
     <Composition id="AdturnKinetic" component={AdturnKineticVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
     {/* フル版: バイエンス風 */}
