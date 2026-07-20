@@ -144,7 +144,7 @@ const NEngine: React.FC = () => {
   const DOMAINS = ['人事', '採用コンサル', 'マーケティング', 'ブランディング', '経営コンサル', 'アーティスト'];
   return (
     <Fade dur={400}>
-      <Plate src="video/plate_engine_wide.mp4" dark={0.14} />
+      <Plate src="video/plate_engine_wide.mp4" dark={0.26} />
       <Hud title="ARCHIVE ── 転写済みの脳" state="COPIED" />
       {b2 < 1 && (
         <AbsoluteFill style={{opacity: 1 - b2}}>
@@ -674,7 +674,7 @@ const NFinale: React.FC = () => {
   const fadeOut = interpolate(local, [758, 778], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   return (
     <Fade dur={780}>
-      <Plate src="video/plate_nucleus_sphere.mp4" dark={beat === 4 ? 0 : 0.16} />
+      <Plate src="video/plate_nucleus_sphere.mp4" dark={beat === 4 ? 0.3 : 0.18} />
       <Hud title="EPILOGUE ── デジブレ" state="COMPLETE" />
       <AbsoluteFill style={{opacity: fadeOut}}>
         {beat === 1 && (
