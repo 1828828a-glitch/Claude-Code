@@ -17,6 +17,7 @@ import {AdturnVaienceVideo} from './vaience/VaienceVideo';
 import {AdturnNatGeoVideo} from './natgeo/NatGeoVideo';
 import {AdturnWhiteVideo} from './white/WhiteVideo';
 import {NeuroDemo} from './neuro/NeuroDemo';
+import {NeuroPlateDemo} from './neuro/NeuroPlateDemo';
 import {OpeDemo} from './ope/OpeDemo';
 import {SemDemo} from './sem/SemDemo';
 import {KeynoteDemo} from './keynote/KeynoteDemo';
@@ -62,6 +63,7 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="PosterDemo" component={PosterDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
     {/* サイエンス3案デモ: ニューロン/オペ/電子顕微鏡 */}
     <Composition id="NeuroDemo" component={NeuroDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
+    <Composition id="NeuroPlateDemo" component={NeuroPlateDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
     <Composition id="OpeDemo" component={OpeDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
     <Composition id="SemDemo" component={SemDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
     {/* ホワイトスタジオ スタイルデモ */}
