@@ -1,7 +1,6 @@
 import React from 'react';
 import {AbsoluteFill, Audio, Loop, OffthreadVideo, Sequence, interpolate, staticFile, useCurrentFrame} from 'remotion';
 import {FONT, V3D_SCENES, V3D_TOTAL_FRAMES} from '../theme';
-import {Bracket} from '../vaience/VaienceDemo';
 
 // ── ニューロン・マイクロスコピー フル版(4775f = 159s) ──
 // Runway(Veo 3.1)生成のフォトリアル・プレートを全シーンに敷き、
@@ -32,11 +31,13 @@ const bgmVolume = (f: number) => {
 
 // ── プレート(8秒素材をループ+ドリフト。継ぎ目は微小な沈み込みで隠す) ──
 const LOOP_F = 238;
+// 静かなトーン(参考YouTube準拠): 彩度と明度を落とし、テキストを主役にする
+const QUIET = true;
 const Plate: React.FC<{src: string; mirror?: boolean; dark?: number}> = ({src, mirror, dark = 0}) => {
   const frame = useCurrentFrame();
   const s = 1.07 + Math.sin(frame / 340) * 0.03;
   return (
-    <AbsoluteFill>
+    <AbsoluteFill style={QUIET ? {filter: 'saturate(0.5) brightness(0.78)'} : undefined}>
       <AbsoluteFill style={{transform: `scale(${mirror ? -s : s}, ${s})`}}>
         <Loop durationInFrames={LOOP_F}>
           <OffthreadVideo src={staticFile(src)} muted style={{width: '100%', height: '100%', objectFit: 'cover'}} />
@@ -59,27 +60,16 @@ const Plate: React.FC<{src: string; mirror?: boolean; dark?: number}> = ({src, m
   );
 };
 
-// ── HUD ──
+// ── HUD(静かな2ラベル式: 左=フィルム名、右=シーンラベル) ──
 const Hud: React.FC<{title: string; state: string}> = ({title, state}) => {
   const frame = useCurrentFrame();
   const boot = interpolate(frame, [4, 26], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const mono: React.CSSProperties = {fontSize: 15, fontWeight: 500, color: DIM, letterSpacing: '0.32em', fontVariantNumeric: 'tabular-nums'};
-  const depth = (-120 - frame * 0.06).toFixed(1);
+  const mono: React.CSSProperties = {fontSize: 15, fontWeight: 500, color: 'rgba(234,248,255,0.42)', letterSpacing: '0.34em'};
   return (
     <AbsoluteFill style={{fontFamily: FONT, pointerEvents: 'none', opacity: boot}}>
-      <Bracket x={54} y={54} o={boot} />
-      <Bracket x={1820} y={54} flipX o={boot} />
-      <Bracket x={54} y={980} flipY o={boot} />
-      <Bracket x={1820} y={980} flipX flipY o={boot} />
-      <div style={{position: 'absolute', top: 60, left: 120, ...mono}}>
-        <span style={{color: CYAN}}>{title}</span>
-      </div>
-      <div style={{position: 'absolute', top: 60, right: 120, textAlign: 'right', ...mono}}>DEPTH {depth} µm</div>
-      <div style={{position: 'absolute', bottom: 62, right: 120, textAlign: 'right', ...mono}}>
-        <span style={{color: CYAN, opacity: 0.55 + 0.45 * Math.abs(Math.sin(frame / 10))}}>●</span>
-        {'　'}
-        {state}
-      </div>
+      <div style={{position: 'absolute', top: 56, left: 90, ...mono}}>ADTURN ／ SCIENTIFIC PRODUCT FILM</div>
+      <div style={{position: 'absolute', top: 56, right: 90, textAlign: 'right', ...mono}}>{title}</div>
+      <div style={{position: 'absolute', bottom: 58, right: 90, textAlign: 'right', ...mono, fontSize: 13}}>{state}</div>
     </AbsoluteFill>
   );
 };
@@ -113,7 +103,7 @@ const NTech: React.FC = () => {
   return (
     <Fade dur={315}>
       <Plate src="video/neuron_veo1.mp4" />
-      <Hud title="SPECIMEN 001 ── LIVE TISSUE ／ 脳転写プロセス" state={local < 120 ? 'OBSERVING' : 'TRANSCRIBING'} />
+      <Hud title="GENESIS — BRAIN TRANSCRIPTION" state={local < 120 ? 'OBSERVING' : 'TRANSCRIBING'} />
       {out1 > 0 && (
         <AbsoluteFill style={{justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 130, opacity: out1}}>
           <Scrim o={t1} />
@@ -145,7 +135,7 @@ const NEngine: React.FC = () => {
   return (
     <Fade dur={400}>
       <Plate src="video/plate_engine_wide.mp4" dark={0.26} />
-      <Hud title="ARCHIVE ── 転写済みの脳" state="COPIED" />
+      <Hud title="ARCHIVE — 40 MINDS COPIED" state="COPIED" />
       {b2 < 1 && (
         <AbsoluteFill style={{opacity: 1 - b2}}>
           <div style={{position: 'absolute', left: 130, top: 290}}>
@@ -223,7 +213,7 @@ const NEngine: React.FC = () => {
 const NIntro: React.FC = () => (
   <Fade dur={190}>
     <Plate src="video/plate_calm_sparse.mp4" />
-    <Hud title="CASE 01 ── 採用" state="SCANNING" />
+    <Hud title="CASE 01 — RECRUITING" state="SCANNING" />
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <Scrim />
       <Rise at={8} style={{position: 'relative'}}>
@@ -254,7 +244,7 @@ const NQuestion: React.FC<{
   return (
     <Fade dur={dur}>
       <Plate src={plate} mirror={mirror} dark={0.1} />
-      <Hud title={`QUESTION ── ${tag}`} state="ANALYZING" />
+      <Hud title={`QUESTION — ${tag}`} state="ANALYZING" />
       <div
         style={{
           position: 'absolute',
@@ -362,7 +352,7 @@ const NAnswer: React.FC = () => {
   return (
     <Fade dur={460}>
       <Plate src="video/plate_reconnect_burst.mp4" dark={0.12} />
-      <Hud title="SOLUTION ── 再結線" state="CONNECTED" />
+      <Hud title="SOLUTION — RECONNECTED" state="CONNECTED" />
       {b2 < 1 && (
         <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', opacity: 1 - b2}}>
           <div style={{fontSize: 74, fontWeight: 900, color: WHITE, ...glowText()}}>
@@ -426,11 +416,11 @@ const NAnswer: React.FC = () => {
 const NNoGen: React.FC = () => (
   <Fade dur={130}>
     <Plate src="video/plate_dormant_dark.mp4" mirror dark={0.24} />
-    <Hud title="VERIFICATION" state="0 BOILERPLATE" />
+    <Hud title="DIFFERENCE — COMPANY SPECIFIC" state="0 BOILERPLATE" />
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <Rise at={6}>
         <div style={{fontSize: 106, fontWeight: 900, color: WHITE, textAlign: 'center', lineHeight: 1.4, ...glowText('rgba(95,232,255,0.4)')}}>
-          一般論は、<span style={{color: GOLD}}>一行もない。</span>
+          一般論は、一行もない。
         </div>
       </Rise>
       <Rise at={44}>
@@ -447,7 +437,7 @@ const NMIntro: React.FC = () => {
   return (
     <Fade dur={440}>
       <Plate src="video/plate_region2.mp4" />
-      <Hud title="CASE 02 ── マーケティング" state="SCANNING" />
+      <Hud title="CASE 02 — MARKETING" state="SCANNING" />
       {b2 < 1 && (
         <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', opacity: 1 - b2}}>
           <Scrim />
@@ -580,7 +570,7 @@ const NMScope: React.FC = () => {
   return (
     <Fade dur={520}>
       <Plate src="video/plate_scan_sweep.mp4" dark={0.12} />
-      <Hud title="DIAGNOSTIC SCOPE ── 診断範囲" state="MAPPING" />
+      <Hud title="DIAGNOSTIC SCOPE" state="MAPPING" />
       {beat === 1 && (
         <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
           <div style={{display: 'flex', gap: 30}}>
@@ -648,7 +638,7 @@ const NMScope: React.FC = () => {
 const NMReveal: React.FC = () => (
   <Fade dur={200}>
     <Plate src="video/plate_reconnect_burst.mp4" mirror />
-    <Hud title="PRODUCT 02" state="CONNECTED" />
+    <Hud title="REVEAL — PRODUCT 02" state="CONNECTED" />
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
       <Scrim />
       <Rise at={14} style={{position: 'relative'}}>
@@ -675,7 +665,7 @@ const NFinale: React.FC = () => {
   return (
     <Fade dur={780}>
       <Plate src="video/plate_nucleus_sphere.mp4" dark={beat === 4 ? 0.3 : 0.18} />
-      <Hud title="EPILOGUE ── デジブレ" state="COMPLETE" />
+      <Hud title="EPILOGUE — DIGIBRE" state="COMPLETE" />
       <AbsoluteFill style={{opacity: fadeOut}}>
         {beat === 1 && (
           <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center', gap: 40}}>
