@@ -5,8 +5,12 @@ description: ADTURN展示会動画(2分39秒)の新スタイル版をRemotionで
 
 # ADTURN スタイル制作ワークフロー
 
+## 動画は2系統ある(まず判別する)
+- **展示会用(2分39秒)**: ADTURN/デジブレという製品を売る動画。台本固定。この下の手順に従う
+- **レポート紹介用(約90秒)**: 出力レポートそのものを、レポート対象企業に見せる個社向け動画。`docs/style-prompts/04_レポート紹介動画.md` を読み、`remotion/src/report/reportConfig.ts` と `public/report/` の紙面PNGを差し替えて `AdturnReport` をレンダリングする(コード変更ほぼ不要)
+
 ## 前提知識(必読)
-1. `adturn-hr-exhibition-video/docs/style-prompts/00_共通仕様.md` — 台本全文・15シーン構成・ナレーションキュー表・品質チェックリスト。**ここに書かれた尺(4775f/30fps)・台本・キューは変更禁止**
+1. `adturn-hr-exhibition-video/docs/style-prompts/00_共通仕様.md` — 台本全文・15シーン構成・ナレーションキュー表・品質チェックリスト。**ここに書かれた尺(4775f/30fps)・台本・キューは変更禁止**(展示会用のみ)
 2. スタイル個別仕様は `docs/style-prompts/01〜03_*.md`(新スタイルの場合はユーザーの指示に従う)
 3. 実装の参考実装: `remotion/src/kinetic/KineticVideo.tsx`(2Dのみ・最速) / `remotion/src/vaience/VaienceVideo.tsx`(S1のみ3D) / `remotion/src/natgeo/NatGeoVideo.tsx`(全編クローム重ね)
 

@@ -21,6 +21,7 @@ import {NeuroPlateDemo} from './neuro/NeuroPlateDemo';
 import {AdturnNeuroVideo} from './neuro/NeuroVideo';
 import {AdturnOpeVideo} from './ope/OpeVideo';
 import {AdturnSemVideo} from './sem/SemVideo';
+import {AdturnReportVideo} from './report/ReportVideo';
 import {OpeDemo} from './ope/OpeDemo';
 import {SemDemo} from './sem/SemDemo';
 import {KeynoteDemo} from './keynote/KeynoteDemo';
@@ -56,6 +57,8 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="AdturnCosmos" component={AdturnCosmosVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
     {/* フル版: ニューロン・マイクロスコピー(Runwayプレート合成) */}
     <Composition id="AdturnNeuro" component={AdturnNeuroVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
+    {/* レポート紹介動画(個社向け・90秒テンプレート) */}
+    <Composition id="AdturnReport" component={AdturnReportVideo} durationInFrames={2700} fps={FPS} width={1920} height={1080} />
     {/* フル版: 脳移植オペレーション(Runwayプレート合成) */}
     <Composition id="AdturnOpe" component={AdturnOpeVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
     {/* フル版: 電子顕微鏡×論文図版(Runwayプレート合成) */}
