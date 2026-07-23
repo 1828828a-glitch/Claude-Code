@@ -22,6 +22,7 @@ import {AdturnNeuroVideo} from './neuro/NeuroVideo';
 import {AdturnOpeVideo} from './ope/OpeVideo';
 import {AdturnSemVideo} from './sem/SemVideo';
 import {AdturnReportVideo} from './report/ReportVideo';
+import {ForgeDemo} from './forge/ForgeDemo';
 import {OpeDemo} from './ope/OpeDemo';
 import {SemDemo} from './sem/SemDemo';
 import {KeynoteDemo} from './keynote/KeynoteDemo';
@@ -57,6 +58,8 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="AdturnCosmos" component={AdturnCosmosVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
     {/* フル版: ニューロン・マイクロスコピー(Runwayプレート合成) */}
     <Composition id="AdturnNeuro" component={AdturnNeuroVideo} durationInFrames={V3D_TOTAL_FRAMES} fps={FPS} width={1920} height={1080} />
+    {/* 工房(鍛冶)版スタイルデモ */}
+    <Composition id="ForgeDemo" component={ForgeDemo} durationInFrames={600} fps={FPS} width={1920} height={1080} />
     {/* レポート紹介動画(個社向け・90秒テンプレート) */}
     <Composition id="AdturnReport" component={AdturnReportVideo} durationInFrames={2700} fps={FPS} width={1920} height={1080} />
     {/* フル版: 脳移植オペレーション(Runwayプレート合成) */}
