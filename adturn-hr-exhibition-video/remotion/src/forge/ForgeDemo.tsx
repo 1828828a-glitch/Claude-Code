@@ -1,5 +1,5 @@
 import React from 'react';
-import {AbsoluteFill, Audio, Loop, OffthreadVideo, Sequence, interpolate, random, staticFile, useCurrentFrame} from 'remotion';
+import {AbsoluteFill, Audio, OffthreadVideo, Sequence, interpolate, random, staticFile, useCurrentFrame} from 'remotion';
 import {FONT} from '../theme';
 
 // ── 工房(鍛冶)版 スタイルデモ(600f = 20s) ──
@@ -13,26 +13,30 @@ const COLD = '#7FB8FF';
 const WHITE = '#F5EDE2';
 const DIM = 'rgba(245,237,226,0.55)';
 
-const LOOP_F = 238;
-const Plate: React.FC<{src: string; mirror?: boolean; dark?: number}> = ({src, mirror, dark = 0.12}) => {
+// ── ショット(ループさせない。1シーン=複数ショットのカット割りで繰り返しを排除) ──
+const Shot: React.FC<{src: string; mirror?: boolean; dark?: number; from?: number}> = ({src, mirror, dark = 0.12, from = 0}) => {
   const frame = useCurrentFrame();
-  const s = 1.06 + Math.sin(frame / 320) * 0.025;
+  const s = 1.06 + frame * 0.0004;
   return (
     <AbsoluteFill>
       <AbsoluteFill style={{transform: `scale(${mirror ? -s : s}, ${s})`}}>
-        <Loop durationInFrames={LOOP_F}>
-          <OffthreadVideo src={staticFile(src)} muted style={{width: '100%', height: '100%', objectFit: 'cover'}} />
-        </Loop>
-        <AbsoluteFill
-          style={{
-            background: BG,
-            opacity: interpolate(frame % LOOP_F, [0, 7, LOOP_F - 7, LOOP_F], [0.35, 0, 0, 0.35], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
-          }}
-        />
+        <OffthreadVideo src={staticFile(src)} muted startFrom={from} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
       </AbsoluteFill>
       {dark > 0 && <AbsoluteFill style={{background: BG, opacity: dark}} />}
       <AbsoluteFill style={{background: 'radial-gradient(ellipse 105% 85% at 50% 48%, transparent 50%, rgba(4,2,0,0.78) 100%)'}} />
     </AbsoluteFill>
+  );
+};
+
+// カット列: [開始フレーム, ショット]。次のカットまで再生し、ハードカットで切り替わる
+const Cuts: React.FC<{list: Array<[number, React.ReactNode]>}> = ({list}) => {
+  const frame = useCurrentFrame();
+  const idx = list.findIndex(([at], i) => frame >= at && frame < (list[i + 1]?.[0] ?? Infinity));
+  if (idx < 0) return null;
+  return (
+    <Sequence from={list[idx][0]} layout="none">
+      <AbsoluteFill>{list[idx][1]}</AbsoluteFill>
+    </Sequence>
   );
 };
 
@@ -99,16 +103,24 @@ export const ForgeDemo: React.FC = () => {
         <Audio src={staticFile('audio/n1.mp3')} />
       </Sequence>
       <AbsoluteFill style={{opacity: fadeIn * fadeOut}}>
-        {/* 炉の点火〜鋳込み */}
+        {/* カット割り: 鋳込み→溶鋼の流れ→ハンマー打撃→炉(各8秒素材を使い切り、ループなし) */}
         {scene2 < 1 && (
           <AbsoluteFill style={{opacity: 1 - scene2}}>
-            <Plate src="video/plate_forge_ignite.mp4" />
+            <Cuts
+              list={[
+                [0, <Shot key="a" src="video/plate_forge_ignite.mp4" />],
+                [170, <Shot key="b" src="video/plate_forge_flow.mp4" />],
+                [300, <Shot key="c" src="video/plate_forge_hammer.mp4" />],
+              ]}
+            />
           </AbsoluteFill>
         )}
         {/* 中央の炉=デジブレ */}
         {scene2 > 0 && (
           <AbsoluteFill style={{opacity: scene2}}>
-            <Plate src="video/plate_forge_furnace.mp4" />
+            <Sequence from={380} layout="none">
+              <Shot src="video/plate_forge_furnace.mp4" />
+            </Sequence>
           </AbsoluteFill>
         )}
         <Embers />
