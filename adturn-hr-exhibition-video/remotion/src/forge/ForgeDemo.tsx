@@ -72,6 +72,43 @@ const Embers: React.FC = () => {
   );
 };
 
+// ── ナレーション同期テキスト(Whisperの単語タイムスタンプで駆動) ──
+// 語られた瞬間に現れ、accent語は白熱→残火色に冷める
+const WordSync: React.FC<{words: Array<{w: string; at: number; accent?: boolean}>; fontSize: number}> = ({words, fontSize}) => {
+  const frame = useCurrentFrame();
+  return (
+    <span>
+      {words.map(({w, at, accent}, i) => {
+        const p = interpolate(frame, [at, at + 9], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+        const heat = accent ? interpolate(frame, [at, at + 6, at + 30], [0, 1, 0.35], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}) : 0;
+        if (p <= 0) return null;
+        const color = accent ? `rgb(255, ${Math.round(248 - heat * 90)}, ${Math.round(226 - heat * 160)})` : WHITE;
+        return (
+          <span
+            key={i}
+            style={{
+              display: 'inline-block',
+              fontSize,
+              fontWeight: 900,
+              color,
+              opacity: p,
+              transform: `translateY(${(1 - p) * 30}px) scale(${accent ? 1 + heat * 0.12 : 1})`,
+              filter: `blur(${(1 - p) * 6}px)`,
+              textShadow: accent
+                ? `0 0 ${30 + heat * 60}px rgba(255,154,60,${0.5 + heat * 0.5})`
+                : '0 0 40px rgba(255,154,60,0.3)',
+              borderBottom: accent ? `4px solid ${EMBER}` : 'none',
+              paddingBottom: accent ? 2 : 0,
+            }}
+          >
+            {w}
+          </span>
+        );
+      })}
+    </span>
+  );
+};
+
 const Label: React.FC = () => {
   const frame = useCurrentFrame();
   const boot = interpolate(frame, [6, 28], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
@@ -90,15 +127,14 @@ export const ForgeDemo: React.FC = () => {
   const frame = useCurrentFrame();
   const fadeIn = interpolate(frame, [0, 18], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const fadeOut = interpolate(frame, [578, 598], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const t1 = interpolate(frame, [40, 68], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const t2 = interpolate(frame, [80, 112], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const scrim1 = interpolate(frame, [15, 40], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const out1 = interpolate(frame, [330, 360], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const scene2 = interpolate(frame, [380, 408], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const t3 = interpolate(frame, [440, 470], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const bgmVol = (f: number) => interpolate(f, [0, 30, 560, 596], [0, 0.8, 0.8, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   return (
     <AbsoluteFill style={{background: BG, fontFamily: FONT}}>
-      <Audio src={staticFile('audio/bgm_natgeo.m4a')} volume={bgmVol} />
+      <Audio src={staticFile('audio/bgm_forge_emo.m4a')} volume={bgmVol} />
       <Sequence from={15} name="ナレーション n1">
         <Audio src={staticFile('audio/n1.mp3')} />
       </Sequence>
@@ -125,35 +161,47 @@ export const ForgeDemo: React.FC = () => {
         )}
         <Embers />
         <Label />
-        {/* 宣言(具体は文字とナレーションが担う) */}
+        {/* 宣言: ナレーションの単語タイムスタンプに同期(Whisperで抽出、+15fオフセット) */}
         {out1 > 0 && (
-          <AbsoluteFill style={{justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 130, opacity: out1}}>
-            <AbsoluteFill style={{background: 'linear-gradient(to top, rgba(4,2,0,0.82) 0%, rgba(4,2,0,0.3) 26%, transparent 46%)'}} />
-            <div style={{fontSize: 44, fontWeight: 700, color: DIM, letterSpacing: '0.12em', opacity: t1, position: 'relative'}}>トップパフォーマーの</div>
-            <div
-              style={{
-                fontSize: 92,
-                fontWeight: 900,
-                color: WHITE,
-                marginTop: 14,
-                opacity: t2,
-                position: 'relative',
-                textShadow: '0 0 50px rgba(255,154,60,0.4)',
-              }}
-            >
-              脳を、AIに<span style={{color: EMBER, borderBottom: `4px solid ${EMBER}`, paddingBottom: 2}}>転写</span>する。
+          <AbsoluteFill style={{justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 120, opacity: out1}}>
+            <AbsoluteFill style={{background: 'linear-gradient(to top, rgba(4,2,0,0.82) 0%, rgba(4,2,0,0.3) 26%, transparent 46%)', opacity: scrim1}} />
+            <div style={{position: 'relative', opacity: 0.75}}>
+              <WordSync fontSize={44} words={[{w: 'トップ', at: 15}, {w: 'パフォーマー', at: 30}, {w: 'の', at: 49}]} />
+            </div>
+            <div style={{position: 'relative', marginTop: 14}}>
+              <WordSync
+                fontSize={92}
+                words={[
+                  {w: '脳を、', at: 51},
+                  {w: 'AIに', at: 76},
+                  {w: '転写', at: 95, accent: true},
+                  {w: 'する。', at: 107},
+                ]}
+              />
+            </div>
+            {/* 第2文: 世界初〜デジブレ(発話4.06-8.66s = f137-275) */}
+            <div style={{position: 'relative', marginTop: 30}}>
+              <WordSync
+                fontSize={54}
+                words={[
+                  {w: '世界初、', at: 137},
+                  {w: '特許出願中の', at: 165},
+                  {w: 'AIエンジン──', at: 219},
+                  {w: 'デジブレ。', at: 248, accent: true},
+                ]}
+              />
             </div>
           </AbsoluteFill>
         )}
         {/* ロックアップ */}
         {t3 > 0 && (
-          <AbsoluteFill style={{justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 130, opacity: t3}}>
+          <AbsoluteFill style={{justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 140, opacity: t3}}>
             <AbsoluteFill style={{background: 'linear-gradient(to top, rgba(4,2,0,0.82) 0%, transparent 42%)'}} />
-            <div style={{fontSize: 66, fontWeight: 900, color: WHITE, position: 'relative', textShadow: '0 0 60px rgba(255,154,60,0.45)'}}>
-              世界初のAIエンジン──<span style={{color: EMBER}}>デジブレ</span>。
+            <div style={{fontSize: 52, fontWeight: 900, color: WHITE, position: 'relative', textShadow: '0 0 60px rgba(255,154,60,0.45)'}}>
+              この炉から、貴社専用の<span style={{color: EMBER, borderBottom: `4px solid ${EMBER}`, paddingBottom: 2}}>武器</span>が生まれる。
             </div>
-            <div style={{fontSize: 22, fontWeight: 700, color: DIM, letterSpacing: '0.32em', marginTop: 20, position: 'relative'}}>
-              この炉から、貴社専用の<span style={{color: COLD}}>武器</span>が生まれる ／ 特許出願中
+            <div style={{fontSize: 20, fontWeight: 700, color: DIM, letterSpacing: '0.32em', marginTop: 20, position: 'relative'}}>
+              ADTURN ／ 特許出願中
             </div>
           </AbsoluteFill>
         )}
