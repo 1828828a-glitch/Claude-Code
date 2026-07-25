@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+
+# フォントは intro_video/fetch_fonts.sh で取得する(リポジトリには含めない)
+intro_video/fonts/
