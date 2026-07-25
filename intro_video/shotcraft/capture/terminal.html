@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Claude Code terminal texture</title>
+<!--
+  Stage 4 素材。ここに映るテキストは **このコンテナで実際に実行した出力** である。
+  捏造した UI ではなく、実在する製品表面(Claude Code の CLI)を素材化する。
+  データ口径: 自分自身のバージョン情報と本リポジトリの公開コミットのみ。
+  顧客・個人・内部・鍵・実時データは一切含めない。
+
+  出力は 2x で栅格化する(Q2)。文字は最終表示サイズの2倍以上の解像度を確保。
+-->
+<style>
+  @font-face { font-family: 'Mono'; src: url('../../fonts/JetBrainsMono-Regular.ttf'); font-weight: 400; }
+  @font-face { font-family: 'Mono'; src: url('../../fonts/JetBrainsMono-Bold.ttf'); font-weight: 700; }
+  @font-face { font-family: 'NotoJP'; src: url('../../fonts/NotoSansJP-Bold.ttf'); font-weight: 100 900; }
+
+  :root {
+    --term-bg: #171614;
+    --term-chrome: #232120;
+    --fg: #e9e6de;
+    --muted: #8d8a82;
+    --accent: #d97757;
+    --green: #788c5d;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: transparent; }
+
+  /* ターミナル窓。1280x720 を基準サイズとし、2x で撮る */
+  #term {
+    /* 中身は3行しかないので、窓は内容に合わせて詰める。
+       余白だらけの窓は宣伝片の UI チップとして弱い(構図優先)。 */
+    width: 1280px; height: 452px; border-radius: 18px; overflow: hidden;
+    background: var(--term-bg); font-family: 'Mono', monospace;
+    border: 1px solid rgba(233,230,222,.10);
+    display: flex; flex-direction: column;
+  }
+  .chrome {
+    height: 52px; flex: none; background: var(--term-chrome); display: flex; align-items: center;
+    padding: 0 20px; gap: 10px; border-bottom: 1px solid rgba(233,230,222,.07);
+  }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  .title {
+    flex: 1; text-align: center; font-size: 17px; color: var(--muted);
+    letter-spacing: .01em; margin-right: 58px;
+  }
+  .body { flex: 1; padding: 30px 34px; font-size: 26px; line-height: 1.62; color: var(--fg); }
+  .ln { white-space: pre; }
+  .prompt { color: var(--green); font-weight: 700; }
+  .cmd { color: var(--fg); font-weight: 700; }
+  .out { color: var(--muted); }
+  .cursor { display: inline-block; width: 14px; height: 28px; background: var(--accent); vertical-align: -5px; }
+
+  /* backplate: 中身なしの空窓(カードが飛び込む先の受け皿として使う) */
+  #plate .body { visibility: hidden; }
+</style>
+
+<!-- 実出力そのまま。値は capture.mjs 実行時に差し替えられる -->
+<div id="term">
+  <div class="chrome">
+    <span class="dot" style="background:#d9775780"></span>
+    <span class="dot" style="background:#b0aea560"></span>
+    <span class="dot" style="background:#788c5d80"></span>
+    <span class="title">Claude-Code — claude</span>
+  </div>
+  <div class="body">
+    <div class="ln" id="l1"><span class="prompt">$ </span><span class="cmd">claude --version</span></div>
+    <div class="ln out" id="l2">2.1.220 (Claude Code)</div>
+    <div class="ln" style="height:.62em"></div>
+    <div class="ln" id="l3"><span class="prompt">$ </span><span class="cmd">claude</span><span class="cursor" id="caret"></span></div>
+  </div>
+</div>

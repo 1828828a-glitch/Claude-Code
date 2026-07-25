@@ -6,3 +6,7 @@ intro_video/fonts/
 
 # 中間生成物(make_audio.py で作り直せる)
 out/*.wav
+
+# npm 依存(shotcraft 版の Remotion プロジェクトと、キャプチャ用 playwright)
+node_modules/
+intro_video/shotcraft/remotion/out/
