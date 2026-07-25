@@ -1,0 +1,133 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Opus 5 promo styleframe</title>
+<style>
+  @font-face { font-family: 'NotoJP'; src: url('../../fonts/NotoSansJP-Bold.ttf'); font-weight: 100 900; }
+  @font-face { font-family: 'Poppins'; src: url('../../fonts/Poppins-Bold.ttf'); font-weight: 700; }
+
+  :root {
+    --bg: #141413;
+    --surface: #201F1D;
+    --fg: #faf9f5;
+    --muted: #b0aea5;
+    --accent: #d97757;
+    --accent2: #6a9bcc;
+    --accent3: #788c5d;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; }
+  .frame {
+    position: relative; width: 1920px; height: 1080px; overflow: hidden;
+    background: var(--bg); font-family: 'NotoJP', sans-serif;
+    color: var(--fg);
+  }
+  /* 暗場のベース: 縦グラデ + 暖色/寒色グロー。実装では Remotion 側で同値を再現する */
+  .frame::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(1100px 780px at 78% 12%, rgba(217,119,87,.13), transparent 68%),
+      radial-gradient(980px 700px at 10% 88%, rgba(106,155,204,.09), transparent 70%),
+      linear-gradient(180deg, #1a1918 0%, #100f0e 100%);
+  }
+  .frame > * { position: relative; }
+
+  /* ---------- A: 開場字標 ---------- */
+  .a { display: grid; place-items: center; }
+  .a .pill {
+    font-size: 26px; font-weight: 500; color: var(--accent); letter-spacing: .02em;
+    border: 2px solid rgba(217,119,87,.55); background: rgba(217,119,87,.14);
+    padding: 13px 30px; border-radius: 99px; margin-bottom: 54px;
+  }
+  .a .mark { font-family: 'Poppins'; font-size: 200px; line-height: .95; letter-spacing: -.02em; }
+  .a .what { font-size: 92px; font-weight: 700; color: var(--accent); margin-top: 18px; }
+  .a .rule { width: 150px; height: 6px; border-radius: 3px; background: var(--accent); margin: 40px 0 34px; }
+  .a .sub { font-size: 42px; font-weight: 500; color: var(--muted); text-align: center; line-height: 1.55; }
+  /* 墨線十字準星(brand-ink-open の準星) */
+  .a .cross { position: absolute; inset: 0; }
+  .a .cross i { position: absolute; background: rgba(250,249,245,.16); }
+  .a .cross i:nth-child(1) { left: 50%; top: 130px; width: 2px; height: 150px; transform: translateX(-1px); }
+  .a .cross i:nth-child(2) { left: 50%; bottom: 130px; width: 2px; height: 150px; transform: translateX(-1px); }
+  .a .cross i:nth-child(3) { top: 50%; left: 180px; height: 2px; width: 150px; transform: translateY(-1px); }
+  .a .cross i:nth-child(4) { top: 50%; right: 180px; height: 2px; width: 150px; transform: translateY(-1px); }
+
+  /* ---------- B: プロフィールカード聚光(斜45°) ---------- */
+  .b { perspective: 1500px; display: grid; place-items: center; }
+  .b .spot {
+    position: absolute; inset: 0;
+    background: radial-gradient(760px 620px at 44% 46%, rgba(250,249,245,.16), transparent 62%);
+  }
+  .b .card {
+    width: 900px; border-radius: 30px; background: var(--surface);
+    border: 2px solid rgba(250,249,245,.11); padding: 62px 68px;
+    transform: rotateY(28deg) rotateX(7deg) rotateZ(-2deg) scale(1.03);
+    box-shadow: 0 60px 120px rgba(0,0,0,.62), 0 0 0 1px rgba(217,119,87,.14);
+    /* Q2: 3D 下の文字は布局級 zoom で栅格化する。ここでは検証のため zoom を明示 */
+    zoom: 1;
+  }
+  .b .accentbar { position: absolute; left: 24px; top: 30px; bottom: 30px; width: 8px; border-radius: 4px; background: var(--accent); }
+  .b .card { position: relative; }
+  .b .row { margin-bottom: 34px; }
+  .b .row:last-child { margin-bottom: 0; }
+  .b .k { font-size: 27px; font-weight: 500; color: var(--muted); margin-bottom: 8px; }
+  .b .v { font-size: 46px; font-weight: 700; }
+  .b .v.mono { font-family: 'Poppins'; }
+  /* marker-underline-title: 変幅・毛糙・微上斜 */
+  .b .v.mono { position: relative; display: inline-block; }
+  .b .v.mono::after {
+    content: ''; position: absolute; left: -6px; right: -10px; bottom: -6px; height: 13px;
+    background: var(--accent); opacity: .82; border-radius: 3px 7px 4px 8px;
+    transform: rotate(-.7deg) scaleY(.9);
+  }
+
+  /* ---------- C: なかま(word-relay-filmstrip 版式) ----------
+     カード規定: 詞塊の垂直中心を、現在ハイライト中のカードの中点に厳密に揃える。
+     ここでは中央(Sonnet)がハイライトなので、両列とも中央揃えで一致する。 */
+  .c { display: grid; grid-template-columns: 760px 1fr; align-items: center; padding: 0 104px; gap: 76px; }
+  .c .strip { display: flex; flex-direction: column; gap: 26px; }
+  .c .mini {
+    background: var(--surface); border: 2px solid rgba(250,249,245,.1); border-radius: 24px;
+    padding: 34px 34px 34px 56px; display: flex; align-items: baseline; gap: 22px; position: relative;
+  }
+  .c .mini.on { border-color: rgba(217,119,87,.5); background: #262421; }
+  .c .mini .bar { position: absolute; left: 18px; top: 22px; bottom: 22px; width: 7px; border-radius: 4px; }
+  .c .mini .nm { font-family: 'Poppins'; font-size: 52px; }
+  .c .mini .tg { font-size: 27px; font-weight: 500; color: var(--muted); }
+  /* 溢れ対策: 折返しは明示制御し、孤立行を作らない */
+  .c .words { display: flex; flex-direction: column; justify-content: center; }
+  .c .big { font-size: 100px; font-weight: 900; line-height: 1.14; letter-spacing: -.02em; white-space: nowrap; }
+  .c .big em { font-style: normal; color: var(--accent); }
+  .c .kicker { font-size: 28px; font-weight: 500; color: var(--accent); letter-spacing: .12em; margin-bottom: 26px; }
+</style>
+
+<div class="frame a" id="fa">
+  <div class="cross"><i></i><i></i><i></i><i></i></div>
+  <div class="pill">1分でわかる自己紹介</div>
+  <div class="mark">Opus 5</div>
+  <div class="what">って、なに?</div>
+  <div class="rule"></div>
+  <div class="sub">エンジニアじゃなくても<br>わかるように話します。</div>
+</div>
+
+<div class="frame b" id="fb">
+  <div class="spot"></div>
+  <div class="card">
+    <div class="accentbar"></div>
+    <div class="row"><div class="k">なまえ</div><div class="v" style="font-family:Poppins">Opus 5</div></div>
+    <div class="row"><div class="k">うまれ</div><div class="v">Anthropic(米国のAI企業)</div></div>
+    <div class="row"><div class="k">しゅるい</div><div class="v">大規模言語モデル</div></div>
+    <div class="row"><div class="k">正式な名前</div><div class="v mono">claude-opus-5</div></div>
+  </div>
+</div>
+
+<div class="frame c" id="fc">
+  <div class="strip">
+    <div class="mini"><span class="bar" style="background:var(--accent)"></span><span class="nm">Opus 5</span><span class="tg">いちばん賢い</span></div>
+    <div class="mini on"><span class="bar" style="background:var(--accent2)"></span><span class="nm">Sonnet 5</span><span class="tg">ちょうどいい</span></div>
+    <div class="mini"><span class="bar" style="background:var(--accent3)"></span><span class="nm">Haiku 4.5</span><span class="tg">とても速い</span></div>
+  </div>
+  <div class="words">
+    <div class="kicker">なかま</div>
+    <div class="big">バランスのいい</div>
+    <div class="big"><em>ソネット</em>。</div>
+  </div>
+</div>
