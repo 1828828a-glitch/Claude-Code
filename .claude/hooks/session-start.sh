@@ -22,7 +22,7 @@ log() { echo "[video-shotcraft] $*"; }
 
 # ローカルの Claude Code では ~/.claude/skills が永続するので、何もしない。
 if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
-  log "ローカル環境なのでスキップします(手動導入は intro_video/../README を参照)"
+  log "ローカル環境なのでスキップします(手動導入は .claude/hooks/README.md を参照)"
   exit 0
 fi
 
