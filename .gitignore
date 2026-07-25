@@ -10,3 +10,7 @@ out/*.wav
 # npm 依存(shotcraft 版の Remotion プロジェクトと、キャプチャ用 playwright)
 node_modules/
 intro_video/shotcraft/remotion/out/
+
+# public 配下の生成物。フォントは npm run setup、ナレーションは make_audio.py で作り直せる
+intro_video/shotcraft/remotion/public/fonts/
+intro_video/shotcraft/remotion/public/audio/narration.wav

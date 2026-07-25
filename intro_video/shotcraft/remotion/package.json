@@ -1,0 +1,22 @@
+{
+  "name": "opus5-shotcraft",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "node scripts/copy-fonts.mjs",
+    "dev": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts Opus5Promo out/promo.mp4",
+    "render:v": "remotion render src/index.ts Opus5PromoVertical out/promo-vertical.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.484",
+    "@remotion/motion-blur": "4.0.484",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "remotion": "4.0.484"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "typescript": "^6.0.3"
+  }
+}

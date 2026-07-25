@@ -405,6 +405,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="out/opus5_audio.wav")
     ap.add_argument("--timing", default="out/opus5_timing.json")
+    ap.add_argument("--voice-out", help="ナレーション単体も書き出す(BGM/SFX を Remotion 側で重ねる版で使う)")
     # レベルは固定倍率ではなく RMS の目標値で決める。合成した BGM の素の振幅は
     # 音色構成で大きく変わるので、倍率指定だと簡単に声を食ってしまう。
     ap.add_argument("--voice-peak", type=float, default=0.90, help="声のピーク(歪ませないため)")
@@ -445,6 +446,11 @@ def main() -> int:
     out = Path(args.out)
     write_wav(out, left, right)
     print(f"音声を書き出しました: {out} ({out.stat().st_size / 1e6:.2f} MB)")
+
+    if args.voice_out:
+        vo = Path(args.voice_out)
+        write_wav(vo, voice, voice)
+        print(f"ナレーション単体を書き出しました: {vo} ({vo.stat().st_size / 1e6:.2f} MB)")
 
     timing = Path(args.timing)
     timing.parent.mkdir(parents=True, exist_ok=True)
