@@ -3,3 +3,6 @@ __pycache__/
 
 # フォントは intro_video/fetch_fonts.sh で取得する(リポジトリには含めない)
 intro_video/fonts/
+
+# 中間生成物(make_audio.py で作り直せる)
+out/*.wav

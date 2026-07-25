@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import os
 import subprocess
@@ -98,6 +99,18 @@ def ease_in_out(x: float) -> float:
 def appear(t: float, delay: float, dur: float = 0.55) -> float:
     """delay 秒後から dur 秒かけて 0→1 になる値。"""
     return ease_out((t - delay) / dur)
+
+
+# ナレーションの各セリフが始まる時刻(シーン開始からの秒数)。
+# make_audio.py が書き出した timing JSON から差し込まれる。空なら台本なしの静止尺。
+_CUES: list[float] = []
+
+
+def cue(index: int, fallback: float) -> float:
+    """index 番目のセリフの開始時刻。無ければ fallback(無音版のタイミング)を使う。"""
+    if 0 <= index < len(_CUES):
+        return _CUES[index]
+    return fallback
 
 
 def rgba(color: tuple[int, int, int], alpha: float) -> tuple[int, int, int, int]:
@@ -291,17 +304,20 @@ def draw_particles(f: Frame, t: float, alpha: float = 1.0) -> None:
 # ---------------------------------------------------------------- 各シーン
 
 def scene_hook(f: Frame, t: float) -> None:
+    c_mark, c_what, c_sub = cue(0, 0.75), cue(1, 1.5), cue(2, 2.3)
     a1 = appear(t, 0.15, 0.7)
-    a2 = appear(t, 0.75, 0.6)
-    a3 = appear(t, 1.5, 0.6)
-    a4 = appear(t, 2.3, 0.6)
+    a2 = appear(t, c_mark, 0.6)
+    a3 = appear(t, c_what, 0.6)
+    a4 = appear(t, c_sub, 0.6)
 
     cx = W // 2
-    pill(f, cx, int(560 + (1 - a1) * 24), "40秒でわかる自己紹介", 38, a1)
+    # ラベルは実際の尺から作る(ナレーション有無で総尺が変わるため)
+    label = f"{int(round(TOTAL))}秒でわかる自己紹介" if TOTAL < 55 else "1分でわかる自己紹介"
+    pill(f, cx, int(560 + (1 - a1) * 24), label, 38, a1)
 
     # ワードマーク(英字は Poppins)
     y = 700
-    scale = 0.94 + 0.06 * ease_out((t - 0.75) / 0.9)
+    scale = 0.94 + 0.06 * ease_out((t - c_mark) / 0.9)
     size = int(200 * scale)
     fnt = get_font("latin", size, "Bold")
     f.d.text((cx, int(y + (1 - a2) * 40)), "Opus 5", font=fnt, fill=rgba(LIGHT, a2), anchor="ma")
@@ -315,15 +331,16 @@ def scene_hook(f: Frame, t: float) -> None:
     )
 
     # アクセントの下線
-    lw = int(150 * ease_out((t - 1.9) / 0.8))
+    lw = int(150 * ease_out((t - c_what - 0.4) / 0.8))
     if lw > 2:
         f.d.rounded_rectangle([cx - lw // 2, 1108, cx + lw // 2, 1114], 3, fill=rgba(ORANGE, 0.9))
 
 
 def scene_who(f: Frame, t: float) -> None:
-    a0 = appear(t, 0.1, 0.6)
-    a1 = appear(t, 0.55, 0.6)
-    a2 = appear(t, 1.4, 0.6)
+    c_hi, c_head, c_card, c_tail = cue(0, 0.1), cue(1, 0.55), cue(2, 1.4), cue(3, 2.6)
+    a0 = appear(t, c_hi, 0.6)
+    a1 = appear(t, c_head, 0.6)
+    a2 = appear(t, c_card, 0.6)
 
     draw_text(f, MARGIN, int(430 + (1 - a0) * 20), "はじめまして。", 58, "Medium", MID_GRAY, a0)
     draw_text(
@@ -345,12 +362,12 @@ def scene_who(f: Frame, t: float) -> None:
     ]
     ry = cy + 58
     for i, (k, v, fam) in enumerate(rows):
-        ra = appear(t, 1.6 + i * 0.16, 0.5)
+        ra = appear(t, c_card + 0.2 + i * 0.16, 0.5)
         draw_text(f, MARGIN + 60, ry, k, 34, "Medium", MID_GRAY, ra * a2)
         draw_text(f, MARGIN + 60, ry + 48, v, 52, "Bold", LIGHT, ra * a2, family=fam)
         ry += 130
 
-    a3 = appear(t, 2.6, 0.6)
+    a3 = appear(t, c_tail, 0.6)
     draw_text(
         f, MARGIN, int(1580 + (1 - a3) * 20),
         "Claude(クロード)という\nAIシリーズの、いちばん力のある担当です。",
@@ -359,7 +376,7 @@ def scene_who(f: Frame, t: float) -> None:
 
 
 def scene_can_do(f: Frame, t: float) -> None:
-    a0 = appear(t, 0.1, 0.6)
+    a0 = appear(t, cue(0, 0.1), 0.6)
     draw_text(f, MARGIN, int(360 + (1 - a0) * 20), "できること", 44, "Medium", ORANGE, a0)
     draw_text(f, MARGIN, int(430 + (1 - a0) * 24), "ざっくり3つ。", 82, "Bold", LIGHT, a0)
 
@@ -371,7 +388,7 @@ def scene_can_do(f: Frame, t: float) -> None:
     y = 620
     ch = 330
     for i, (accent, title, body) in enumerate(items):
-        ia = appear(t, 0.5 + i * 0.45, 0.65)
+        ia = appear(t, cue(i + 1, 0.5 + i * 0.45), 0.65)
         cy = int(y + (1 - ia) * 40)
         card(f, MARGIN, cy, W - MARGIN * 2, ch, ia, accent)
         draw_text(f, MARGIN + 68, cy + 52, f"0{i + 1}", 34, "Bold", accent, ia, family="latin")
@@ -382,19 +399,20 @@ def scene_can_do(f: Frame, t: float) -> None:
 
 
 def scene_where(f: Frame, t: float) -> None:
-    a0 = appear(t, 0.1, 0.6)
+    c_chat, c_code = cue(1, 0.7), cue(2, 1.5)
+    a0 = appear(t, cue(0, 0.1), 0.6)
     draw_text(f, MARGIN, int(400 + (1 - a0) * 20), "どこで会える?", 44, "Medium", ORANGE, a0)
     draw_text(f, MARGIN, int(470 + (1 - a0) * 24), "話しかける場所は\n選べます。", 82, "Bold", LIGHT, a0,
               line_gap=1.42)
 
-    a1 = appear(t, 0.7, 0.65)
+    a1 = appear(t, c_chat, 0.65)
     cy = int(760 + (1 - a1) * 36)
     card(f, MARGIN, cy, W - MARGIN * 2, 300, a1, BLUE)
     draw_text(f, MARGIN + 68, cy + 60, "チャットで相談する", 58, "Bold", LIGHT, a1)
     draw_text(f, MARGIN + 68, cy + 150, "Claude のアプリやブラウザで、\nふつうに話しかけるだけ。", 42,
               "Medium", MID_GRAY, a1, max_width=W - MARGIN * 2 - 130, line_gap=1.5)
 
-    a2 = appear(t, 1.5, 0.65)
+    a2 = appear(t, c_code, 0.65)
     cy2 = int(1100 + (1 - a2) * 36)
     card(f, MARGIN, cy2, W - MARGIN * 2, 470, a2, ORANGE)
     draw_text(f, MARGIN + 68, cy2 + 56, "Claude Code", 58, "Bold", LIGHT, a2, family="latin")
@@ -406,7 +424,7 @@ def scene_where(f: Frame, t: float) -> None:
     ty = cy2 + 320
     tf = get_font("jp", 34, "Medium")
     for i, tg in enumerate(tags):
-        ta = appear(t, 2.0 + i * 0.13, 0.45) * a2
+        ta = appear(t, c_code + 0.5 + i * 0.13, 0.45) * a2
         tw = tf.getlength(tg) + 44
         if tx + tw > W - MARGIN - 40:
             tx = MARGIN + 68
@@ -419,7 +437,7 @@ def scene_where(f: Frame, t: float) -> None:
 
 
 def scene_family(f: Frame, t: float) -> None:
-    a0 = appear(t, 0.1, 0.6)
+    a0 = appear(t, cue(0, 0.1), 0.6)
     draw_text(f, MARGIN, int(400 + (1 - a0) * 20), "なかま", 44, "Medium", ORANGE, a0)
     draw_text(f, MARGIN, int(470 + (1 - a0) * 24), "用事の大きさで\n使い分けます。", 82, "Bold", LIGHT, a0,
               line_gap=1.42)
@@ -432,7 +450,7 @@ def scene_family(f: Frame, t: float) -> None:
     y = 790
     ch = 290
     for i, (accent, name, tag, body) in enumerate(members):
-        ia = appear(t, 0.55 + i * 0.42, 0.65)
+        ia = appear(t, cue(i + 1, 0.55 + i * 0.42), 0.65)
         cy = int(y + (1 - ia) * 40)
         card(f, MARGIN, cy, W - MARGIN * 2, ch, ia, accent)
         draw_text(f, MARGIN + 68, cy + 52, name, 62, "Bold", LIGHT, ia, family="latin")
@@ -447,36 +465,37 @@ def scene_family(f: Frame, t: float) -> None:
                   max_width=W - MARGIN * 2 - 130, line_gap=1.5)
         y += ch + 30
 
-    a3 = appear(t, 2.3, 0.6)
+    a3 = appear(t, cue(4, 2.3), 0.6)
     draw_text(f, W // 2, int(1700 + (1 - a3) * 20),
               "同じ性格、ちがう体力。", 44, "Medium", MID_GRAY, a3, align="center")
 
 
 def scene_honest(f: Frame, t: float) -> None:
-    a0 = appear(t, 0.1, 0.6)
+    c_good, c_bad, c_note = cue(1, 0.7), cue(2, 1.5), cue(3, 2.3)
+    a0 = appear(t, cue(0, 0.1), 0.6)
     draw_text(f, MARGIN, int(420 + (1 - a0) * 20), "正直なところ", 44, "Medium", ORANGE, a0)
     draw_text(f, MARGIN, int(490 + (1 - a0) * 24), "得意も、苦手も\nあります。", 82, "Bold", LIGHT, a0,
               line_gap=1.42)
 
-    a1 = appear(t, 0.7, 0.65)
+    a1 = appear(t, c_good, 0.65)
     cy = int(800 + (1 - a1) * 36)
     card(f, MARGIN, cy, W - MARGIN * 2, 300, a1, GREEN)
     draw_text(f, MARGIN + 68, cy + 54, "得意", 34, "Bold", GREEN, a1)
     draw_text(f, MARGIN + 68, cy + 112, "面倒で長い作業を、\n最後までやり切ること。", 52, "Bold", LIGHT, a1,
               line_gap=1.45)
 
-    a2 = appear(t, 1.5, 0.65)
+    a2 = appear(t, c_bad, 0.65)
     cy2 = int(1150 + (1 - a2) * 36)
     card(f, MARGIN, cy2, W - MARGIN * 2, 300, a2, ORANGE)
     draw_text(f, MARGIN + 68, cy2 + 54, "苦手", 34, "Bold", ORANGE, a2)
     draw_text(f, MARGIN + 68, cy2 + 112, "自信たっぷりに\n間違えることがある。", 52, "Bold", LIGHT, a2,
               line_gap=1.45)
 
-    a3 = appear(t, 2.3, 0.6)
+    a3 = appear(t, c_note, 0.6)
     draw_text(f, MARGIN, int(1540 + (1 - a3) * 20),
               "だから、大事な数字や事実は\n必ず確認してください。", 46, "Medium", MID_GRAY, a3,
               max_width=W - MARGIN * 2, line_gap=1.55)
-    a4 = appear(t, 2.9, 0.6)
+    a4 = appear(t, c_note + 0.6, 0.6)
     draw_text(f, MARGIN, int(1700 + (1 - a4) * 18),
               "知っているのは 2026年5月ごろまでの話。", 38, "Medium", MID_GRAY, a4 * 0.85,
               max_width=W - MARGIN * 2)
@@ -484,9 +503,10 @@ def scene_honest(f: Frame, t: float) -> None:
 
 def scene_close(f: Frame, t: float) -> None:
     cx = W // 2
-    a0 = appear(t, 0.15, 0.7)
-    a1 = appear(t, 0.85, 0.7)
-    a2 = appear(t, 1.7, 0.7)
+    c_head, c_sub = cue(0, 0.15), cue(1, 0.85)
+    a0 = appear(t, c_head, 0.7)
+    a1 = appear(t, c_sub, 0.7)
+    a2 = appear(t, c_sub + 1.2, 0.7)
 
     draw_text(f, cx, int(720 + (1 - a0) * 28), "むずかしいことは、\nこちらで。", 86, "Bold", LIGHT, a0,
               align="center", line_gap=1.42)
@@ -494,7 +514,7 @@ def scene_close(f: Frame, t: float) -> None:
               'あなたは「やりたいこと」を\n話すだけでいい。', 50, "Medium", MID_GRAY, a1,
               align="center", line_gap=1.55)
 
-    lw = int(160 * ease_out((t - 1.4) / 0.8))
+    lw = int(160 * ease_out((t - c_sub - 0.55) / 0.8))
     if lw > 2:
         f.d.rounded_rectangle([cx - lw // 2, 1210, cx + lw // 2, 1216], 3, fill=rgba(ORANGE, 0.9))
 
@@ -519,10 +539,31 @@ SCENES: list[tuple[float, callable, int]] = [
 TOTAL = sum(s[0] for s in SCENES)
 FADE = 0.32  # シーン間のクロスフェード時間
 
+# シーンごとのキュー(ナレーション各セリフの開始時刻)。timing JSON があれば埋まる。
+CUES_BY_SCENE: list[list[float]] = [[] for _ in SCENES]
+
+# 合成音声を使う版では、音声のライセンス(CC BY 3.0)に従って末尾に出典を出す。
+VOICE_CREDIT: str | None = None
+
+
+def apply_timing(path: str) -> None:
+    """make_audio.py が書き出した timing JSON で、尺とキューを上書きする。"""
+    global TOTAL
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    scenes = data["scenes"]
+    if len(scenes) != len(SCENES):
+        raise SystemExit(f"timing のシーン数({len(scenes)})が映像側({len(SCENES)})と一致しません")
+    for i, sc in enumerate(scenes):
+        dur, fn, offset = SCENES[i]
+        SCENES[i] = (float(sc["dur"]), fn, offset)
+        CUES_BY_SCENE[i] = [float(c) for c in sc.get("cues", [])]
+    TOTAL = sum(s[0] for s in SCENES)
+
 
 # ---------------------------------------------------------------- レンダリング
 
 def render_frame(bg: Image.Image, t: float) -> Image.Image:
+    global _CUES
     f = Frame(bg)
     draw_particles(f, t, 1.0)
 
@@ -542,6 +583,7 @@ def render_frame(bg: Image.Image, t: float) -> Image.Image:
             fade_out = ease_in_out((dur - local) / FADE)
             alpha = clamp01(min(fade_in, fade_out))
             sub = Frame(Image.new("RGBA", (W, H), (0, 0, 0, 0)))
+            _CUES = CUES_BY_SCENE[idx]
             fn(sub, local)
             layer = sub.layer
             if offset:
@@ -551,6 +593,11 @@ def render_frame(bg: Image.Image, t: float) -> Image.Image:
             if alpha < 0.999:
                 layer.putalpha(layer.getchannel("A").point(lambda v: int(v * alpha)))
             f.layer.alpha_composite(layer)
+            # 出典は本文と別扱いなので、シーンの縦オフセットをかけず画面下に固定する
+            if VOICE_CREDIT and idx == last:
+                ca = appear(local, 2.6, 1.0) * alpha
+                draw_text(f, W // 2, 1806, VOICE_CREDIT, 26, "Medium", MID_GRAY, ca * 0.6,
+                          align="center", max_width=W - MARGIN, line_gap=1.4)
             break
         acc += dur
 
@@ -563,7 +610,17 @@ def main() -> int:
     ap.add_argument("--poster", default="out/opus5_intro_poster.jpg")
     ap.add_argument("--fps", type=int, default=FPS)
     ap.add_argument("--crf", type=int, default=20)
+    ap.add_argument("--timing", help="make_audio.py が出力した timing JSON(尺とキューを同期させる)")
+    ap.add_argument("--audio", help="多重化する音声ファイル。省略すると無音トラックになる")
     args = ap.parse_args()
+
+    if args.timing:
+        apply_timing(args.timing)
+        print(f"タイミングを読み込みました: {args.timing}")
+
+    if args.audio:
+        global VOICE_CREDIT
+        VOICE_CREDIT = 'Voice: HTS Voice "Mei" — Nagoya Institute of Technology / CC BY 3.0'
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -581,15 +638,23 @@ def main() -> int:
     print(f"背景を作成中… ({W}x{H})")
     bg = build_background()
 
+    if args.audio:
+        audio_in = ["-i", args.audio]
+        audio_enc = ["-c:a", "aac", "-b:a", "192k", "-ar", "48000"]
+    else:
+        # 音声トラックがないと再生できないプレイヤーがあるため、無音でも用意しておく
+        audio_in = ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"]
+        audio_enc = ["-c:a", "aac", "-b:a", "64k"]
+
     cmd = [
         ffmpeg, "-y", "-loglevel", "error",
         "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(args.fps), "-i", "pipe:0",
-        "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
+        *audio_in,
         "-shortest",
         "-c:v", "libx264", "-preset", "medium", "-crf", str(args.crf),
         "-pix_fmt", "yuv420p", "-profile:v", "high", "-level", "4.1",
         "-g", str(args.fps * 2), "-movflags", "+faststart",
-        "-c:a", "aac", "-b:a", "64k",
+        *audio_enc,
         str(out),
     ]
     print(f"エンコード開始: {total_frames} フレーム / {TOTAL:.1f} 秒")

@@ -1,0 +1,5 @@
+# 紹介動画の生成に必要なパッケージ(リポジトリ直下の requirements.txt とは別)
+pillow>=10.0
+numpy>=1.24
+imageio-ffmpeg>=0.5      # ffmpeg 静的バイナリ同梱
+pyopenjtalk>=0.4         # 日本語音声合成(ビルドに cmake と C++ コンパイラが必要)
