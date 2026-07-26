@@ -28,6 +28,16 @@ else
   fi
 fi
 
+# 日本語コンポジションを組む場合、CJK フォントが無いと豆腐になる
+if fc-list :lang=ja family 2>/dev/null | grep -q "Noto Sans CJK JP"; then
+  echo "==> Noto Sans CJK JP: すでにインストール済み"
+elif command -v apt-get >/dev/null 2>&1; then
+  echo "==> Noto Sans CJK をインストール中（日本語コンポジション用）"
+  $SUDO apt-get install -y -qq fonts-noto-cjk fonts-noto-cjk-extra
+else
+  echo "==> Noto Sans CJK は未インストール（日本語を使わないなら不要）"
+fi
+
 echo "==> Chrome Headless Shell を確認中"
 npx --yes hyperframes@latest browser ensure
 

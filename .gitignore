@@ -3,5 +3,6 @@ __pycache__/
 
 # HyperFrames プロジェクトのローカル成果物
 node_modules/
-renders/
 out/
+videos/*/snapshots/
+videos/*/.hyperframes/
