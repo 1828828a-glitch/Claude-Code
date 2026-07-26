@@ -1,0 +1,622 @@
+<title>食え — 切り紙ポテト短編</title>
+
+<style>
+/* ── font: IPAGothic subset, injected at build ───────────────────── */
+@font-face{
+  font-family:"KiriGothic";
+  src:url(FONT_DATA_URI) format("woff2");
+  font-weight:400;font-style:normal;font-display:block;
+}
+
+/* ── tokens ──────────────────────────────────────────────────────── */
+:root{
+  --paper:#EFE4CC;      /* newsprint */
+  --kraft:#C9A06A;      /* kraft board */
+  --ink:#241E17;        /* stamp ink */
+  --fry:#E9B23C;        /* fried gold */
+  --raw:#E4D3A6;        /* raw potato stick */
+  --red:#C24030;        /* carton red */
+  --oil:#5F727B;        /* oil, blue-grey */
+  --sky:#A9C0C4;
+  --soil:#6A4630;
+  --spud:#BE8A55;
+
+  --ground:#DCCDB2;     /* the table the collage sits on */
+  --ground-2:#D2C0A1;
+  --table:#D3B98F;      /* the desk the paper sits on — never themed */
+  --type:#241E17;
+  --type-dim:#6B5B47;
+  --rule:#B7A588;
+  --shadow:rgba(36,30,23,.22);
+  --stage-edge:rgba(36,30,23,.30);
+
+  --ja:"KiriGothic","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+  --body:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,"KiriGothic",serif;
+  --util:ui-sans-serif,"Helvetica Neue",Arial,"KiriGothic",sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --ground:#171310;--ground-2:#1F1A15;
+    --type:#EADCC2;--type-dim:#9C8A70;
+    --rule:#4A3E30;--shadow:rgba(0,0,0,.5);--stage-edge:rgba(0,0,0,.6);
+    --paper:#DCCFB4;--sky:#7E969B;--soil:#4E3324;--oil:#3E4C53;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#171310;--ground-2:#1F1A15;
+  --type:#EADCC2;--type-dim:#9C8A70;
+  --rule:#4A3E30;--shadow:rgba(0,0,0,.5);--stage-edge:rgba(0,0,0,.6);
+  --paper:#DCCFB4;--sky:#7E969B;--soil:#4E3324;--oil:#3E4C53;
+}
+:root[data-theme="light"]{
+  --ground:#DCCDB2;--ground-2:#D2C0A1;
+  --type:#241E17;--type-dim:#6B5B47;
+  --rule:#B7A588;--shadow:rgba(36,30,23,.22);--stage-edge:rgba(36,30,23,.30);
+  --paper:#EFE4CC;--sky:#A9C0C4;--soil:#6A4630;--oil:#5F727B;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--ground);color:var(--type);
+  font-family:var(--body);line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:clamp(20px,4vw,56px) clamp(16px,4vw,32px) 72px}
+
+/* ── ransom-note lettering ───────────────────────────────────────── */
+.ransom{display:flex;flex-wrap:wrap;gap:5px 13px;font-family:var(--util);font-weight:800}
+.ransom .word{display:flex;gap:4px}
+.ransom .word span{
+  display:inline-block;padding:.06em .26em;background:var(--paper);color:var(--ink);
+  border-radius:1px;box-shadow:2px 3px 0 var(--shadow);
+}
+.ransom .word span:nth-child(3n){background:var(--kraft)}
+.ransom .word:nth-child(2n) span:nth-child(2n){background:var(--red);color:var(--paper)}
+.ransom .word:nth-child(3n) span:nth-child(3n){background:var(--red);color:var(--paper)}
+.ransom .word span:nth-child(4n){background:var(--fry)}
+
+header{display:flex;flex-direction:column;gap:18px;margin-bottom:clamp(24px,4vw,40px)}
+.eyebrow{
+  font-family:var(--util);font-size:11px;font-weight:700;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--type-dim);
+}
+.title{display:flex;align-items:flex-end;gap:clamp(14px,3vw,28px);flex-wrap:wrap}
+.title .ja{
+  font-family:var(--ja);font-size:clamp(64px,13vw,132px);line-height:.86;
+  color:var(--red);letter-spacing:.02em;
+  text-shadow:4px 5px 0 var(--shadow);
+}
+.title .ransom{font-size:clamp(16px,3.2vw,26px);max-width:16ch;padding-bottom:.9em}
+.lede{max-width:62ch;font-size:clamp(15px,1.6vw,17.5px);color:var(--type-dim);margin:0}
+
+/* ── stage ───────────────────────────────────────────────────────── */
+.stage{
+  position:relative;aspect-ratio:16/9;width:100%;overflow:hidden;
+  background:var(--paper);
+  box-shadow:0 18px 0 -8px var(--stage-edge),0 30px 60px -30px #000;
+}
+.stage svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.grain{
+  position:absolute;inset:0;pointer-events:none;opacity:.42;
+  mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23g)' opacity='.5'/></svg>");
+}
+.vig{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 80% at 50% 45%,transparent 55%,rgba(36,30,23,.28) 100%)}
+
+/* caption layer */
+.caps{position:absolute;left:0;bottom:0;padding:clamp(12px,2.4vw,26px);display:flex;align-items:flex-end;gap:14px}
+.cap-ja{
+  font-family:var(--ja);font-size:clamp(28px,5.2vw,58px);line-height:1;color:var(--ink);
+  background:var(--paper);padding:.14em .22em;box-shadow:3px 4px 0 var(--shadow);
+}
+.cap-en{
+  font-family:var(--util);font-size:clamp(9px,1.3vw,13px);font-weight:700;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--ink);background:var(--fry);
+  padding:.5em .7em;box-shadow:3px 4px 0 var(--shadow);
+}
+.caps.swap .cap-ja{color:var(--paper);background:var(--red)}
+
+/* ── stop-motion jitter: everything re-photographed at 8fps ──────── */
+@keyframes stopmo{
+  0%,100%{translate:0 0;rotate:0deg}
+  25%    {translate:1.6px -1.1px;rotate:.22deg}
+  50%    {translate:-1.2px 1.4px;rotate:-.3deg}
+  75%    {translate:.9px 1px;rotate:.13deg}
+}
+.jit{animation:stopmo .5s steps(1,end) infinite;transform-box:fill-box;transform-origin:50% 50%}
+.jit.d1{animation-delay:-.12s}.jit.d2{animation-delay:-.25s}.jit.d3{animation-delay:-.37s}
+
+/* paper treatment */
+.p{filter:url(#torn) drop-shadow(5px 7px 0 var(--shadow))}
+.p2{filter:url(#torn2) drop-shadow(3px 4px 0 var(--shadow))}
+.flat{filter:url(#torn2)}
+
+/* ── scenes ──────────────────────────────────────────────────────── */
+.scene{display:none}
+.scene.on{display:inline}
+.stage.paused .scene *,.stage.paused .scene{animation-play-state:paused!important}
+
+@keyframes rise{from{translate:0 190px;opacity:0}20%{opacity:1}to{translate:0 0}}
+@keyframes popin{from{scale:.2;opacity:0}60%{scale:1.08}to{scale:1;opacity:1}}
+@keyframes chop{0%,12%{translate:0 -280px;rotate:-14deg}22%,30%{translate:0 0;rotate:0deg}
+  40%{translate:0 -280px;rotate:-14deg}50%,56%{translate:0 10px;rotate:2deg}
+  66%{translate:0 -280px;rotate:-14deg}76%,82%{translate:0 0;rotate:-1deg}
+  92%,100%{translate:0 -320px;rotate:-18deg}}
+@keyframes drop{from{translate:0 -760px;rotate:-30deg}70%{translate:0 20px;rotate:6deg}
+  85%{translate:0 -26px;rotate:-3deg}to{translate:0 0;rotate:0deg}}
+@keyframes bubble{from{translate:0 0;scale:.4;opacity:0}15%{opacity:1}
+  to{translate:0 -330px;scale:1.15;opacity:0}}
+@keyframes browning{from{color:var(--raw)}55%{color:#DCA85A}to{color:var(--fry)}}
+@keyframes shake{0%,100%{rotate:-32deg}50%{rotate:-52deg}}
+@keyframes fall{from{translate:0 0;opacity:0}10%{opacity:1}to{translate:var(--dx,10px) 560px;opacity:1}}
+@keyframes slidein-l{from{translate:-820px 0;rotate:-16deg}to{translate:0 0;rotate:0deg}}
+@keyframes slidein-r{from{translate:820px 0;rotate:16deg}to{translate:0 0;rotate:0deg}}
+@keyframes tuckin{from{translate:0 -540px;rotate:-24deg;opacity:0}25%{opacity:1}to{translate:0 0;rotate:0deg;opacity:1}}
+@keyframes grab{0%{translate:820px 70px}
+  18%,26%{translate:0 0}
+  46%{translate:760px -300px}
+  100%{translate:760px -300px}}
+@keyframes lifted{0%,20%{opacity:0}22%{opacity:1}46%{opacity:1}47%,100%{opacity:0}}
+@keyframes gone{0%,22%{opacity:1}23%,100%{opacity:0}}
+@keyframes vanish{from{opacity:1}to{opacity:0}}
+@keyframes show{from{opacity:1}to{opacity:1}}
+@keyframes stamp{0%,8%{scale:2.6;opacity:0;rotate:-14deg}
+  14%{scale:1;opacity:1;rotate:-6deg}16%{scale:1.04}18%,100%{scale:1;opacity:1;rotate:-6deg}}
+@keyframes tip{from{rotate:0deg;translate:0 0}to{rotate:74deg;translate:60px 60px}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+
+/* scene 1 */
+#s1 .spud{animation:rise .9s steps(5,end) both}
+#s1 .spud.b{animation-delay:.35s}#s1 .spud.c{animation-delay:.7s}
+#s1 .leaf{animation:popin .5s steps(4,end) both;transform-box:fill-box;transform-origin:50% 100%}
+#s1 .leaf.b{animation-delay:.4s}#s1 .leaf.c{animation-delay:.75s}
+#s1 .sun{animation:popin .6s steps(4,end) both}
+/* scene 2 */
+#s2 .knife{animation:chop 4.6s steps(6,end) both;transform-box:fill-box;transform-origin:50% 90%}
+#s2 .stick{animation:popin .28s steps(3,end) both;transform-box:fill-box;transform-origin:50% 100%}
+#s2 .stick.k1{animation-delay:1.15s}#s2 .stick.k2{animation-delay:2.2s}
+#s2 .stick.k3{animation-delay:2.35s}#s2 .stick.k4{animation-delay:3.4s}
+#s2 .stick.k5{animation-delay:3.55s}
+/* the potato loses a piece at every chop: whole → half → stub → nothing */
+#s2 .spud-whole{animation:vanish .01s steps(1,end) 1.05s forwards}
+#s2 .spud-mid{opacity:0;animation:show .01s steps(1,end) 1.05s forwards,vanish .01s steps(1,end) 2.25s forwards}
+#s2 .spud-small{opacity:0;animation:show .01s steps(1,end) 2.25s forwards,vanish .01s steps(1,end) 3.45s forwards}
+/* scene 3 */
+#s3 .fs{animation:drop 1.05s steps(6,end) both,browning 2.6s steps(6,end) 1s both}
+#s3 .fs.b{animation-delay:.18s,1.2s}#s3 .fs.c{animation-delay:.36s,1.4s}
+#s3 .fs.d{animation-delay:.54s,1.6s}#s3 .fs.e{animation-delay:.72s,1.8s}
+#s3 .fs.f{animation-delay:.9s,2s}
+#s3 .bub{animation:bubble 1.6s steps(7,end) infinite both}
+/* scene 4 */
+#s4 .shaker{animation:shake .34s steps(2,end) infinite both;transform-box:fill-box;transform-origin:50% 90%}
+#s4 .grain-s{animation:fall 1.5s steps(9,end) infinite both}
+/* scene 5 */
+#s5 .box-l{animation:slidein-l .7s steps(5,end) both}
+#s5 .box-r{animation:slidein-r .7s steps(5,end) both}
+#s5 .band{animation:popin .4s steps(3,end) .75s both;transform-box:fill-box;transform-origin:50% 50%}
+#s5 .tuck{animation:tuckin .6s steps(5,end) both}
+#s5 .tuck.t1{animation-delay:1.05s}#s5 .tuck.t2{animation-delay:1.35s}
+#s5 .tuck.t3{animation-delay:1.65s}#s5 .tuck.t4{animation-delay:1.95s}
+#s5 .tuck.t5{animation-delay:2.25s}
+/* scene 6 */
+#s6 .hand{animation:grab 2s steps(8,end) 3 both}
+#s6 .held{animation:lifted 2s steps(8,end) 3 both}
+/* one fry leaves the box per grab — hidden the instant the hand closes */
+#s6 .taken{animation:vanish .01s steps(1,end) forwards}
+#s6 .taken.g1{animation-delay:.46s}
+#s6 .taken.g2{animation-delay:2.46s}
+#s6 .taken.g3{animation-delay:4.46s}
+#s6 .kue{animation:stamp 6s steps(9,end) both}
+/* scene 7 */
+#s7 .empty{animation:tip .8s steps(5,end) both;transform-box:fill-box;transform-origin:50% 100%}
+#s7 .crumb{animation:popin .3s steps(3,end) both}
+#s7 .crumb:nth-of-type(2n){animation-delay:.9s}
+#s7 .crumb:nth-of-type(3n){animation-delay:1.1s}
+#s7 .fin{animation:popin .5s steps(4,end) 1.4s both;transform-box:fill-box;transform-origin:50% 50%}
+
+/* ── transport ───────────────────────────────────────────────────── */
+.transport{display:flex;align-items:center;gap:14px;margin-top:22px;flex-wrap:wrap}
+button{font:inherit;cursor:pointer;border:0}
+.play{
+  font-family:var(--util);font-weight:800;font-size:13px;letter-spacing:.14em;text-transform:uppercase;
+  background:var(--ink);color:var(--paper);padding:12px 20px;box-shadow:3px 4px 0 var(--shadow);
+}
+.play:hover{background:var(--red)}
+.play:focus-visible,.chap:focus-visible{outline:3px solid var(--red);outline-offset:3px}
+.track{flex:1 1 240px;height:12px;background:var(--ground-2);box-shadow:inset 0 0 0 1px var(--rule);position:relative}
+.track i{position:absolute;inset:0 auto 0 0;width:0;background:var(--red);display:block}
+.clock{font-family:var(--util);font-size:12px;font-weight:700;letter-spacing:.1em;
+  color:var(--type-dim);font-variant-numeric:tabular-nums}
+
+.chapters{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
+.chap{
+  text-align:left;background:var(--ground-2);color:var(--type-dim);
+  padding:9px 8px 10px;box-shadow:2px 3px 0 var(--shadow);
+  display:flex;flex-direction:column;gap:3px;line-height:1.15;
+}
+.chap b{font-family:var(--ja);font-size:17px;font-weight:400;color:var(--type)}
+.chap em{font-family:var(--util);font-style:normal;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.chap[aria-current="true"]{background:var(--fry);color:var(--ink)}
+.chap[aria-current="true"] b{color:var(--ink)}
+.chap:hover{background:var(--kraft);color:var(--ink)}
+.chap:hover b{color:var(--ink)}
+@media (max-width:720px){.chapters{grid-template-columns:repeat(4,1fr)}}
+
+/* ── colophon ────────────────────────────────────────────────────── */
+.colophon{margin-top:56px;border-top:2px solid var(--rule);padding-top:28px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:28px}
+.colophon h2{grid-column:1/-1;margin:0;font-family:var(--ja);font-size:26px;font-weight:400}
+.col h3{margin:0 0 6px;font-family:var(--util);font-size:10px;font-weight:800;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--type-dim)}
+.col p{margin:0;font-size:15px}
+.col code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em;
+  background:var(--ground-2);padding:.1em .35em}
+footer{margin-top:40px;font-family:var(--util);font-size:12px;color:var(--type-dim)}
+footer a{color:inherit}
+
+@media (prefers-reduced-motion:reduce){
+  .jit{animation:none}
+  .scene *,.scene{animation-duration:.001s!important;animation-iteration-count:1!important}
+}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">切り紙アニメーション・35秒・全編コード</div>
+  <div class="title">
+    <div class="ja">食え</div>
+    <div class="ransom" data-ransom="EAT THE FRIES"></div>
+  </div>
+  <p class="lede">
+    紙をちぎって、重ねて、コマ撮りする。動画も生成AIも使っていません — 畑からポテトが揚がって、
+    箱に詰まって、消えるまでの35秒は、すべて SVG とキーフレームで描かれています。
+    8コマ／秒の手ブレも、破れた紙のフチも、CSSの計算結果です。
+  </p>
+</header>
+
+<div class="stage" id="stage">
+  <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-label="切り紙アニメーション：ポテトができるまで">
+    <defs>
+      <filter id="torn" x="-12%" y="-12%" width="124%" height="124%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.011" numOctaves="3" seed="11" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="16" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+      <filter id="torn2" x="-12%" y="-12%" width="124%" height="124%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.021" numOctaves="2" seed="3" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="8" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+      <symbol id="fry" viewBox="0 0 44 210">
+        <path d="M7 5 L36 0 L41 196 Q22 210 3 194 Z" fill="currentColor"/>
+        <path d="M13 24 L30 21 L32 60 L15 62 Z" fill="rgba(255,255,255,.16)"/>
+      </symbol>
+      <symbol id="spudsym" viewBox="0 0 240 172">
+        <ellipse cx="120" cy="86" rx="116" ry="82" fill="currentColor"/>
+        <ellipse cx="76" cy="64" rx="11" ry="8" fill="rgba(36,30,23,.30)"/>
+        <ellipse cx="150" cy="98" rx="9" ry="7" fill="rgba(36,30,23,.30)"/>
+        <ellipse cx="168" cy="56" rx="7" ry="6" fill="rgba(36,30,23,.24)"/>
+      </symbol>
+      <clipPath id="soilclip"><rect x="0" y="520" width="1600" height="380"/></clipPath>
+      <clipPath id="oilclip"><path d="M232 524 L1368 524 L1318 830 L282 830 Z"/></clipPath>
+    </defs>
+
+    <!-- ░░ 1. 畑 ░░ -->
+    <g class="scene" id="s1">
+      <rect x="0" y="0" width="1600" height="900" fill="var(--sky)"/>
+      <circle class="sun p jit" cx="1310" cy="158" r="96" fill="var(--fry)"/>
+      <g class="p">
+        <path d="M-20 512 Q 300 470 640 516 T 1300 498 T 1620 520 L1620 920 L-20 920 Z" fill="var(--soil)"/>
+      </g>
+      <g clip-path="url(#soilclip)">
+        <g class="spud a jit"><g class="p2" style="color:var(--spud)"><use href="#spudsym" x="270" y="560" width="240" height="172"/></g></g>
+        <g class="spud b jit d1"><g class="p2" style="color:var(--spud)"><use href="#spudsym" x="650" y="600" width="270" height="194"/></g></g>
+        <g class="spud c jit d2"><g class="p2" style="color:var(--spud)"><use href="#spudsym" x="1060" y="566" width="230" height="165"/></g></g>
+      </g>
+      <g class="p2" fill="#7E9C55">
+        <path class="leaf a jit" d="M390 512 Q356 424 396 356 Q446 420 424 512 Z"/>
+        <path class="leaf a jit d3" d="M400 514 Q452 470 512 462 Q470 512 438 518 Z"/>
+        <path class="leaf b jit d2" d="M786 512 Q744 410 800 340 Q852 424 822 512 Z"/>
+        <path class="leaf b jit d1" d="M800 514 Q742 476 690 470 Q734 514 772 518 Z"/>
+        <path class="leaf c jit d1" d="M1172 512 Q1140 430 1176 366 Q1224 428 1204 512 Z"/>
+        <path class="leaf c jit d3" d="M1184 514 Q1240 478 1292 476 Q1246 514 1214 518 Z"/>
+      </g>
+    </g>
+
+    <!-- ░░ 2. 切る ░░ -->
+    <g class="scene" id="s2">
+      <rect x="0" y="0" width="1600" height="900" fill="var(--paper)"/>
+      <rect x="0" y="640" width="1600" height="260" fill="var(--kraft)" class="p"/>
+      <g class="spud-whole"><g class="p2 jit" style="color:var(--spud)"><use href="#spudsym" x="430" y="470" width="300" height="215"/></g></g>
+      <g class="spud-mid"><g class="p2 jit d1" style="color:var(--spud)"><use href="#spudsym" x="452" y="506" width="236" height="180"/></g></g>
+      <g class="spud-small"><g class="p2 jit d2" style="color:var(--spud)"><use href="#spudsym" x="486" y="546" width="164" height="140"/></g></g>
+      <g class="knife">
+        <g class="p2">
+          <path d="M690 180 L742 180 L742 560 L690 604 Z" fill="#98A5AB"/>
+          <rect x="686" y="96" width="62" height="96" rx="6" fill="var(--ink)"/>
+        </g>
+      </g>
+      <g class="jit">
+        <g class="p2" style="color:var(--raw)">
+          <use class="stick k1" href="#fry" x="860"  y="452" width="44" height="210"/>
+          <use class="stick k2" href="#fry" x="936"  y="446" width="44" height="210"/>
+          <use class="stick k3" href="#fry" x="1012" y="456" width="44" height="210"/>
+          <use class="stick k4" href="#fry" x="1088" y="444" width="44" height="210"/>
+          <use class="stick k5" href="#fry" x="1164" y="454" width="44" height="210"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- ░░ 3. 揚げる ░░ -->
+    <g class="scene" id="s3">
+      <rect x="0" y="0" width="1600" height="900" fill="var(--paper)"/>
+      <rect x="0" y="0" width="1600" height="430" fill="var(--table)" class="flat" opacity=".45"/>
+      <g class="p"><path d="M180 470 L1420 470 L1352 872 L248 872 Z" fill="var(--oil)"/></g>
+      <g class="p2"><path d="M232 524 L1368 524 L1318 830 L282 830 Z" fill="#A96C24"/></g>
+      <g class="jit d1"><g class="flat"><path d="M232 524 L1368 524 L1362 570 Q 800 616 238 570 Z" fill="#C2872C"/></g></g>
+      <g style="color:var(--raw)">
+        <g class="p2">
+          <use class="fs a" href="#fry" x="430" y="500" width="44" height="210"/>
+          <use class="fs b" href="#fry" x="546" y="520" width="44" height="210"/>
+          <use class="fs c" href="#fry" x="668" y="496" width="44" height="210"/>
+          <use class="fs d" href="#fry" x="790" y="524" width="44" height="210"/>
+          <use class="fs e" href="#fry" x="912" y="502" width="44" height="210"/>
+          <use class="fs f" href="#fry" x="1034" y="518" width="44" height="210"/>
+        </g>
+      </g>
+      <g id="bubbles" class="flat" fill="var(--paper)" opacity=".75" clip-path="url(#oilclip)"></g>
+    </g>
+
+    <!-- ░░ 4. 塩 ░░ -->
+    <g class="scene" id="s4">
+      <rect x="0" y="0" width="1600" height="900" fill="var(--sky)"/>
+      <rect x="0" y="700" width="1600" height="200" fill="var(--kraft)" class="p"/>
+      <g class="shaker">
+        <g class="p2">
+          <path d="M300 180 L470 180 L500 470 L270 470 Z" fill="var(--paper)"/>
+          <rect x="292" y="120" width="186" height="66" rx="8" fill="var(--red)"/>
+          <circle cx="352" cy="150" r="9" fill="var(--ink)"/><circle cx="386" cy="150" r="9" fill="var(--ink)"/>
+          <circle cx="420" cy="150" r="9" fill="var(--ink)"/>
+        </g>
+      </g>
+      <g id="salt" fill="var(--paper)" class="flat"></g>
+      <g class="jit" style="color:var(--fry)">
+        <g class="p2">
+          <use href="#fry" x="780"  y="452" width="56" height="266"/>
+          <use href="#fry" x="872"  y="430" width="56" height="266"/>
+          <use href="#fry" x="964"  y="460" width="56" height="266"/>
+          <use href="#fry" x="1056" y="436" width="56" height="266"/>
+          <use href="#fry" x="1148" y="454" width="56" height="266"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- ░░ 5. 箱 ░░ -->
+    <g class="scene" id="s5">
+      <rect x="0" y="0" width="1600" height="900" fill="var(--paper)"/>
+      <rect x="0" y="740" width="1600" height="160" fill="var(--table)" class="flat"/>
+      <g class="jit" style="color:var(--fry)">
+        <g class="p2">
+          <use class="tuck t1" href="#fry" x="678" y="304" width="46" height="220"/>
+          <use class="tuck t2" href="#fry" x="742" y="286" width="46" height="220"/>
+          <use class="tuck t3" href="#fry" x="806" y="298" width="46" height="220"/>
+          <use class="tuck t4" href="#fry" x="870" y="282" width="46" height="220"/>
+          <use class="tuck t5" href="#fry" x="934" y="300" width="46" height="220"/>
+        </g>
+      </g>
+      <g class="p">
+        <path class="box-l" d="M640 470 L830 470 L806 800 L690 800 Z" fill="var(--red)"/>
+        <path class="box-r" d="M830 470 L1020 470 L970 800 L806 800 Z" fill="#A93526"/>
+      </g>
+      <g class="band jit d2"><g class="p2"><rect x="654" y="556" width="352" height="62" fill="var(--paper)"/></g></g>
+    </g>
+
+    <!-- ░░ 6. 食え ░░ -->
+    <g class="scene" id="s6">
+      <rect x="0" y="0" width="1600" height="900" fill="#B78A55"/>
+      <g class="kue">
+        <text x="392" y="420" font-family="var(--ja)" font-size="236" fill="var(--red)"
+              style="paint-order:stroke" stroke="var(--paper)" stroke-width="16" text-anchor="middle">食え</text>
+      </g>
+      <g class="jit" style="color:var(--fry)">
+        <g class="p2">
+          <use class="taken g3" href="#fry" x="736" y="316" width="46" height="220"/>
+          <use class="taken g2" href="#fry" x="800" y="298" width="46" height="220"/>
+          <use class="taken g1" href="#fry" x="864" y="310" width="46" height="220"/>
+          <use href="#fry" x="928" y="294" width="46" height="220"/>
+          <use href="#fry" x="992" y="312" width="46" height="220"/>
+        </g>
+      </g>
+      <g class="p">
+        <path d="M700 480 L1080 480 L1026 830 L756 830 Z" fill="var(--red)"/>
+      </g>
+      <g class="p2"><rect x="714" y="566" width="352" height="62" fill="var(--paper)"/></g>
+      <g class="hand">
+        <g class="held" style="color:var(--fry)"><g class="p2"><use href="#fry" x="810" y="96" width="46" height="268"/></g></g>
+        <g class="p2" fill="#EBC9A4">
+          <rect x="1190" y="296" width="560" height="130" rx="36"/>
+          <rect x="1020" y="272" width="200" height="150" rx="44"/>
+          <path d="M1030 292 L884 306 L844 314 L846 334 L1030 336 Z"/>
+          <path d="M1030 400 L884 382 L846 366 L848 350 L1030 348 Z"/>
+          <rect x="1054" y="306" width="104" height="106" rx="22" fill="#D4A87E"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- ░░ 7. 完 ░░ -->
+    <g class="scene" id="s7">
+      <rect x="0" y="0" width="1600" height="900" fill="var(--paper)"/>
+      <rect x="0" y="700" width="1600" height="200" fill="var(--table)" class="flat"/>
+      <g class="empty"><g class="p"><path d="M400 404 L780 404 L726 704 L456 704 Z" fill="var(--red)"/></g></g>
+      <g id="crumbs" class="flat" fill="var(--fry)"></g>
+      <g class="fin">
+        <text x="1230" y="452" font-family="var(--ja)" font-size="216" fill="var(--ink)" text-anchor="middle">完</text>
+        <text x="1230" y="536" font-family="var(--util)" font-size="28" font-weight="700" letter-spacing="12" fill="var(--ink)" opacity=".6" text-anchor="middle">NO VIDEO. ALL CODE.</text>
+      </g>
+    </g>
+  </svg>
+
+  <div class="grain"></div>
+  <div class="vig"></div>
+  <div class="caps" id="caps"><div class="cap-ja"></div><div class="cap-en"></div></div>
+</div>
+
+<div class="transport">
+  <button class="play" id="play" aria-label="再生・一時停止">一時停止 ⏸</button>
+  <div class="track" id="track"><i id="bar"></i></div>
+  <div class="clock"><span id="now">00.0</span> / 35.0<span aria-hidden="true">秒</span></div>
+</div>
+
+<div class="chapters" id="chapters"></div>
+
+<section class="colophon">
+  <h2>作り方</h2>
+  <div class="col">
+    <h3>紙の破れたフチ</h3>
+    <p>SVGの <code>feTurbulence</code> でノイズを作り、<code>feDisplacementMap</code> で輪郭を押し出しています。パスは全部きれいな直線と楕円で、ちぎれているのはフィルタの仕事です。</p>
+  </div>
+  <div class="col">
+    <h3>コマ撮りの手ブレ</h3>
+    <p>全レイヤーに <code>steps(1)</code> の微小な回転と移動を8コマ／秒でかけ、遅延をずらして同期を外しています。撮り直すたびに紙がずれる、あの感じ。</p>
+  </div>
+  <div class="col">
+    <h3>揚げ色</h3>
+    <p>ポテトの色は <code>currentColor</code> のキーフレーム補間。生成り→薄茶→黄金の3段階を <code>steps(6)</code> で刻むと、塗り重ねたように見えます。</p>
+  </div>
+  <div class="col">
+    <h3>尺</h3>
+    <p>7カット・35秒。各カットの表示は <code>display:none</code> の切り替えで、戻るたびにアニメーションが頭から再生されます。</p>
+  </div>
+</section>
+
+<footer>
+  切り紙ポテト短編 ／ 参照: <a href="https://x.com/BystAnd3rs/status/2079640307264811160">@BystAnd3rs の剪紙拼貼ポテト</a> ― あちらは生成動画、こちらはブラウザが毎回描き直しています。
+</footer>
+</div>
+
+<script>
+(function(){
+  const SCENES=[
+    {id:"s1",dur:4.5,ja:"畑",  en:"The field",  swap:false},
+    {id:"s2",dur:5.0,ja:"切る",en:"The cut",    swap:false},
+    {id:"s3",dur:6.0,ja:"揚げる",en:"The fry",  swap:false},
+    {id:"s4",dur:4.0,ja:"塩",  en:"The salt",   swap:false},
+    {id:"s5",dur:5.0,ja:"箱",  en:"The box",    swap:false},
+    {id:"s6",dur:6.0,ja:"食え",en:"Eat",        swap:true},
+    {id:"s7",dur:4.5,ja:"完",  en:"End",        swap:false}
+  ];
+  const TOTAL=SCENES.reduce((a,s)=>a+s.dur,0);
+  const STARTS=[];SCENES.reduce((a,s,i)=>{STARTS[i]=a;return a+s.dur},0);
+
+  const NS="http://www.w3.org/2000/svg";
+  const stage=document.getElementById("stage"),
+        capsEl=document.getElementById("caps"),
+        capJa=capsEl.querySelector(".cap-ja"),
+        capEn=capsEl.querySelector(".cap-en"),
+        bar=document.getElementById("bar"),
+        nowEl=document.getElementById("now"),
+        playBtn=document.getElementById("play"),
+        track=document.getElementById("track"),
+        chapEl=document.getElementById("chapters");
+
+  // ransom-note title
+  document.querySelectorAll("[data-ransom]").forEach(el=>{
+    el.dataset.ransom.split(" ").forEach(word=>{
+      const w=document.createElement("span");w.className="word";
+      [...word].forEach(ch=>{
+        const s=document.createElement("span");
+        s.textContent=ch;
+        s.style.rotate=((Math.random()*7)-3.5).toFixed(2)+"deg";
+        w.appendChild(s);
+      });
+      el.appendChild(w);
+    });
+  });
+
+  // scattered decorative paper bits
+  const mk=(tag,attrs)=>{const n=document.createElementNS(NS,tag);
+    for(const k in attrs)n.setAttribute(k,attrs[k]);return n;};
+  const bubbles=document.getElementById("bubbles");
+  for(let i=0;i<16;i++){
+    const c=mk("circle",{cx:260+Math.random()*1080,cy:600+Math.random()*180,
+      r:8+Math.random()*22,class:"bub"});
+    c.style.animationDelay=(-Math.random()*1.6).toFixed(2)+"s";
+    bubbles.appendChild(c);
+  }
+  const salt=document.getElementById("salt");
+  for(let i=0;i<34;i++){
+    const s=mk("rect",{x:440+Math.random()*740,y:376+Math.random()*70,
+      width:11+Math.random()*10,height:11+Math.random()*10,
+      transform:"rotate("+(Math.random()*90|0)+" 0 0)"});
+    s.setAttribute("class","grain-s");
+    s.style.setProperty("--dx",((Math.random()*180)+60).toFixed(0)+"px");
+    s.style.animationDelay=(-Math.random()*1.5).toFixed(2)+"s";
+    salt.appendChild(s);
+  }
+  const crumbs=document.getElementById("crumbs");
+  for(let i=0;i<14;i++){
+    const c=mk("rect",{x:520+Math.random()*560,y:648+Math.random()*90,
+      width:10+Math.random()*18,height:8+Math.random()*10,
+      transform:"rotate("+(Math.random()*80-40|0)+" 0 0)",class:"crumb"});
+    crumbs.appendChild(c);
+  }
+
+  // chapters
+  SCENES.forEach((s,i)=>{
+    const b=document.createElement("button");
+    b.className="chap";b.type="button";
+    b.innerHTML='<em>'+String(i+1).padStart(2,"0")+'</em><b></b>';
+    b.querySelector("b").textContent=s.ja;
+    b.addEventListener("click",()=>seek(STARTS[i]+.001));
+    chapEl.appendChild(b);
+  });
+  const chapBtns=[...chapEl.children];
+
+  let t=0,last=null,playing=true,cur=-1;
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(reduce){playing=false;}
+
+  function show(i){
+    if(i===cur)return;cur=i;
+    SCENES.forEach((s,j)=>document.getElementById(s.id).classList.toggle("on",j===i));
+    capJa.textContent=SCENES[i].ja;capEn.textContent=SCENES[i].en;
+    capsEl.classList.toggle("swap",!!SCENES[i].swap);
+    chapBtns.forEach((b,j)=>b.setAttribute("aria-current",j===i?"true":"false"));
+  }
+  function sceneAt(time){
+    let i=SCENES.length-1;
+    for(let j=0;j<SCENES.length;j++){if(time<STARTS[j]+SCENES[j].dur){i=j;break}}
+    return i;
+  }
+  function paint(){
+    bar.style.width=(t/TOTAL*100).toFixed(2)+"%";
+    nowEl.textContent=t.toFixed(1).padStart(4,"0");
+    show(sceneAt(t));
+  }
+  function seek(time){
+    t=Math.max(0,Math.min(TOTAL-.01,time));
+    const i=sceneAt(t);
+    // re-trigger the scene's animations from its own head
+    cur=-1;SCENES.forEach(s=>document.getElementById(s.id).classList.remove("on"));
+    void document.getElementById(SCENES[i].id).getBoundingClientRect();
+    paint();
+  }
+  function setPlaying(p){
+    playing=p;
+    stage.classList.toggle("paused",!p);
+    playBtn.textContent=p?"一時停止 ⏸":"再生 ▶";
+  }
+  playBtn.addEventListener("click",()=>setPlaying(!playing));
+  track.addEventListener("click",e=>{
+    const r=track.getBoundingClientRect();
+    seek((e.clientX-r.left)/r.width*TOTAL);
+  });
+
+  function frame(ts){
+    if(last===null)last=ts;
+    const dt=(ts-last)/1000;last=ts;
+    if(playing){t+=dt;if(t>=TOTAL)t=0;paint();}
+    requestAnimationFrame(frame);
+  }
+  paint();setPlaying(playing);requestAnimationFrame(frame);
+})();
+</script>
