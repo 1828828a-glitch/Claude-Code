@@ -29,7 +29,7 @@ progress bar, jump with the chapter strip, and the whole thing pauses under
 
 ```sh
 pip install fonttools brotli
-python3 build.py     # subsets IPAGothic and inlines it into index.html
+python3 ../tools/build_page.py src/page.html index.html
 ```
 
 Open `index.html` directly — there's nothing to serve.
