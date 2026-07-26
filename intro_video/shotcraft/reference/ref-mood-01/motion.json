@@ -1,0 +1,606 @@
+{
+  "source": "https://x.com/Wakuwakukucx/status/2080610083004878871?s=20",
+  "duration": 13.47,
+  "frames": [
+    {
+      "index": 0,
+      "t": 0.067,
+      "file": "f000.jpg",
+      "delta": 0.0
+    },
+    {
+      "index": 1,
+      "t": 0.202,
+      "file": "f001.jpg",
+      "delta": 39.33
+    },
+    {
+      "index": 2,
+      "t": 0.336,
+      "file": "f002.jpg",
+      "delta": 40.3
+    },
+    {
+      "index": 3,
+      "t": 0.47,
+      "file": "f003.jpg",
+      "delta": 13.18
+    },
+    {
+      "index": 4,
+      "t": 0.604,
+      "file": "f004.jpg",
+      "delta": 31.54
+    },
+    {
+      "index": 5,
+      "t": 0.738,
+      "file": "f005.jpg",
+      "delta": 29.2
+    },
+    {
+      "index": 6,
+      "t": 0.872,
+      "file": "f006.jpg",
+      "delta": 8.18
+    },
+    {
+      "index": 7,
+      "t": 1.007,
+      "file": "f007.jpg",
+      "delta": 7.89
+    },
+    {
+      "index": 8,
+      "t": 1.141,
+      "file": "f008.jpg",
+      "delta": 8.91
+    },
+    {
+      "index": 9,
+      "t": 1.275,
+      "file": "f009.jpg",
+      "delta": 12.31
+    },
+    {
+      "index": 10,
+      "t": 1.409,
+      "file": "f010.jpg",
+      "delta": 12.23
+    },
+    {
+      "index": 11,
+      "t": 1.543,
+      "file": "f011.jpg",
+      "delta": 9.99
+    },
+    {
+      "index": 12,
+      "t": 1.677,
+      "file": "f012.jpg",
+      "delta": 12.54
+    },
+    {
+      "index": 13,
+      "t": 1.812,
+      "file": "f013.jpg",
+      "delta": 7.87
+    },
+    {
+      "index": 14,
+      "t": 1.946,
+      "file": "f014.jpg",
+      "delta": 5.44
+    },
+    {
+      "index": 15,
+      "t": 2.08,
+      "file": "f015.jpg",
+      "delta": 25.77
+    },
+    {
+      "index": 16,
+      "t": 2.214,
+      "file": "f016.jpg",
+      "delta": 53.28
+    },
+    {
+      "index": 17,
+      "t": 2.348,
+      "file": "f017.jpg",
+      "delta": 56.62
+    },
+    {
+      "index": 18,
+      "t": 2.482,
+      "file": "f018.jpg",
+      "delta": 1.82
+    },
+    {
+      "index": 19,
+      "t": 2.617,
+      "file": "f019.jpg",
+      "delta": 6.11
+    },
+    {
+      "index": 20,
+      "t": 2.751,
+      "file": "f020.jpg",
+      "delta": 12.5
+    },
+    {
+      "index": 21,
+      "t": 2.885,
+      "file": "f021.jpg",
+      "delta": 9.25
+    },
+    {
+      "index": 22,
+      "t": 3.019,
+      "file": "f022.jpg",
+      "delta": 2.4
+    },
+    {
+      "index": 23,
+      "t": 3.153,
+      "file": "f023.jpg",
+      "delta": 1.17
+    },
+    {
+      "index": 24,
+      "t": 3.287,
+      "file": "f024.jpg",
+      "delta": 0.83
+    },
+    {
+      "index": 25,
+      "t": 3.422,
+      "file": "f025.jpg",
+      "delta": 43.82
+    },
+    {
+      "index": 26,
+      "t": 3.556,
+      "file": "f026.jpg",
+      "delta": 46.46
+    },
+    {
+      "index": 27,
+      "t": 3.69,
+      "file": "f027.jpg",
+      "delta": 10.31
+    },
+    {
+      "index": 28,
+      "t": 3.824,
+      "file": "f028.jpg",
+      "delta": 7.34
+    },
+    {
+      "index": 29,
+      "t": 3.958,
+      "file": "f029.jpg",
+      "delta": 3.06
+    },
+    {
+      "index": 30,
+      "t": 4.092,
+      "file": "f030.jpg",
+      "delta": 1.03
+    },
+    {
+      "index": 31,
+      "t": 4.227,
+      "file": "f031.jpg",
+      "delta": 1.2
+    },
+    {
+      "index": 32,
+      "t": 4.361,
+      "file": "f032.jpg",
+      "delta": 1.48
+    },
+    {
+      "index": 33,
+      "t": 4.495,
+      "file": "f033.jpg",
+      "delta": 1.7
+    },
+    {
+      "index": 34,
+      "t": 4.629,
+      "file": "f034.jpg",
+      "delta": 1.91
+    },
+    {
+      "index": 35,
+      "t": 4.763,
+      "file": "f035.jpg",
+      "delta": 1.63
+    },
+    {
+      "index": 36,
+      "t": 4.897,
+      "file": "f036.jpg",
+      "delta": 1.44
+    },
+    {
+      "index": 37,
+      "t": 5.032,
+      "file": "f037.jpg",
+      "delta": 1.14
+    },
+    {
+      "index": 38,
+      "t": 5.166,
+      "file": "f038.jpg",
+      "delta": 1.45
+    },
+    {
+      "index": 39,
+      "t": 5.3,
+      "file": "f039.jpg",
+      "delta": 1.7
+    },
+    {
+      "index": 40,
+      "t": 5.434,
+      "file": "f040.jpg",
+      "delta": 0.38
+    },
+    {
+      "index": 41,
+      "t": 5.568,
+      "file": "f041.jpg",
+      "delta": 0.43
+    },
+    {
+      "index": 42,
+      "t": 5.702,
+      "file": "f042.jpg",
+      "delta": 133.57
+    },
+    {
+      "index": 43,
+      "t": 5.837,
+      "file": "f043.jpg",
+      "delta": 7.19
+    },
+    {
+      "index": 44,
+      "t": 5.971,
+      "file": "f044.jpg",
+      "delta": 6.65
+    },
+    {
+      "index": 45,
+      "t": 6.105,
+      "file": "f045.jpg",
+      "delta": 4.66
+    },
+    {
+      "index": 46,
+      "t": 6.239,
+      "file": "f046.jpg",
+      "delta": 2.94
+    },
+    {
+      "index": 47,
+      "t": 6.373,
+      "file": "f047.jpg",
+      "delta": 3.97
+    },
+    {
+      "index": 48,
+      "t": 6.507,
+      "file": "f048.jpg",
+      "delta": 4.34
+    },
+    {
+      "index": 49,
+      "t": 6.642,
+      "file": "f049.jpg",
+      "delta": 4.64
+    },
+    {
+      "index": 50,
+      "t": 6.776,
+      "file": "f050.jpg",
+      "delta": 4.23
+    },
+    {
+      "index": 51,
+      "t": 6.91,
+      "file": "f051.jpg",
+      "delta": 11.03
+    },
+    {
+      "index": 52,
+      "t": 7.044,
+      "file": "f052.jpg",
+      "delta": 16.88
+    },
+    {
+      "index": 53,
+      "t": 7.178,
+      "file": "f053.jpg",
+      "delta": 5.54
+    },
+    {
+      "index": 54,
+      "t": 7.312,
+      "file": "f054.jpg",
+      "delta": 5.05
+    },
+    {
+      "index": 55,
+      "t": 7.447,
+      "file": "f055.jpg",
+      "delta": 5.29
+    },
+    {
+      "index": 56,
+      "t": 7.581,
+      "file": "f056.jpg",
+      "delta": 4.28
+    },
+    {
+      "index": 57,
+      "t": 7.715,
+      "file": "f057.jpg",
+      "delta": 3.6
+    },
+    {
+      "index": 58,
+      "t": 7.849,
+      "file": "f058.jpg",
+      "delta": 2.72
+    },
+    {
+      "index": 59,
+      "t": 7.983,
+      "file": "f059.jpg",
+      "delta": 1.69
+    },
+    {
+      "index": 60,
+      "t": 8.117,
+      "file": "f060.jpg",
+      "delta": 6.16
+    },
+    {
+      "index": 61,
+      "t": 8.252,
+      "file": "f061.jpg",
+      "delta": 59.08
+    },
+    {
+      "index": 62,
+      "t": 8.386,
+      "file": "f062.jpg",
+      "delta": 56.55
+    },
+    {
+      "index": 63,
+      "t": 8.52,
+      "file": "f063.jpg",
+      "delta": 6.09
+    },
+    {
+      "index": 64,
+      "t": 8.654,
+      "file": "f064.jpg",
+      "delta": 2.14
+    },
+    {
+      "index": 65,
+      "t": 8.788,
+      "file": "f065.jpg",
+      "delta": 3.97
+    },
+    {
+      "index": 66,
+      "t": 8.922,
+      "file": "f066.jpg",
+      "delta": 2.43
+    },
+    {
+      "index": 67,
+      "t": 9.057,
+      "file": "f067.jpg",
+      "delta": 1.73
+    },
+    {
+      "index": 68,
+      "t": 9.191,
+      "file": "f068.jpg",
+      "delta": 1.29
+    },
+    {
+      "index": 69,
+      "t": 9.325,
+      "file": "f069.jpg",
+      "delta": 40.24
+    },
+    {
+      "index": 70,
+      "t": 9.459,
+      "file": "f070.jpg",
+      "delta": 39.62
+    },
+    {
+      "index": 71,
+      "t": 9.593,
+      "file": "f071.jpg",
+      "delta": 1.24
+    },
+    {
+      "index": 72,
+      "t": 9.727,
+      "file": "f072.jpg",
+      "delta": 0.98
+    },
+    {
+      "index": 73,
+      "t": 9.862,
+      "file": "f073.jpg",
+      "delta": 1.55
+    },
+    {
+      "index": 74,
+      "t": 9.996,
+      "file": "f074.jpg",
+      "delta": 0.52
+    },
+    {
+      "index": 75,
+      "t": 10.13,
+      "file": "f075.jpg",
+      "delta": 0.33
+    },
+    {
+      "index": 76,
+      "t": 10.264,
+      "file": "f076.jpg",
+      "delta": 12.36
+    },
+    {
+      "index": 77,
+      "t": 10.398,
+      "file": "f077.jpg",
+      "delta": 4.62
+    },
+    {
+      "index": 78,
+      "t": 10.532,
+      "file": "f078.jpg",
+      "delta": 0.46
+    },
+    {
+      "index": 79,
+      "t": 10.667,
+      "file": "f079.jpg",
+      "delta": 1.71
+    },
+    {
+      "index": 80,
+      "t": 10.801,
+      "file": "f080.jpg",
+      "delta": 1.27
+    },
+    {
+      "index": 81,
+      "t": 10.935,
+      "file": "f081.jpg",
+      "delta": 0.68
+    },
+    {
+      "index": 82,
+      "t": 11.069,
+      "file": "f082.jpg",
+      "delta": 0.72
+    },
+    {
+      "index": 83,
+      "t": 11.203,
+      "file": "f083.jpg",
+      "delta": 0.84
+    },
+    {
+      "index": 84,
+      "t": 11.337,
+      "file": "f084.jpg",
+      "delta": 0.76
+    },
+    {
+      "index": 85,
+      "t": 11.472,
+      "file": "f085.jpg",
+      "delta": 0.9
+    },
+    {
+      "index": 86,
+      "t": 11.606,
+      "file": "f086.jpg",
+      "delta": 0.85
+    },
+    {
+      "index": 87,
+      "t": 11.74,
+      "file": "f087.jpg",
+      "delta": 0.79
+    },
+    {
+      "index": 88,
+      "t": 11.874,
+      "file": "f088.jpg",
+      "delta": 0.64
+    },
+    {
+      "index": 89,
+      "t": 12.008,
+      "file": "f089.jpg",
+      "delta": 0.67
+    },
+    {
+      "index": 90,
+      "t": 12.142,
+      "file": "f090.jpg",
+      "delta": 0.5
+    },
+    {
+      "index": 91,
+      "t": 12.277,
+      "file": "f091.jpg",
+      "delta": 1.64
+    },
+    {
+      "index": 92,
+      "t": 12.411,
+      "file": "f092.jpg",
+      "delta": 3.31
+    },
+    {
+      "index": 93,
+      "t": 12.545,
+      "file": "f093.jpg",
+      "delta": 2.59
+    },
+    {
+      "index": 94,
+      "t": 12.679,
+      "file": "f094.jpg",
+      "delta": 1.36
+    },
+    {
+      "index": 95,
+      "t": 12.813,
+      "file": "f095.jpg",
+      "delta": 0.69
+    },
+    {
+      "index": 96,
+      "t": 12.947,
+      "file": "f096.jpg",
+      "delta": 0.63
+    },
+    {
+      "index": 97,
+      "t": 13.082,
+      "file": "f097.jpg",
+      "delta": 0.59
+    },
+    {
+      "index": 98,
+      "t": 13.216,
+      "file": "f098.jpg",
+      "delta": 2.43
+    },
+    {
+      "index": 99,
+      "t": 13.35,
+      "file": "f099.jpg",
+      "delta": 3.35
+    }
+  ]
+}
