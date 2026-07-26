@@ -2,7 +2,7 @@ __pycache__/
 *.pyc
 
 # tycoon: 実データと監査ログ。顧客情報が入るのでコミットしない。
+# business.yaml は設定だけなのでコミットする（実顧客名は書かないこと）。
 tycoon_data.json
 tycoon_data.json.tmp
 tycoon_audit.jsonl
-tycoon/business.yaml

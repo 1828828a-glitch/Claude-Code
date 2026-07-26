@@ -198,9 +198,12 @@ def cmd_audit(args, business: Business, store: Store, audit: AuditLog) -> int:
 def cmd_seed(args, business: Business, store: Store, audit: AuditLog) -> int:
     from .seed import seed
 
-    count = seed(store)
+    count = seed(store, business)
     if count == 0:
-        print("すでに案件があるので何もしませんでした。")
+        print(
+            "何も入れませんでした。"
+            "（すでに案件があるか、business.yaml に sample_data がありません）"
+        )
     else:
         print(f"サンプル案件を {count} 件入れました。`python -m tycoon jobs` で確認できます。")
     return 0

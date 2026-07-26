@@ -116,6 +116,10 @@ def summarize(proposal: dict, business: Business) -> str:
             head += f" — 件名: {payload['subject']}"
         body = payload["body"]
         detail = body if len(body) <= 600 else body[:600] + "…"
+    elif kind == "save_draft":
+        body = payload["body"]
+        head = f"原稿を保存（{payload.get('label', 'draft')} / {len(body):,}字）"
+        detail = body if len(body) <= 1200 else body[:1200] + "\n…（以下略）"
     elif kind == "advance_stage":
         stage = business.stage(payload["to_stage"])
         label = stage.label if stage else payload["to_stage"]

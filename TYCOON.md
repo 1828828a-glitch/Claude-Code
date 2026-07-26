@@ -19,8 +19,8 @@
 
 | | 承認 | 例 |
 |---|---|---|
-| **読み取り系** | 不要（副作用がない） | `list_jobs` `get_job` `search_jobs` |
-| **書き込み系** | **必要** | `draft_customer_message` `advance_job_stage` `create_followup_task` |
+| **読み取り系** | 不要（副作用がない） | `list_jobs` `get_job` `search_jobs` `list_open_tasks` |
+| **書き込み系** | **必要** | `draft_customer_message` `draft_content` `advance_job_stage` `create_followup_task` `update_job_fields` `add_job_note` |
 
 **承認ゲートはエージェントループの外側ではなく、ツールの内側にあります。**
 書き込み系ツールは呼ばれても何も実行せず、提案を承認キューに積んで
@@ -41,15 +41,26 @@ AI社員 ──→ 書き込み系ツール ──→ 提案キュー ──→ 
 
 ## 業種非依存
 
-業種に依存するもの（パイプラインの段階、案件が持つ項目、AI社員の役割と指示）は
-すべて `tycoon/business.yaml` に集約してあります。コードには一切入っていません。
+業種に依存するもの（パイプラインの段階、案件が持つ項目、AI社員の役割と指示、
+動作確認用のサンプルデータ）はすべて YAML に集約してあります。
+コードには一切入っていません。**差し替えるのはYAML一枚だけ**です。
 
-屋根工事会社でも士業でも受託開発でも、**差し替えるのはこのYAML一枚だけ**です。
+| ファイル | 中身 |
+|---|---|
+| `business.yaml` | **性格タイプ論のコンテンツ発信**（リポジトリの痕跡から推測したもの。既定で使われる） |
+| `business.typing-sessions.yaml` | タイプ診断セッションの提供（副線として読んだほう） |
+| `business.example.yaml` | 汎用の案件型受託業。ゼロから書き起こすときの雛形 |
 
 ```bash
-cp tycoon/business.example.yaml tycoon/business.yaml
-# TODO コメントを自分の仕事に合わせて埋める
+# 別の定義で試す
+python -m tycoon --business tycoon/business.typing-sessions.yaml jobs
+
+# ゼロから書く
+cp tycoon/business.example.yaml tycoon/business.yaml   # TODO を埋める
 ```
+
+`business.yaml` がどうやって書かれたかは、ファイル冒頭のコメントに根拠込みで書いてあります。
+外れている箇所は直接書き換えてください。
 
 ## 使う
 
@@ -61,7 +72,7 @@ python -m tycoon seed                            # サンプルデータ
 python -m tycoon jobs                            # 案件一覧
 python -m tycoon agents                          # AI社員一覧
 
-python -m tycoon run wilem "今日の取りこぼしを洗い出して"
+python -m tycoon run mikage "止まっている記事を洗い出して"
 python -m tycoon queue                           # 承認待ちを見る
 python -m tycoon approve prop_xxxx               # 承認 → ここで初めて実行される
 python -m tycoon reject prop_xxxx -m "まだ早い"   # 却下 → 何も起きない
@@ -94,14 +105,16 @@ APIキーなしで走ります。検証しているのは「AIが賢いか」で
 **「AIが暴走しても実データが動かないか」**です。
 
 ```bash
-python tests/test_agent_loop.py     # 8/8 passed
+python tests/test_agent_loop.py     # 10/10 passed
 ```
 
-- 書き込み系ツールを呼んでも承認前は実データ不変
+- 書き込み系ツールを呼んでも承認前は実データ不変（顧客連絡も記事原稿も）
 - 承認したときだけ変わり、全過程が監査に残る
 - 二重承認は弾く
 - 存在しない段階への移動（＝幻覚）は承認しても弾かれ、提案は保留のまま残る
-- ツールスコープの強制（ウィレムには顧客へ連絡する手段が渡っていない）
+- ツールスコープの強制（監視役には顧客へ連絡する手段が渡っていない）
+- 同梱の `business*.yaml` が全部読め、seed が通り、全AI社員を組み立てられる
+  （業種を差し替えたときに壊れる箇所は、たいていここで先に落ちる）
 
 ## いまの状態と、次
 
@@ -130,14 +143,14 @@ python tests/test_agent_loop.py     # 8/8 passed
 
 ```
 tycoon/
-  domain.py               事業定義。業種依存はすべてここに集約
-  business.example.yaml   ← 自分の仕事に書き換えるのはこれだけ
+  domain.py               事業定義の読み込みと検証
+  business.yaml           ← 自分の仕事に書き換えるのはこれだけ
   store.py                実データ（JSON一枚）
   audit.py                監査ログ
   tools.py                AI社員の道具。承認ゲートはこの中
   agents.py               AI社員を1人動かす
   approvals.py            承認キュー
   cli.py                  コマンドライン
-  seed.py                 サンプルデータ
+  seed.py                 sample_data を実データとして流し込む
 tests/test_agent_loop.py  承認ループの検証（APIキー不要）
 ```

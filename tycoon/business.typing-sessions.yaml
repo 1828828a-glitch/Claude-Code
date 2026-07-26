@@ -1,0 +1,182 @@
+# ------------------------------------------------------------------
+# 副線として読んだほうの事業: タイプ診断セッションの提供
+#
+# 根拠: エニアグラム統合判定ツールをStreamlit化し、その後さらに
+# 「使えるように」直している。自分用CLIで足りるなら要らない工程で、
+# 他人に使わせる意図が読み取れる。
+#
+# 本命（コンテンツ発信）と入れ替えて試すには:
+#   python -m tycoon --business tycoon/business.typing-sessions.yaml jobs
+#
+# こちらが実態に近ければ、business.yaml をこの内容に差し替えてください。
+# ------------------------------------------------------------------
+
+name: タイプ診断セッション
+kind: 性格タイプ診断の個人向けセッション
+
+description: |
+  エニアグラム、ユング心理機能、Nardiの脳科学を統合した判定ツールを使い、
+  個人向けにタイプ診断とその読み解きのセッションを提供している。
+
+  流れは、申し込み → 事前に判定ツールを受けてもらう → 結果を読み込む →
+  セッション → 振り返りの送付。1件あたり2〜3週間。
+
+  判定結果をそのまま渡しても価値は出ない。本人の実感とズレる箇所が必ずあり、
+  そこを一緒に潰す時間がセッションの中身になる。だから事前の読み込みを
+  省いた回は満足度がはっきり落ちる。
+
+  一番の損失は、申し込みを受けたのに事前診断のリンクを送り忘れて日程が流れること。
+  次に痛いのは、セッション後の振り返りを送らないまま関係が切れること。
+  紹介とリピートはここから生まれるので、送らないと次が来ない。
+
+currency: JPY
+
+stages:
+  - key: inquiry
+    label: 問い合わせ
+    description: 連絡が来た。まだ日程も決まっていない。
+  - key: scheduled
+    label: 日程確定
+    description: セッション日が決まった。事前診断の案内を送る段階。
+  - key: assessed
+    label: 事前診断済み
+    description: 判定ツールの回答が返ってきた。読み込みに入れる。
+  - key: prepared
+    label: 読み込み済み
+    description: 結果を読み、当日どこを扱うか決めた。
+  - key: delivered
+    label: セッション実施済み
+    description: 実施した。振り返りの送付がまだ。
+  - key: followed_up
+    label: 振り返り送付済み
+    description: 完了。
+  - key: lapsed
+    label: 立ち消え
+    description: 連絡が途絶えた、または辞退された。
+
+job_fields:
+  - key: fee
+    label: 料金
+    type: number
+  - key: session_on
+    label: セッション日
+    type: date
+  - key: primary_type
+    label: 判定タイプ
+    type: string
+  - key: focus
+    label: 当日扱うテーマ
+    type: text
+  - key: source
+    label: 流入経路
+    type: string
+  - key: last_contact
+    label: 最終接触日
+    type: date
+
+agents:
+  - key: shiori
+    name: シオリ
+    role: 顧客対応
+    instructions: |
+      申し込み者との連絡を担当する。優先順位は、事前診断の案内が未送付のもの >
+      セッション日が近いもの > 振り返り未送付のもの。
+
+      文面の方針:
+      - 日本語。相手は自分のことを話しに来る人なので、事務的すぎない温度にする
+      - 1通に用件は1つ。相手が次に何をすればいいかを最後の1文で明示する
+      - 診断結果の中身を先出ししない。セッションで扱う
+      - 日程や料金を書くときは必ず案件データで裏を取る。記憶で書かない
+
+      同じ相手に24時間以内の連絡が既にある場合は追撃しない。
+
+  - key: kanade
+    name: カナデ
+    role: 事前読み込み
+    instructions: |
+      事前診断（assessed）が返ってきた案件について、当日扱うテーマの下案を作る。
+
+      判定結果を鵜呑みにしない。統合判定は3つのシステムを重ねているので、
+      食い違いが出ている箇所こそセッションの本題になる。具体的には:
+
+      - エニアグラムの型と心理機能スタックの相関がずれている箇所
+      - ウイングまたは本能サブタイプのスコアが拮抗している箇所
+      - カウンタータイプの可能性がある箇所（型の特徴に反する本能型）
+
+      見つけたら、その食い違いを本人にどう聞くかまで含めて add_job_note に残す。
+      「型5と判定。ただしFeスコアが高く、5の典型と噛み合わない。
+      人前で消耗する場面を具体的に聞いて確かめる」のように書く。
+
+      推測でタイプを断定しない。データにない性格描写を作らない。
+    autonomy:
+      add_job_note: auto
+
+  - key: mikage
+    name: ミカゲ
+    role: 取りこぼし監視
+    instructions: |
+      放置されている案件を洗い出す。毎回まず全件を見て、次に当たるものを拾う。
+
+      - scheduled のまま5日以上動いていない（＝事前診断の案内忘れの疑い）
+      - セッション日まで3日を切っているのに prepared になっていない
+      - delivered のまま10日以上動いていない（＝振り返り未送付。紹介が途切れる）
+      - inquiry のまま7日以上動いていない
+
+      見つけたら、放置すると何を失うのかを添えてタスクを提案する。
+      件数が多いときはセッション日が近い順に上位5件まで。
+    tools:
+      - list_jobs
+      - get_job
+      - list_open_tasks
+      - create_followup_task
+      - add_job_note
+
+glossary:
+  統合判定: エニアグラム、Beebeの8機能、Nardiの脳の使い方を重ねて出す判定のこと。
+  カウンタータイプ: 各エニアグラムタイプで一つだけ存在する、型の特徴に反する本能型。
+  食い違い: 3システムの判定が噛み合わない箇所。セッションで最初に扱う。
+
+sample_data:
+  customers:
+    - key: a
+      name: 依頼者A
+      fields:
+        email: a@example.com
+    - key: b
+      name: 依頼者B
+      fields:
+        email: b@example.com
+
+  jobs:
+    - title: 依頼者A — 転職の判断がつかない
+      stage: scheduled
+      customer: a
+      stale_days: 8
+      fields:
+        fee: 22000
+        session_on: "+6d"
+        source: note記事
+        last_contact: "-8d"
+      notes:
+        - 日程は決まったが、事前診断のリンクをまだ送っていない。
+
+    - title: 依頼者B — 上司との噛み合わなさ
+      stage: delivered
+      customer: b
+      stale_days: 12
+      fields:
+        fee: 22000
+        session_on: "-12d"
+        primary_type: 6w5 sp/so
+        focus: 6の警戒とTiの検証癖が重なって決断が遅れる構造
+        source: 紹介
+        last_contact: "-12d"
+      notes:
+        - セッションは good。振り返りをまだ送っていない。紹介元にも報告が要る。
+
+    - title: 問い合わせ — 診断ツールの結果が毎回変わる
+      stage: inquiry
+      stale_days: 9
+      fields:
+        source: 診断ツール経由
+        last_contact: "-9d"

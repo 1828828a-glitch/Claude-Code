@@ -23,7 +23,9 @@ from tycoon.domain import load_business
 from tycoon.store import Store
 from tycoon.tools import ALL_TOOLS, build_tools
 
-BUSINESS_YAML = Path(__file__).parent.parent / "tycoon" / "business.example.yaml"
+TYCOON_DIR = Path(__file__).parent.parent / "tycoon"
+BUSINESS_YAML = TYCOON_DIR / "business.example.yaml"
+ALL_BUSINESS_YAMLS = sorted(TYCOON_DIR.glob("business*.yaml"))
 
 
 def _fixture(tmp: Path):
@@ -198,6 +200,90 @@ def test_agent_tool_scope_is_enforced():
         tools = _tools_for(business, store, audit, "wilem")
         assert "draft_customer_message" not in tools
         assert "create_followup_task" in tools
+
+
+def test_every_business_definition_is_usable():
+    """同梱の business*.yaml がすべて読め、seed が通り、AI社員を組み立てられること。
+
+    業種を差し替えたときに壊れる箇所は、たいていここで先に落ちる。
+    """
+    assert ALL_BUSINESS_YAMLS, "business*.yaml が1つも見つからない"
+
+    for yaml_path in ALL_BUSINESS_YAMLS:
+        business = load_business(yaml_path)
+        label = yaml_path.name
+
+        with tempfile.TemporaryDirectory() as d:
+            store = Store(Path(d) / "data.json")
+            audit = AuditLog(Path(d) / "audit.jsonl")
+
+            from tycoon.seed import seed
+
+            count = seed(store, business)
+            assert count > 0, f"{label}: sample_data からサンプルが入らなかった"
+
+            # サンプルの段階がすべて実在すること（seed 側でも検証しているが念のため）
+            for job in store.jobs():
+                assert business.stage(job["stage"]) is not None, f"{label}: {job['stage']}"
+
+            # サンプルが使う項目が job_fields に定義されていること
+            defined = {f.key for f in business.job_fields}
+            for job in store.jobs():
+                unknown = set(job["fields"]) - defined
+                assert not unknown, f"{label}: 未定義の項目 {unknown} を sample_data が使っている"
+
+            # 全AI社員がツールを組み立てられ、system prompt が作れること
+            from tycoon.agents import build_system_prompt
+
+            assert business.agents, f"{label}: AI社員がいない"
+            for agent in business.agents:
+                tools = build_tools(
+                    store=store,
+                    business=business,
+                    agent=agent,
+                    run_id="run_check",
+                    audit=audit,
+                )
+                assert tools, f"{label}/{agent.key}: ツールが空"
+                prompt = build_system_prompt(business, agent)
+                assert business.name in prompt
+                assert agent.name in prompt
+
+
+def test_content_draft_flows_through_approval():
+    """記事の下書きも、顧客連絡と同じく承認するまで保存されない。"""
+    with tempfile.TemporaryDirectory() as d:
+        business = load_business(TYCOON_DIR / "business.yaml")
+        store = Store(Path(d) / "data.json")
+        audit = AuditLog(Path(d) / "audit.jsonl")
+        job = store.add_job("テスト記事", stage=business.first_stage.key)
+        store.save()
+
+        writer = next(a for a in business.agents if "draft_content" not in a.autonomy)
+        tools = {
+            t.name: t
+            for t in build_tools(
+                store=store, business=business, agent=writer, run_id="run_x", audit=audit
+            )
+        }
+        assert "draft_content" in tools
+
+        tools["draft_content"].call(
+            {
+                "job_id": job["id"],
+                "body": "本文がここに入る。",
+                "reason": "構成どおりに下書きした",
+                "label": "draft",
+            }
+        )
+        assert store.job(job["id"]).get("drafts") in (None, [])
+
+        proposal = store.proposals("pending")[0]
+        assert "原稿を保存" in approvals.summarize(proposal, business)
+
+        approvals.approve(store, business, audit, proposal["id"])
+        drafts = Store(store.path).job(job["id"])["drafts"]
+        assert len(drafts) == 1 and drafts[0]["label"] == "draft"
 
 
 def main() -> int:

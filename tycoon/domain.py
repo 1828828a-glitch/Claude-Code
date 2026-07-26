@@ -85,6 +85,8 @@ class Business:
     job_fields: list[FieldSpec]
     agents: list[AgentSpec]
     glossary: dict[str, str] = field(default_factory=dict)
+    # 動作確認用のサンプル。実データを入れたら消してよい。
+    sample_data: dict[str, Any] = field(default_factory=dict)
 
     # ---- 参照ヘルパ ----
 
@@ -197,4 +199,5 @@ def load_business(path: str | Path) -> Business:
         job_fields=job_fields,
         agents=agents,
         glossary=dict(raw.get("glossary", {})),
+        sample_data=dict(raw.get("sample_data", {})),
     )

@@ -146,3 +146,88 @@ agents:
 glossary:
   取りこぼし: 対応可能だったのに連絡が途絶えて失注した案件のこと。
   滞留: ある段階に想定より長く留まっている状態。
+
+# ------------------------------------------------------------------
+# `python -m tycoon seed` で入るサンプル。実データを入れたら丸ごと消す。
+# 日付は相対指定（+21d = 21日後、-13d = 13日前）が使えます。
+# わざと「放置された案件」を混ぜてあります。AI社員が拾えるか試すため。
+# ------------------------------------------------------------------
+sample_data:
+  customers:
+    - key: tanaka
+      name: 田中製作所
+      fields:
+        email: tanaka@example.co.jp
+        type: 法人
+    - key: hirano
+      name: 平野 さくら
+      fields:
+        email: hirano@example.com
+        type: 個人
+    - key: lopez
+      name: 株式会社ロペス商会
+      fields:
+        email: info@lopez.example.jp
+        type: 法人
+
+  jobs:
+    # 見積を出して13日放置。取りこぼし予備軍。
+    - title: 田中製作所 — 設備更新の設計
+      stage: estimate_sent
+      customer: tanaka
+      stale_days: 13
+      fields:
+        amount: 1870000
+        due_date: "+21d"
+        source: 紹介
+        scope: 既存設備の実測、図面作成、施工業者への引き継ぎまで
+        last_contact: "-13d"
+      communications:
+        - direction: out
+          channel: email
+          subject: お見積のご送付
+          body: お世話になっております。ご依頼いただいた件のお見積を添付いたします。
+          days_ago: 13
+
+    # 納品済みだが請求していない。静かに売上が消えるタイプ。
+    - title: 平野様 — 内装リニューアル
+      stage: delivered
+      customer: hirano
+      stale_days: 19
+      fields:
+        amount: 623000
+        due_date: "-20d"
+        source: Web問い合わせ
+        scope: 1階フロアの内装一式
+        last_contact: "-19d"
+      notes:
+        - 現地で最終確認、先方OK。請求はまた今度。
+
+    # 納期が迫っているのに着手前。
+    - title: ロペス商会 — 什器製作
+      stage: won
+      customer: lopez
+      fields:
+        amount: 2400000
+        due_date: "+5d"
+        source: 展示会
+        scope: 店舗什器 12点の製作と搬入
+        last_contact: "-4d"
+
+    # 正常に動いている案件。ノイズとして混ぜる。
+    - title: 田中製作所 — 定期メンテナンス
+      stage: in_progress
+      customer: tanaka
+      fields:
+        amount: 180000
+        due_date: "+10d"
+        source: 既存顧客
+        scope: 四半期点検
+        last_contact: "-1d"
+
+    - title: 問い合わせ — 事務所移転の相談
+      stage: lead
+      fields:
+        source: Web問い合わせ
+        scope: 未確認
+        last_contact: "-2d"

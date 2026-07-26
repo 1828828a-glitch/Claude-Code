@@ -24,6 +24,7 @@ from .store import Store, now
 # 書き込み系ツール名 → 効果の種類
 WRITE_TOOLS = {
     "draft_customer_message": "send_message",
+    "draft_content": "save_draft",
     "advance_job_stage": "advance_stage",
     "create_followup_task": "create_task",
     "update_job_fields": "update_job",
@@ -61,6 +62,20 @@ def apply_effect(
         )
         store.touch_job(job)
         return f"{job['title']} の顧客に {payload.get('channel', 'email')} を送信しました"
+
+    if kind == "save_draft":
+        job = _require_job(store, payload["job_id"])
+        job.setdefault("drafts", []).append(
+            {
+                "at": now(),
+                "by": actor,
+                "label": payload.get("label", "draft"),
+                "body": payload["body"],
+            }
+        )
+        store.touch_job(job)
+        chars = len(payload["body"])
+        return f"{job['title']} に原稿を保存しました（{chars:,}字, {payload.get('label', 'draft')}）"
 
     if kind == "advance_stage":
         job = _require_job(store, payload["job_id"])
@@ -282,6 +297,26 @@ def build_tools(
         )
 
     @beta_tool
+    def draft_content(job_id: str, body: str, reason: str, label: str = "draft") -> str:
+        """記事や原稿の本文を書き、人間の承認に回す。
+
+        そのまま公開できる状態で書くこと。見出しの穴埋めや「※ここに事例」のような
+        プレースホルダを残さない。書けない箇所があるなら body には含めず reason で報告する。
+
+        Args:
+            job_id: 対象の案件ID。
+            body: 原稿の本文そのもの。
+            reason: 何を狙ってこう書いたか。承認する人間が読む。
+            label: 原稿の段階。outline / draft / revised など。
+        """
+        return gate(
+            "draft_content",
+            "save_draft",
+            {"job_id": job_id, "body": body, "label": label},
+            reason,
+        )
+
+    @beta_tool
     def advance_job_stage(job_id: str, to_stage: str, reason: str) -> str:
         """案件をパイプラインの別の段階へ動かす。
 
@@ -358,6 +393,7 @@ def build_tools(
         "search_jobs": search_jobs,
         "list_open_tasks": list_open_tasks,
         "draft_customer_message": draft_customer_message,
+        "draft_content": draft_content,
         "advance_job_stage": advance_job_stage,
         "create_followup_task": create_followup_task,
         "update_job_fields": update_job_fields,
