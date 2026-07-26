@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+
+# HyperFrames プロジェクトのローカル成果物
+node_modules/
+renders/
+out/
