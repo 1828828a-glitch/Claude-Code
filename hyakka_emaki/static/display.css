@@ -1,0 +1,96 @@
+:root {
+  --sumi: #2b2826;
+  --washi: #efe7d5;
+  --enji: #b03f4f;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #e9e0cc;
+  color: var(--sumi);
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  cursor: none;
+}
+
+#garden {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* 隅に立てた案内の高札 */
+.plaque {
+  position: fixed;
+  right: 2.2vmin;
+  bottom: 2.2vmin;
+  width: 21vmin;
+  min-width: 168px;
+  padding: 1.8vmin 1.4vmin 1.4vmin;
+  text-align: center;
+  background: linear-gradient(#f6efdd, #e8dcc2);
+  border: 1px solid rgba(43, 40, 38, 0.35);
+  border-radius: 2px;
+  box-shadow: 0 1.2vmin 3vmin rgba(60, 45, 30, 0.22);
+}
+
+.plaque::before {
+  content: "";
+  position: absolute;
+  inset: 0.5vmin;
+  border: 1px solid rgba(43, 40, 38, 0.18);
+  pointer-events: none;
+}
+
+.plaque__title {
+  font-size: 1.85vmin;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+  white-space: nowrap;
+  margin-bottom: 1.1vmin;
+}
+
+.plaque__qr img {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  background: #fff;
+  padding: 0.5vmin;
+}
+
+.plaque__lead {
+  margin-top: 1vmin;
+  font-size: 1.25vmin;
+  line-height: 1.7;
+  opacity: 0.78;
+}
+
+.plaque__count {
+  margin-top: 0.9vmin;
+  padding-top: 0.8vmin;
+  border-top: 1px solid rgba(43, 40, 38, 0.2);
+  font-size: 1.3vmin;
+  letter-spacing: 0.12em;
+  color: var(--enji);
+}
+
+.offline {
+  position: fixed;
+  left: 2.2vmin;
+  bottom: 2.2vmin;
+  padding: 0.8vmin 1.4vmin;
+  font-size: 1.4vmin;
+  letter-spacing: 0.1em;
+  color: var(--washi);
+  background: rgba(43, 40, 38, 0.78);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+
+.offline.is-shown { opacity: 1; }

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>百花繚乱絵巻</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/display.css">
+</head>
+<body>
+<canvas id="garden"></canvas>
+
+<div class="plaque">
+  <div class="plaque__title">百花繚乱絵巻</div>
+  <div class="plaque__qr"><img id="qr" src="/api/qr.png" alt="参加用QRコード"></div>
+  <div class="plaque__lead">スマホで草花を描くと<br>この庭に芽吹きます</div>
+  <div class="plaque__count"><span id="count">0</span> 株</div>
+</div>
+
+<div class="offline" id="offline">庭とつながっていません…</div>
+
+<script src="/static/display.js"></script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#efe7d5">
+<title>百花繚乱絵巻 — 草花を植える</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/mobile.css">
+</head>
+<body>
+
+<header class="head">
+  <h1 class="head__title">百花繚乱絵巻</h1>
+  <p class="head__lead">草花を一株、大画面の庭に植えられます</p>
+</header>
+
+<main class="sheet">
+
+  <div class="tabs" role="tablist">
+    <button class="tabs__item is-on" data-mode="paint" type="button">描く</button>
+    <button class="tabs__item" data-mode="photo" type="button">写真から</button>
+  </div>
+
+  <section class="pane" id="pane-paint">
+    <div class="board">
+      <canvas id="board" width="640" height="854"></canvas>
+      <p class="board__hint" id="hint">ここに草花を描いてください</p>
+    </div>
+
+    <div class="palette" id="palette"></div>
+
+    <div class="tools">
+      <div class="widths" id="widths"></div>
+      <button class="tool" id="eraser" type="button">消しゴム</button>
+      <button class="tool" id="undo" type="button">戻す</button>
+      <button class="tool" id="clear" type="button">全部消す</button>
+    </div>
+  </section>
+
+  <section class="pane is-hidden" id="pane-photo">
+    <label class="pick" for="file">
+      <span class="pick__mark">＋</span>
+      <span class="pick__text">写真を撮る／選ぶ</span>
+      <input id="file" type="file" accept="image/*" hidden>
+    </label>
+    <div class="preview is-empty" id="preview"><img id="preview-img" alt=""></div>
+    <label class="switch">
+      <input type="checkbox" id="cutout" checked>
+      <span>背景を切り抜く（無地の背景でよく効きます）</span>
+    </label>
+  </section>
+
+  <div class="fields">
+    <label class="field">
+      <span class="field__name">植物名</span>
+      <input id="name" type="text" maxlength="24" placeholder="例：ゆうやけ草" autocomplete="off">
+    </label>
+    <label class="field">
+      <span class="field__name">どんな草花ですか</span>
+      <textarea id="description" maxlength="120" rows="3" placeholder="例：夕方になると花びらが橙にかわる。潮風に強い。"></textarea>
+    </label>
+  </div>
+
+  <button class="send" id="send" type="button">庭に植える</button>
+  <p class="note" id="note"></p>
+
+</main>
+
+<div class="done" id="done">
+  <div class="done__card">
+    <div class="done__mark">芽</div>
+    <p class="done__name" id="done-name"></p>
+    <p class="done__label" id="done-label"></p>
+    <p class="done__lead">大画面の庭をご覧ください</p>
+    <button class="done__again" id="again" type="button">もう一株 植える</button>
+  </div>
+</div>
+
+<script src="/static/mobile.js"></script>
+</body>
+</html>

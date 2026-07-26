@@ -1,0 +1,9 @@
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pillow>=10.0
+numpy>=1.24
+qrcode>=7.4
+python-multipart>=0.0.9
+
+# 立札の文章を Claude に書かせる場合のみ必要（ANTHROPIC_API_KEY を設定したとき）
+# anthropic>=0.69
