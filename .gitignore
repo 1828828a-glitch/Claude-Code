@@ -18,3 +18,6 @@ intro_video/shotcraft/remotion/public/audio/narration.wav
 # 参考片の抽出フレームと元動画(reference/study.py で作り直せる)
 intro_video/shotcraft/reference/*/frames/
 intro_video/shotcraft/reference/*/source.mp4
+
+# 園芸動画の中間生成物(build.py で作り直せる)
+out/garden/*.wav

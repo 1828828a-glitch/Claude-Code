@@ -1,0 +1,50 @@
+{
+  "total": 35.004,
+  "scenes": [
+    {
+      "index": 0,
+      "kind": "title",
+      "dur": 5.418,
+      "cues": [
+        0.4,
+        1.974
+      ]
+    },
+    {
+      "index": 1,
+      "kind": "steps",
+      "dur": 12.586,
+      "cues": [
+        0.4,
+        3.037,
+        6.011,
+        9.261
+      ]
+    },
+    {
+      "index": 2,
+      "kind": "relation",
+      "dur": 5.0,
+      "cues": [
+        0.4
+      ]
+    },
+    {
+      "index": 3,
+      "kind": "break",
+      "dur": 7.5,
+      "cues": [
+        0.4,
+        3.609
+      ]
+    },
+    {
+      "index": 4,
+      "kind": "outro",
+      "dur": 4.5,
+      "cues": [
+        0.4
+      ]
+    }
+  ]
+}
