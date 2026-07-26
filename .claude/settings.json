@@ -2,5 +2,16 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
-  "teammateMode": "auto"
+  "teammateMode": "auto",
+  "extraKnownMarketplaces": {
+    "akari": {
+      "source": {
+        "source": "github",
+        "repo": "AkariLabs/akari-video"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "akari@akari": true
+  }
 }
