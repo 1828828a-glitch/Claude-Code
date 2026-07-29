@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+
+# /watch サンプル動画（samples/build_sample_video.sh で再生成できる）
+sample-demo.mp4
+samples/*.mp4
