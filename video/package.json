@@ -8,6 +8,7 @@
     "studio": "remotion studio",
     "render": "remotion render",
     "render:ants": "npm run fonts && remotion render Ants out/ants.mp4",
+    "render:deepsea": "npm run fonts && remotion render DeepSea out/deepsea.mp4",
     "still": "remotion still",
     "fonts": "node scripts/build-fonts.mjs",
     "typecheck": "tsc --noEmit"

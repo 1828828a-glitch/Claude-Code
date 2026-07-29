@@ -2,9 +2,11 @@ import React from "react";
 import { Composition } from "remotion";
 import { Storyboard, storyboardDuration } from "./components/Scene";
 import { antsStoryboard } from "./storyboards/ants";
+import { deepSeaStoryboard } from "./storyboards/deepsea";
 import { layout } from "./theme";
 
 const AntsVideo: React.FC = () => <Storyboard scenes={antsStoryboard} />;
+const DeepSeaVideo: React.FC = () => <Storyboard scenes={deepSeaStoryboard} />;
 
 /**
  * 作った動画をここに 1 行ずつ足していく。
@@ -16,6 +18,14 @@ export const RemotionRoot: React.FC = () => (
       id="Ants"
       component={AntsVideo}
       durationInFrames={storyboardDuration(antsStoryboard)}
+      fps={layout.fps}
+      width={layout.width}
+      height={layout.height}
+    />
+    <Composition
+      id="DeepSea"
+      component={DeepSeaVideo}
+      durationInFrames={storyboardDuration(deepSeaStoryboard)}
       fps={layout.fps}
       width={layout.width}
       height={layout.height}

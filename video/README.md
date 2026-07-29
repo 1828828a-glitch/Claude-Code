@@ -4,7 +4,15 @@ AI の画像・映像モデルは一切使わず、**コードだけ**で 1920×
 色面と図形とテロップで組み立てるので、何度書き出しても同じ絵が出るし、
 台詞を 1 行直して数分で作り直せる。
 
-サンプルは `Ants`（アリの巣の解説・約 60 秒）。
+入っている動画（どちらも約 60 秒）:
+
+| Composition | 内容 | 配色 |
+| --- | --- | --- |
+| `Ants` | アリの巣の解説。地面の断面、トンネル、行列 | 土・草・紙 |
+| `DeepSea` | 深海の解説。水深、水圧、発光生物、熱水噴出孔 | 海・深海・発光色 |
+
+同じ部品立てで、色と主役だけを入れ替えている。
+地面の断面が「水深」に、アリの行列が「海底の生きもの」になっただけ。
 
 ## 使う
 
@@ -13,7 +21,8 @@ cd video
 npm install
 
 npm run studio              # ブラウザでプレビュー・値をいじりながら調整
-npm run render:ants         # out/ants.mp4 に書き出し（約 2〜3 分）
+npm run render:ants         # out/ants.mp4 に書き出し（約 3 分）
+npm run render:deepsea      # out/deepsea.mp4 に書き出し
 ```
 
 個別に書き出すとき:
@@ -70,8 +79,12 @@ export const coffeeStoryboard: SceneSpec[] = [
 
 ### 用意してある部品
 
-**イラスト**（`src/components/Ant.tsx`）
-`Ant` `Leaf` `Human` `Car` `Mushroom`。アリは `facing` で向き、`carrying` で荷物を持たせる。
+**イラスト**
+- `src/components/Ant.tsx` — `Ant` `Leaf` `Human` `Car` `Mushroom`。
+  アリは `facing` で向き、`carrying` で荷物を持たせる。
+- `src/components/Sea.tsx` — `WaterSurface` `SunRays` `MarineSnow` `Bubbles`
+  `Jellyfish` `Anglerfish` `Submersible` `HydrothermalVent` `CrushedCan`。
+  `MarineSnow` は撒くだけで「沈んでいる」感じが出るので、暗いカットでは便利。
 
 **図解**（`src/components/Diagram.tsx`）
 
@@ -96,7 +109,11 @@ export const coffeeStoryboard: SceneSpec[] = [
 
 **色**（`src/theme.ts`）
 土・草・紙の 3 系統に、差し色のオレンジが 1 色だけ。増やすと途端に散らかるので、
-`palette` の中から選ぶ。
+`palette` の中から選ぶ。深海用に海の 4 段階と発光色を足してあるが、
+1 本の動画の中では 1 系統に絞ること。
+
+背景は `backdrop.kind` で選ぶ:
+`soil` `chalk` `clay` `night` `paper` `sea` `deep` `abyss`
 
 ## フォント
 

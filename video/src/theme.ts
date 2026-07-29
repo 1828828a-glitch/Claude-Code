@@ -31,10 +31,28 @@ export const palette = {
   night: "#1e2233",
   nightDark: "#141827",
   gold: "#d9a441",
+  // 海。水面から深海底まで、明るさだけを落としていく
+  sea: "#2f7f96",
+  seaMid: "#1a5875",
+  seaDeep: "#0d2f4d",
+  abyss: "#071a2e",
+  abyssDark: "#030d18",
+  // 深海で «光っているもの» 用。地上のパレットには無い冷たい色
+  glowCyan: "#6fe3d6",
+  glowBlue: "#8fb8ff",
+  rock: "#191b26",
 } as const;
 
 /** 背景の種類。シーンのデータから名前で選ぶ。 */
-export type BackdropKind = "soil" | "chalk" | "clay" | "night" | "paper";
+export type BackdropKind =
+  | "soil"
+  | "chalk"
+  | "clay"
+  | "night"
+  | "paper"
+  | "sea"
+  | "deep"
+  | "abyss";
 
 export const backdrops: Record<
   BackdropKind,
@@ -45,6 +63,9 @@ export const backdrops: Record<
   clay: { top: palette.clay, bottom: palette.clayDark, text: palette.paper },
   night: { top: palette.night, bottom: palette.nightDark, text: palette.paper },
   paper: { top: palette.paper, bottom: palette.paperShade, text: palette.ink },
+  sea: { top: palette.sea, bottom: palette.seaDeep, text: palette.paper },
+  deep: { top: palette.seaDeep, bottom: palette.abyss, text: palette.paper },
+  abyss: { top: palette.abyss, bottom: palette.abyssDark, text: palette.paper },
 };
 
 /** 1920x1080 / 30fps を基準にした寸法。 */
