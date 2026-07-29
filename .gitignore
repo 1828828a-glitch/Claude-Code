@@ -1,2 +1,13 @@
 __pycache__/
 *.pyc
+
+# AKARI Video: 本体の clone と環境検出結果（setup.sh で再生成）
+akari/engine/
+akari/engine.env
+# 生成素材と作業ファイル（make-assets.sh / render-cut で再生成）
+akari/projects/*/assets/
+akari/projects/*/.akari/
+
+# アバターパイプライン: 各リポジトリの clone と venv、生成物
+avatar-pipeline/repos/
+avatar-pipeline/out/

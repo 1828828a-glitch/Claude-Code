@@ -1,0 +1,97 @@
+<div class="es-q" lang="ja">
+  <style>
+    .es-q {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 var(--safe-x, 88px);
+      font-family: var(--font-family, "Noto Sans CJK JP", "IPAGothic", sans-serif);
+      color: var(--color, #f4f6ff);
+      animation: es-q-out 0.5s ease-in 4.9s both;
+    }
+    .es-q__title {
+      font-size: var(--title-size, 66px);
+      font-weight: 800;
+      line-height: 1.36;
+      margin-bottom: 22px;
+      text-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+      animation: es-q-in 0.7s ease-out 0.1s both;
+    }
+    .es-q__title span { color: var(--accent, #6ee7d3); }
+    .es-q__title em { font-style: normal; white-space: nowrap; }
+    .es-q__lead {
+      font-size: 34px;
+      font-weight: 600;
+      line-height: 1.6;
+      color: var(--sub-color, rgba(244, 246, 255, 0.78));
+      margin-bottom: 58px;
+      animation: es-q-in 0.7s ease-out 0.3s both;
+    }
+    .es-q__bar {
+      position: relative;
+      height: 14px;
+      border-radius: 7px;
+      background: rgba(244, 246, 255, 0.16);
+      overflow: hidden;
+      margin-bottom: 54px;
+      animation: es-q-in 0.5s ease-out 0.5s both;
+    }
+    .es-q__fill {
+      position: absolute;
+      inset: 0;
+      border-radius: 7px;
+      background: var(--accent, #6ee7d3);
+      transform-origin: left center;
+      animation: es-q-fill 2.6s linear 0.7s both;
+    }
+    .es-q__row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 24px 4px;
+      border-bottom: 2px solid rgba(244, 246, 255, 0.12);
+      font-size: var(--row-size, 40px);
+      font-weight: 700;
+    }
+    .es-q__row--1 { animation: es-q-in 0.55s ease-out 0.8s both; }
+    .es-q__row--2 { animation: es-q-in 0.55s ease-out 1.1s both; }
+    .es-q__row--3 { animation: es-q-in 0.55s ease-out 1.4s both; }
+    .es-q__row--4 { animation: es-q-in 0.55s ease-out 1.7s both; }
+    .es-q__count {
+      font-size: 38px;
+      font-weight: 800;
+      color: var(--accent, #6ee7d3);
+      white-space: nowrap;
+    }
+    .es-q__total {
+      margin-top: 46px;
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--sub-color, rgba(244, 246, 255, 0.78));
+      animation: es-q-in 0.6s ease-out 2.1s both;
+    }
+    @keyframes es-q-in {
+      from { opacity: 0; transform: translateY(26px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes es-q-fill {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+    @keyframes es-q-out {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+  </style>
+  <div class="es-q__title"><em>やることは、</em><br><em><span>30問に答える</span>だけ。</em></div>
+  <div class="es-q__lead">選択式。所要はおよそ5分。</div>
+  <div class="es-q__bar"><div class="es-q__fill"></div></div>
+  <div class="es-q__row es-q__row--1"><span>エニアグラム</span><span class="es-q__count">14問</span></div>
+  <div class="es-q__row es-q__row--2"><span>認知機能</span><span class="es-q__count">9問</span></div>
+  <div class="es-q__row es-q__row--3"><span>神経パターン</span><span class="es-q__count">4問</span></div>
+  <div class="es-q__row es-q__row--4"><span>クロス検証</span><span class="es-q__count">3問</span></div>
+  <div class="es-q__total">3系統の答えを突き合わせて、矛盾も含めて出す。</div>
+</div>

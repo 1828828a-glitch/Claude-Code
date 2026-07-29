@@ -1,0 +1,91 @@
+<div class="es-pillars" lang="ja">
+  <style>
+    .es-pillars {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 var(--safe-x, 88px);
+      font-family: var(--font-family, "Noto Sans CJK JP", "IPAGothic", sans-serif);
+      color: var(--color, #f4f6ff);
+      animation: es-pillars-out 0.5s ease-in 5.9s both;
+    }
+    .es-pillars__title {
+      font-size: var(--title-size, 66px);
+      font-weight: 800;
+      line-height: 1.36;
+      margin-bottom: 64px;
+      text-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+      animation: es-pillars-in 0.7s ease-out 0.1s both;
+    }
+    .es-pillars__title span { color: var(--accent, #6ee7d3); }
+    .es-pillars__card {
+      display: flex;
+      align-items: flex-start;
+      gap: 32px;
+      padding: 34px 36px;
+      margin-bottom: 28px;
+      border-radius: 22px;
+      border-left: 8px solid var(--accent, #6ee7d3);
+      background: var(--card-bg, rgba(9, 17, 34, 0.72));
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+    }
+    .es-pillars__card--1 { animation: es-pillars-slide 0.65s ease-out 0.65s both; }
+    .es-pillars__card--2 { animation: es-pillars-slide 0.65s ease-out 1.0s both; }
+    .es-pillars__card--3 { animation: es-pillars-slide 0.65s ease-out 1.35s both; }
+    .es-pillars__no {
+      font-size: 40px;
+      font-weight: 800;
+      color: var(--accent, #6ee7d3);
+      line-height: 1.3;
+      min-width: 62px;
+    }
+    .es-pillars__head {
+      font-size: var(--card-title-size, 46px);
+      font-weight: 800;
+      line-height: 1.3;
+      margin-bottom: 12px;
+    }
+    .es-pillars__desc {
+      font-size: var(--card-desc-size, 33px);
+      font-weight: 500;
+      line-height: 1.55;
+      color: var(--sub-color, rgba(244, 246, 255, 0.8));
+    }
+    @keyframes es-pillars-in {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes es-pillars-slide {
+      from { opacity: 0; transform: translateX(-52px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes es-pillars-out {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+  </style>
+  <div class="es-pillars__title">3つの理論を<br><span>ひとつの像</span>に重ねる。</div>
+  <div class="es-pillars__card es-pillars__card--1">
+    <div class="es-pillars__no">01</div>
+    <div>
+      <div class="es-pillars__head">エニアグラム</div>
+      <div class="es-pillars__desc">9タイプ・ウイング・本能サブタイプで<br>「何を恐れ、何を求めるか」を掴む</div>
+    </div>
+  </div>
+  <div class="es-pillars__card es-pillars__card--2">
+    <div class="es-pillars__no">02</div>
+    <div>
+      <div class="es-pillars__head">ビービー8機能</div>
+      <div class="es-pillars__desc">ユングの心理機能とアーキタイプで<br>「思考の配置」を読む</div>
+    </div>
+  </div>
+  <div class="es-pillars__card es-pillars__card--3">
+    <div class="es-pillars__no">03</div>
+    <div>
+      <div class="es-pillars__head">ナーディ神経科学</div>
+      <div class="es-pillars__desc">脳の使い方のクセから<br>問題解決スタイルを裏取りする</div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,68 @@
+<div class="es-hook" lang="ja">
+  <style>
+    .es-hook {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 var(--safe-x, 96px);
+      font-family: var(--font-family, "Noto Sans CJK JP", "IPAGothic", sans-serif);
+      color: var(--color, #f4f6ff);
+      animation: es-hook-out 0.5s ease-in 4.4s both;
+    }
+    .es-hook__eyebrow {
+      font-size: var(--eyebrow-size, 34px);
+      font-weight: 700;
+      letter-spacing: 0.28em;
+      color: var(--accent, #ffb64d);
+      margin-bottom: 44px;
+      animation: es-hook-in 0.7s ease-out 0.1s both;
+    }
+    .es-hook__line {
+      font-size: var(--font-size, 84px);
+      line-height: var(--line-height, 1.34);
+      font-weight: 800;
+      white-space: nowrap;
+      text-shadow: 0 6px 28px rgba(0, 0, 0, 0.55);
+    }
+    .es-hook__line--1 { animation: es-hook-in 0.75s ease-out 0.35s both; }
+    .es-hook__line--2 { animation: es-hook-in 0.75s ease-out 0.55s both; }
+    .es-hook__line--3 { animation: es-hook-in 0.75s ease-out 0.75s both; }
+    .es-hook__mark { color: var(--accent, #ffb64d); }
+    .es-hook__rule {
+      width: 168px;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--accent, #ffb64d);
+      margin: 56px 0 40px;
+      transform-origin: left center;
+      animation: es-hook-rule 0.6s ease-out 1.4s both;
+    }
+    .es-hook__sub {
+      font-size: var(--sub-size, 40px);
+      line-height: 1.6;
+      font-weight: 600;
+      color: var(--sub-color, rgba(244, 246, 255, 0.82));
+      animation: es-hook-in 0.7s ease-out 1.6s both;
+    }
+    @keyframes es-hook-in {
+      from { opacity: 0; transform: translateY(38px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes es-hook-rule {
+      from { opacity: 0; transform: scaleX(0); }
+      to { opacity: 1; transform: scaleX(1); }
+    }
+    @keyframes es-hook-out {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+  </style>
+  <div class="es-hook__eyebrow">SELF MAPPING</div>
+  <div class="es-hook__line es-hook__line--1">自分の</div>
+  <div class="es-hook__line es-hook__line--2"><span class="es-hook__mark">「取扱説明書」</span>を、</div>
+  <div class="es-hook__line es-hook__line--3">言葉にできますか。</div>
+  <div class="es-hook__rule"></div>
+  <div class="es-hook__sub">性格を9つに分けて終わり、ではなく<br>「なぜそう動くのか」まで降りていく。</div>
+</div>

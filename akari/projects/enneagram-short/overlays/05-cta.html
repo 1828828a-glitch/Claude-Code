@@ -1,0 +1,63 @@
+<div class="es-cta" lang="ja">
+  <style>
+    .es-cta {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 0 var(--safe-x, 88px);
+      font-family: var(--font-family, "Noto Sans CJK JP", "IPAGothic", sans-serif);
+      color: var(--color, #f7f3ec);
+    }
+    .es-cta__title {
+      font-size: var(--title-size, 78px);
+      font-weight: 800;
+      line-height: 1.34;
+      text-shadow: 0 6px 26px rgba(0, 0, 0, 0.5);
+      animation: es-cta-in 0.8s ease-out 0.15s both;
+    }
+    .es-cta__title span { color: var(--accent, #ffb64d); }
+    .es-cta__rule {
+      width: 140px;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--accent, #ffb64d);
+      margin: 46px 0;
+      animation: es-cta-rule 0.6s ease-out 0.75s both;
+    }
+    .es-cta__code {
+      font-family: var(--code-font, "Noto Sans Mono CJK JP", monospace);
+      font-size: var(--code-size, 38px);
+      font-weight: 700;
+      padding: 26px 38px;
+      border-radius: 16px;
+      background: rgba(10, 8, 20, 0.72);
+      border: 2px solid rgba(255, 182, 77, 0.5);
+      white-space: nowrap;
+      animation: es-cta-in 0.7s ease-out 0.95s both;
+    }
+    .es-cta__foot {
+      margin-top: 44px;
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--sub-color, rgba(247, 243, 236, 0.72));
+      animation: es-cta-in 0.7s ease-out 1.25s both;
+    }
+    @keyframes es-cta-in {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes es-cta-rule {
+      from { opacity: 0; transform: scaleX(0); }
+      to { opacity: 1; transform: scaleX(1); }
+    }
+  </style>
+  <div class="es-cta__title">まず5分、<br><span>自分を測ってみる。</span></div>
+  <div class="es-cta__rule"></div>
+  <div class="es-cta__code">streamlit run streamlit_app.py</div>
+  <div class="es-cta__foot">Enneagram × Beebe × Nardi 統合診断ツール</div>
+</div>

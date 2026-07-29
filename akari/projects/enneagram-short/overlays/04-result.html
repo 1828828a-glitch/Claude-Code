@@ -1,0 +1,87 @@
+<div class="es-result" lang="ja">
+  <style>
+    .es-result {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 var(--safe-x, 88px);
+      font-family: var(--font-family, "Noto Sans CJK JP", "IPAGothic", sans-serif);
+      color: var(--color, #f7f3ec);
+      animation: es-result-out 0.5s ease-in 3.9s both;
+    }
+    .es-result__label {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      color: var(--accent, #ffb64d);
+      margin-bottom: 30px;
+      animation: es-result-in 0.6s ease-out 0.1s both;
+    }
+    .es-result__card {
+      padding: 46px 44px;
+      border-radius: 26px;
+      background: var(--card-bg, rgba(14, 10, 26, 0.74));
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
+      animation: es-result-pop 0.7s ease-out 0.3s both;
+    }
+    .es-result__type {
+      font-size: var(--type-size, 132px);
+      font-weight: 800;
+      line-height: 1.05;
+      color: var(--accent, #ffb64d);
+      margin-bottom: 12px;
+    }
+    .es-result__name {
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1.35;
+      margin-bottom: 34px;
+    }
+    .es-result__row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 20px;
+      padding: 20px 0;
+      border-top: 2px solid rgba(247, 243, 236, 0.14);
+      font-size: 34px;
+      font-weight: 600;
+    }
+    .es-result__row--1 { animation: es-result-in 0.5s ease-out 0.9s both; }
+    .es-result__row--2 { animation: es-result-in 0.5s ease-out 1.1s both; }
+    .es-result__row--3 { animation: es-result-in 0.5s ease-out 1.3s both; }
+    .es-result__key { color: var(--sub-color, rgba(247, 243, 236, 0.7)); }
+    .es-result__val { font-weight: 800; white-space: nowrap; }
+    .es-result__note {
+      margin-top: 40px;
+      font-size: 32px;
+      font-weight: 600;
+      line-height: 1.6;
+      color: var(--sub-color, rgba(247, 243, 236, 0.75));
+      animation: es-result-in 0.6s ease-out 1.6s both;
+    }
+    @keyframes es-result-in {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes es-result-pop {
+      from { opacity: 0; transform: translateY(40px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes es-result-out {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+  </style>
+  <div class="es-result__label">SAMPLE OUTPUT</div>
+  <div class="es-result__card">
+    <div class="es-result__type">5w4</div>
+    <div class="es-result__name">調べる人 / 偶像破壊者</div>
+    <div class="es-result__row es-result__row--1"><span class="es-result__key">中心</span><span class="es-result__val">思考（頭）</span></div>
+    <div class="es-result__row es-result__row--2"><span class="es-result__key">本能スタック</span><span class="es-result__val">sp/so</span></div>
+    <div class="es-result__row es-result__row--3"><span class="es-result__key">MBTI相関</span><span class="es-result__val">INTP 0.8</span></div>
+  </div>
+  <div class="es-result__note">相関だけでなく、系統どうしが食い違った点も<br>そのままレポートに出る。</div>
+</div>
