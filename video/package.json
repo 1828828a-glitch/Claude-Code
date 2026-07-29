@@ -1,0 +1,29 @@
+{
+  "name": "paper-explainer-video",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Claude + Remotion で作る紙コラージュ風の日本語解説動画",
+  "license": "ISC",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render",
+    "render:ants": "npm run fonts && remotion render Ants out/ants.mp4",
+    "still": "remotion still",
+    "fonts": "node scripts/build-fonts.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.501",
+    "@remotion/fonts": "^4.0.501",
+    "@remotion/shapes": "^4.0.501",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.501"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "subset-font": "^2.5.0",
+    "typescript": "^5.7.3"
+  }
+}

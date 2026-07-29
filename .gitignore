@@ -1,2 +1,9 @@
 __pycache__/
 *.pyc
+
+# Remotion 動画プロジェクト
+video/node_modules/
+video/out/
+video/.remotion/
+# サブセット化の元になる 1MB 超のフォント。npm run fonts が必要なときに取得する
+video/fonts-source/
