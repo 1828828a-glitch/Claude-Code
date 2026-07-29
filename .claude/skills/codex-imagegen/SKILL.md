@@ -85,7 +85,22 @@ JSON の形（`examples/broll.example.json` にサンプルあり）:
 - 既に PNG があるシーンはスキップされる → 失敗したものだけ再実行すればよい（全部作り直すなら `--force`）
 - `--concurrency N` で並列度を上げられるが、レート制限に当たりやすいので既定は 1。上げても 2〜3 まで
 
-### 3. 生成後に必ずやること
+### 3. 動画まで組み立てる
+
+`examples/sample-video/` に、B-roll 生成から mp4 完成までを通しで動かせるサンプルがある。
+テロップ台本 (`script.json`) を書いて `make_video.py` に渡すと、Ken Burns + テロップ +
+クロスフェードで 1 本につながる。
+
+```bash
+cd .claude/skills/codex-imagegen/examples/sample-video
+python3 ../../scripts/gen_broll.py broll.json      # 素材
+python3 make_video.py script.json -o sample.mp4    # 組み立て（要 ffmpeg）
+```
+
+Codex がまだ使えない環境では `placeholder_broll.py` でダミー素材を作れば、尺やテロップの
+当たりだけ先に確認できる。詳細は `examples/sample-video/README.md`。
+
+### 4. 生成後に必ずやること
 
 - `manifest.json` の `failed` を確認し、失敗があればユーザーに報告する（黙って減らさない）
 - 生成した画像は Read ツールで実際に開いて、依頼内容とズレていないか目視確認する

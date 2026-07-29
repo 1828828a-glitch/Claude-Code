@@ -1,0 +1,36 @@
+{
+  "title": "Claude Code × Codex で B-roll を自動生成する",
+  "resolution": "1920x1080",
+  "fps": 30,
+  "broll_dir": "assets/broll",
+  "transition": 0.6,
+  "scenes": [
+    {
+      "id": "s01",
+      "style": "title",
+      "telop": "Claude Code × Codex\nB-roll 自動生成",
+      "duration": 3.5
+    },
+    {
+      "id": "s02",
+      "telop": "Claude Code は画像を生成できない。\nでも Codex なら生成できる。",
+      "duration": 4.5
+    },
+    {
+      "id": "s03",
+      "telop": "codex exec を叩くだけ。\n画像用の API キーは要らない。",
+      "duration": 4.5
+    },
+    {
+      "id": "s04",
+      "telop": "シーンを JSON に書けば、\nB-roll がまとめて出てくる。",
+      "duration": 4.5
+    },
+    {
+      "id": "s05",
+      "style": "title",
+      "telop": "月 $40 で、\n素材づくりは自動になる。",
+      "duration": 4.0
+    }
+  ]
+}
