@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Monitor — サブエージェント ライブ中継</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --blue: #58a6ff;
+    --purple: #bc8cff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 16px;
+    font-size: 14px;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  header h1 { font-size: 16px; font-weight: 700; }
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--red);
+    animation: pulse 1.2s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+  .updated { color: var(--muted); font-size: 11px; margin-bottom: 12px; }
+
+  .summary {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+  }
+  .summary .counts { display: flex; gap: 14px; margin-bottom: 8px; font-size: 12px; color: var(--muted); }
+  .summary .counts b { color: var(--text); font-size: 15px; margin-right: 3px; }
+  .total-bar {
+    height: 8px; border-radius: 4px; background: #21262d; overflow: hidden;
+  }
+  .total-bar > div {
+    height: 100%; background: linear-gradient(90deg, var(--blue), var(--green));
+    transition: width .6s ease;
+  }
+
+  .agent {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    transition: border-color .3s;
+  }
+  .agent.running { border-left: 3px solid var(--yellow); }
+  .agent.done    { border-left: 3px solid var(--green); }
+  .agent.error   { border-left: 3px solid var(--red); }
+  .agent.pending { border-left: 3px solid var(--border); opacity: .7; }
+
+  .agent-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .agent-name { font-weight: 700; font-size: 13px; }
+  .badge {
+    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  }
+  .badge.running { background: rgba(210,153,34,.15); color: var(--yellow); }
+  .badge.done    { background: rgba(63,185,80,.15);  color: var(--green); }
+  .badge.error   { background: rgba(248,81,73,.15);  color: var(--red); }
+  .badge.pending { background: rgba(139,148,158,.15); color: var(--muted); }
+
+  .agent-task { color: var(--muted); font-size: 11px; margin-bottom: 8px; }
+  .step { font-size: 12px; margin-bottom: 8px; display: flex; gap: 6px; align-items: baseline; }
+  .step .spinner { color: var(--yellow); }
+  .bar { height: 6px; border-radius: 3px; background: #21262d; overflow: hidden; margin-bottom: 8px; }
+  .bar > div { height: 100%; background: var(--blue); transition: width .6s ease; }
+  .agent.done .bar > div { background: var(--green); }
+
+  .log { border-top: 1px dashed var(--border); padding-top: 6px; }
+  .log-line { font-size: 11px; color: var(--muted); padding: 1.5px 0; display: flex; gap: 8px; }
+  .log-line .t { color: #484f58; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .empty { text-align: center; color: var(--muted); padding: 48px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+  <header><span class="live-dot"></span><h1>Agent Monitor</h1></header>
+  <div class="updated" id="updated">読み込み中…</div>
+  <div class="summary" id="summary" hidden>
+    <div class="counts">
+      <span>🏃 実行中 <b id="c-running">0</b></span>
+      <span>✅ 完了 <b id="c-done">0</b></span>
+      <span>📋 合計 <b id="c-total">0</b></span>
+    </div>
+    <div class="total-bar"><div id="total-fill" style="width:0%"></div></div>
+  </div>
+  <div id="agents"><div class="empty">status.jsonl を待機中…<br>サブエージェントが動き出すとここに表示されます</div></div>
+
+<script>
+const STATUS_FILE = 'status.jsonl';
+const spinFrames = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
+let spin = 0;
+
+function fmtTime(ts) {
+  const d = new Date(ts);
+  return isNaN(d) ? '' : d.toTimeString().slice(0, 8);
+}
+
+async function refresh() {
+  let text;
+  try {
+    const res = await fetch(STATUS_FILE + '?_=' + Math.random(), { cache: 'no-store' });
+    if (!res.ok) throw new Error(res.status);
+    text = await res.text();
+  } catch (e) { return; }
+
+  const events = text.split('\n').filter(Boolean).map(l => {
+    try { return JSON.parse(l); } catch { return null; }
+  }).filter(Boolean);
+  if (!events.length) return;
+
+  // 最新状態をエージェントごとに集約（出現順を保持）
+  const order = [];
+  const agents = {};
+  for (const ev of events) {
+    if (!ev.agent) continue;
+    if (!agents[ev.agent]) { agents[ev.agent] = { log: [] }; order.push(ev.agent); }
+    const a = agents[ev.agent];
+    Object.assign(a, ev);
+    if (ev.step) a.log.push({ t: ev.ts, msg: ev.step });
+  }
+
+  const statuses = order.map(k => agents[k].status);
+  const done = statuses.filter(s => s === 'done').length;
+  const running = statuses.filter(s => s === 'running').length;
+
+  document.getElementById('summary').hidden = false;
+  document.getElementById('c-running').textContent = running;
+  document.getElementById('c-done').textContent = done;
+  document.getElementById('c-total').textContent = order.length;
+  document.getElementById('total-fill').style.width =
+    (order.length ? Math.round(done / order.length * 100) : 0) + '%';
+  document.getElementById('updated').textContent =
+    '最終更新 ' + new Date().toTimeString().slice(0, 8) + '（1秒ごとに自動更新）';
+
+  spin = (spin + 1) % spinFrames.length;
+  document.getElementById('agents').innerHTML = order.map(k => {
+    const a = agents[k];
+    const st = a.status || 'pending';
+    const label = { running: '実行中', done: '完了', error: 'エラー', pending: '待機' }[st] || st;
+    const prog = a.progress != null ? Math.min(100, a.progress) : (st === 'done' ? 100 : 0);
+    const recentLog = a.log.slice(-4).reverse();
+    return `
+      <div class="agent ${st}">
+        <div class="agent-head">
+          <span class="agent-name">🤖 ${esc(a.agent)}</span>
+          <span class="badge ${st}">${label}</span>
+        </div>
+        ${a.task ? `<div class="agent-task">${esc(a.task)}</div>` : ''}
+        <div class="step">${st === 'running' ? `<span class="spinner">${spinFrames[spin]}</span>` : (st === 'done' ? '✅' : '')}
+          <span>${esc(a.step || '')}</span></div>
+        <div class="bar"><div style="width:${prog}%"></div></div>
+        <div class="log">${recentLog.map(l =>
+          `<div class="log-line"><span class="t">${fmtTime(l.t)}</span><span>${esc(l.msg)}</span></div>`).join('')}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+refresh();
+setInterval(refresh, 1000);
+</script>
+</body>
+</html>
