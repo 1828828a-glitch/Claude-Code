@@ -93,10 +93,33 @@ npx remotion render HistoryVideo out/<題材>.mp4
 - シーン順の定石: title → year/character(状況設定)→ 事件の提示(map/lineup/text)→
   展開(stat/timeline)→ 締め(outro)
 
-## ナレーション音声(任意)
+## ナレーション音声とBGM
 
-音声合成は環境依存のため自動化していない。ユーザーから音声ファイルをもらった場合は
-`public/assets/` に置き、Remotionの `<Audio>` を `Video.tsx` に追加して尺を合わせる。
+### ナレーション(edge-tts)
+
+`edge-tts`(`pip install edge-tts`)で日本語ニューラル音声を合成できる:
+
+```bash
+edge-tts --voice ja-JP-NanamiNeural --rate=+8% \
+  --text "ナレーション本文" --write-media public/assets/narration/scene_01.mp3
+```
+
+- 声は `ja-JP-NanamiNeural`(女性・落ち着き)を既定に。男性なら `ja-JP-KeitaNeural`
+- 数字・英字は読み間違いやすいので読み仮名で書く(例: 5% → 5パーセント、1on1 → 1オン1)
+- 合成後に ffmpeg で実尺を測り、**各シーンの `durationSec` を「音声実尺+約1.1秒」に明示指定する**
+  (音声はシーン頭+8フレームから再生される)
+- シーンの `audio` に `narration/scene_01.mp3` のようにパスを指定
+- 字幕(`narration`)は音声の要約でよい。全角28文字以内に収める
+- このリモート環境ではTLS対策が必要な場合がある: certifiのバンドルを
+  `cp /etc/ssl/certs/ca-certificates.crt $(python3 -c "import certifi; print(certifi.where())")` で差し替える
+
+### BGM
+
+- screenplay の `bgm: { file: 'bgm/xxx.mp3', volume: 0.13 }` で全編ループ+末尾フェードアウト
+- **音声フォーマットは必ずmp3**(ChromiumはAAC/m4aをデコードできずレンダリングが止まる)
+- 既存の同梱BGM: `bgm/corporate_pad.mp3`(温かいパッド系、ライセンスフリーの自作生成)。
+  別の曲調が必要なら `scripts` の要領でnumpy合成するか、ユーザー提供の音源を使う
+- 音量はナレーションを邪魔しない 0.10〜0.16 が目安
 
 ## 技術メモ
 

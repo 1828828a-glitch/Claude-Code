@@ -22,7 +22,9 @@ export const TextScene: React.FC<z.infer<typeof textScene>> = ({
 }) => {
   const frame = useCurrentFrame();
   const dark = variant === 'impact';
-  const chars = text.split('');
+  // \n で明示改行できる。文字送りは行をまたいで連続する。
+  const lines = text.split('\n');
+  const totalChars = text.replace(/\n/g, '').length;
   const tagP = progress(frame, 2, 12);
 
   return (
@@ -74,25 +76,32 @@ export const TextScene: React.FC<z.infer<typeof textScene>> = ({
           }}
         >
           {/* 一文字ずつ現れる */}
-          {chars.map((c, i) => {
-            const p = progress(frame, 6 + i * 2.2, 14);
+          {lines.map((line, li) => {
+            const offset = lines.slice(0, li).reduce((a, l) => a + l.length, 0);
             return (
-              <span
-                key={i}
-                style={{
-                  display: 'inline-block',
-                  opacity: p,
-                  transform: `translateY(${(1 - p) * 26}px)`,
-                  whiteSpace: 'pre',
-                }}
-              >
-                {c}
-              </span>
+              <div key={li}>
+                {line.split('').map((c, i) => {
+                  const p = progress(frame, 6 + (offset + i) * 2.2, 14);
+                  return (
+                    <span
+                      key={i}
+                      style={{
+                        display: 'inline-block',
+                        opacity: p,
+                        transform: `translateY(${(1 - p) * 26}px)`,
+                        whiteSpace: 'pre',
+                      }}
+                    >
+                      {c}
+                    </span>
+                  );
+                })}
+              </div>
             );
           })}
         </div>
         {variant === 'question' ? (
-          <AccentUnderline width={520} delay={10 + chars.length * 2.2} thickness={8} />
+          <AccentUnderline width={520} delay={10 + totalChars * 2.2} thickness={8} />
         ) : null}
       </AbsoluteFill>
       {/* questionは紙面と分離するためチップ型字幕(黒地)を使う */}

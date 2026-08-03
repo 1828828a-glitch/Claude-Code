@@ -49,5 +49,9 @@ npx remotion render HistoryVideo out/video.mp4
   日本地図は `src/assets/japanPath.ts`(world-atlas 50mから生成、`scripts/generate-japan-path.mjs`)
 - **素材**: 人物立ち絵(背景透過PNG)や情景画は `public/assets/` に置いて
   ファイル名で参照。立ち絵が無い人物は様式化された墨シルエットにフォールバック
+- **音声**: シーンごとの `audio`(ナレーション、edge-tts等で合成)と
+  全編ループの `bgm`(`scripts/generate-bgm.py` で自作パッド曲を生成可能)に対応。
+  音声は必ずmp3を使う(ChromiumがAACを再生できないため)。
+  サンプル: `EngagementVideo`(若手エンゲージメント向上、ナレーション+BGM付き)
 
 制作ワークフローの詳細は `.claude/skills/video-production/SKILL.md` を参照。

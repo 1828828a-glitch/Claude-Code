@@ -9,7 +9,10 @@ const base = {
   // ナレーション字幕。**で囲むとアクセント色で強調される。
   narration: z.string().optional(),
   // シーン尺(秒)。省略時はシーン種別のデフォルト+ナレーション長で自動決定。
+  // ナレーション音声を使う場合は「音声の実尺+1秒程度」を明示指定すること。
   durationSec: z.number().min(1.5).max(20).optional(),
+  // ナレーション音声ファイル(public/assets/ 配下の相対パス)。シーン頭から再生される。
+  audio: z.string().optional(),
 };
 
 // 金屏風のタイトル画面
@@ -143,10 +146,19 @@ export const sceneSchema = z.discriminatedUnion('type', [
 export const screenplaySchema = z.object({
   title: z.string(),
   scenes: z.array(sceneSchema).min(1),
+  // BGM(public/assets/ 配下の相対パス)。全編ループ再生され、末尾でフェードアウトする。
+  bgm: z
+    .object({
+      file: z.string(),
+      volume: z.number().min(0).max(1).default(0.13),
+    })
+    .optional(),
 });
 
+// Scene はパース後(デフォルト補完済み)の型。コンポーネントはこちらを受け取る。
 export type Scene = z.infer<typeof sceneSchema>;
-export type Screenplay = z.infer<typeof screenplaySchema>;
+// Screenplay は台本を書くときの型。デフォルト値のあるフィールドは省略できる。
+export type Screenplay = z.input<typeof screenplaySchema>;
 
 // ----- 尺の自動決定 -----
 const DEFAULT_SEC: Record<Scene['type'], number> = {

@@ -1,5 +1,13 @@
 import React from 'react';
-import { AbsoluteFill } from 'remotion';
+import {
+  AbsoluteFill,
+  Audio,
+  Sequence,
+  interpolate,
+  staticFile,
+  useCurrentFrame,
+  useVideoConfig,
+} from 'remotion';
 import { TransitionSeries, linearTiming } from '@remotion/transitions';
 import { fade } from '@remotion/transitions/fade';
 import { Scene, Screenplay, sceneDurationSec, screenplaySchema } from './screenplay/types';
@@ -52,6 +60,19 @@ const SceneSwitch: React.FC<{ scene: Scene }> = ({ scene }) => {
   }
 };
 
+// BGM: 全編ループ+末尾1.5秒フェードアウト
+const Bgm: React.FC<{ file: string; volume: number }> = ({ file, volume }) => {
+  const frame = useCurrentFrame();
+  const { durationInFrames, fps } = useVideoConfig();
+  const fadeOut = interpolate(
+    frame,
+    [durationInFrames - 1.5 * fps, durationInFrames],
+    [1, 0],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+  );
+  return <Audio loop src={staticFile(`assets/${file}`)} volume={volume * fadeOut} />;
+};
+
 export const HistoryVideo: React.FC<{ screenplay: Screenplay }> = ({ screenplay }) => {
   // zodでデフォルト値を補完(mood等)
   const parsed = screenplaySchema.parse(screenplay);
@@ -62,6 +83,12 @@ export const HistoryVideo: React.FC<{ screenplay: Screenplay }> = ({ screenplay 
           <React.Fragment key={i}>
             <TransitionSeries.Sequence durationInFrames={sceneFrames(scene)}>
               <SceneSwitch scene={scene} />
+              {scene.audio ? (
+                // トランジションの重なりを避け、シーンが見えてから話し始める
+                <Sequence from={8}>
+                  <Audio src={staticFile(`assets/${scene.audio}`)} />
+                </Sequence>
+              ) : null}
             </TransitionSeries.Sequence>
             {i < parsed.scenes.length - 1 ? (
               <TransitionSeries.Transition
@@ -72,6 +99,7 @@ export const HistoryVideo: React.FC<{ screenplay: Screenplay }> = ({ screenplay 
           </React.Fragment>
         ))}
       </TransitionSeries>
+      {parsed.bgm ? <Bgm file={parsed.bgm.file} volume={parsed.bgm.volume} /> : null}
     </AbsoluteFill>
   );
 };

@@ -62,6 +62,7 @@ export const TitleScene: React.FC<z.infer<typeof titleScene>> = ({
             transform: `scale(${1.25 - 0.25 * titleP})`,
             textAlign: 'center',
             maxWidth: 1700,
+            whiteSpace: 'pre-line',
           }}
         >
           {title}
