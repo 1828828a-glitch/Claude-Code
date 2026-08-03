@@ -4,6 +4,7 @@ import { HistoryVideo, totalFrames } from './Video';
 import { VIDEO } from './theme';
 import { demoScreenplay } from './screenplay/demo';
 import { engagementScreenplay } from './screenplay/engagement';
+import { teireiScreenplay } from './screenplay/teirei';
 import { Screenplay } from './screenplay/types';
 
 const compositionFor = (id: string, screenplay: Screenplay) => (
@@ -26,6 +27,7 @@ export const Root: React.FC = () => {
     <>
       {compositionFor('HistoryVideo', demoScreenplay)}
       {compositionFor('EngagementVideo', engagementScreenplay)}
+      {compositionFor('TeireiVideo', teireiScreenplay)}
     </>
   );
 };

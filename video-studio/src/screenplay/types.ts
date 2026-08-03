@@ -121,6 +121,38 @@ export const imageScene = z.object({
   ...base,
 });
 
+// 「A + B + C」式の型の提示。トークンが1つずつポップインする。
+export const formulaScene = z.object({
+  type: z.literal('formula'),
+  heading: z.string().optional(), // 上部の小見出し
+  tokens: z.array(z.string()).min(2).max(6),
+  separator: z.enum(['+', '/']).default('+'),
+  caption: z.string().optional(), // 型の下の補足(例: 「否定だけでなく、代替案まで届ける」)
+  ...base,
+});
+
+// 旧フローと新フローの比較。旧はグレーで先に、新がアクセント付きで後から流れる。
+export const flowCompareScene = z.object({
+  type: z.literal('flowCompare'),
+  heading: z.string().optional(),
+  oldLabel: z.string().default('旧'),
+  newLabel: z.string().default('新'),
+  oldSteps: z.array(z.string()).min(2).max(5),
+  newSteps: z.array(z.string()).min(2).max(6),
+  ...base,
+});
+
+// 番号付き縦ステップ(最大6)。上から順に積み上がる。
+export const stepsScene = z.object({
+  type: z.literal('steps'),
+  heading: z.string().optional(),
+  items: z
+    .array(z.object({ title: z.string(), desc: z.string().optional() }))
+    .min(2)
+    .max(6),
+  ...base,
+});
+
 // 締め・次回予告
 export const outroScene = z.object({
   type: z.literal('outro'),
@@ -140,6 +172,9 @@ export const sceneSchema = z.discriminatedUnion('type', [
   statScene,
   textScene,
   imageScene,
+  formulaScene,
+  flowCompareScene,
+  stepsScene,
   outroScene,
 ]);
 
@@ -171,6 +206,9 @@ const DEFAULT_SEC: Record<Scene['type'], number> = {
   stat: 5,
   text: 4,
   image: 5,
+  formula: 6,
+  flowCompare: 7,
+  steps: 8,
   outro: 4,
 };
 

@@ -21,6 +21,9 @@ import { TimelineScene } from './components/scenes/TimelineScene';
 import { StatScene } from './components/scenes/StatScene';
 import { TextScene } from './components/scenes/TextScene';
 import { ImageScene } from './components/scenes/ImageScene';
+import { FormulaScene } from './components/scenes/FormulaScene';
+import { FlowCompareScene } from './components/scenes/FlowCompareScene';
+import { StepsScene } from './components/scenes/StepsScene';
 import { OutroScene } from './components/scenes/OutroScene';
 
 export const TRANSITION_FRAMES = 12;
@@ -55,6 +58,12 @@ const SceneSwitch: React.FC<{ scene: Scene }> = ({ scene }) => {
       return <TextScene {...scene} />;
     case 'image':
       return <ImageScene {...scene} />;
+    case 'formula':
+      return <FormulaScene {...scene} />;
+    case 'flowCompare':
+      return <FlowCompareScene {...scene} />;
+    case 'steps':
+      return <StepsScene {...scene} />;
     case 'outro':
       return <OutroScene {...scene} />;
   }
