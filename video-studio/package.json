@@ -1,0 +1,24 @@
+{
+  "name": "video-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "台本(screenplay)駆動でドキュメンタリー風モーショングラフィックス動画を生成するRemotionスタジオ",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render HistoryVideo out/video.mp4 --browser-executable=/opt/pw-browsers/chromium",
+    "still": "remotion still HistoryVideo --browser-executable=/opt/pw-browsers/chromium"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.245",
+    "@remotion/transitions": "4.0.245",
+    "@remotion/zod-types": "4.0.245",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.245",
+    "zod": "3.22.3"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "typescript": "5.6.3"
+  }
+}
