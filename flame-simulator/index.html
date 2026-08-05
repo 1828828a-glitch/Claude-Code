@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>大炎上シミュレーター「ボヤッター」</title>
+</head>
+<body>
+<!-- ARTIFACT-START -->
+<style>
+  :root{
+    --bg:#0a0d12; --panel:#12161d; --panel2:#171c25; --line:#232b35;
+    --text:#e8eaed; --sub:#77828f; --acc:#4da3ff;
+    --fire1:#ff9331; --fire2:#ff4128; --danger:#ff3b30;
+    --telop-y:#ffe600; --heat:0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif;
+    line-height:1.6; overflow-x:hidden;
+  }
+  #heatbg{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0;transition:opacity 1.2s;
+    background:
+      radial-gradient(120% 90% at 50% 110%, rgba(255,65,40,.38), transparent 60%),
+      radial-gradient(80% 50% at 20% 100%, rgba(255,147,49,.22), transparent 70%);
+  }
+  #embers{position:fixed;inset:0;pointer-events:none;z-index:1}
+  .wrap{position:relative;z-index:2;max-width:620px;margin:0 auto;min-height:100%}
+
+  /* ---------- setup screen ---------- */
+  #setup{padding:48px 20px 60px;display:flex;flex-direction:column;gap:22px}
+  .logo{font-size:44px;font-weight:900;letter-spacing:.02em;text-align:center}
+  .logo small{display:block;font-size:13px;font-weight:600;color:var(--sub);letter-spacing:.28em;margin-top:2px}
+  .tagline{text-align:center;color:var(--sub);font-size:14px}
+  .tagline b{color:var(--fire1)}
+  .composer{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .composer textarea{
+    width:100%;min-height:110px;background:transparent;border:none;outline:none;resize:vertical;
+    color:var(--text);font-size:17px;font-family:inherit;line-height:1.7;
+  }
+  .composer textarea::placeholder{color:var(--sub)}
+  .composer .cbar{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:10px;margin-top:6px}
+  .gacha{background:none;border:1px solid var(--line);color:var(--acc);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;font-family:inherit}
+  .gacha:hover{background:rgba(77,163,255,.1)}
+  .charcount{font-size:12px;color:var(--sub)}
+  fieldset.power{border:1px solid var(--line);border-radius:16px;padding:14px 16px 16px;background:var(--panel)}
+  fieldset.power legend{padding:0 8px;font-size:12px;color:var(--sub);letter-spacing:.2em}
+  .powgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .powgrid label{
+    display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px 8px;border:1px solid var(--line);
+    border-radius:12px;cursor:pointer;font-size:12px;color:var(--sub);text-align:center;
+  }
+  .powgrid label .em{font-size:20px}
+  .powgrid label .nm{font-weight:700;color:var(--text);font-size:13px}
+  .powgrid input{display:none}
+  .powgrid input:checked+label{border-color:var(--fire1);background:rgba(255,147,49,.12);box-shadow:0 0 0 1px var(--fire1)}
+  #postBtn{
+    background:linear-gradient(135deg,var(--fire1),var(--fire2));color:#fff;border:none;border-radius:999px;
+    padding:15px;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:.05em;
+  }
+  #postBtn:hover{filter:brightness(1.1)}
+  #postBtn:focus-visible,.gacha:focus-visible,.fuel button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+  .disclaimer{font-size:11px;color:var(--sub);text-align:center;line-height:1.8}
+
+  /* ---------- app screen ---------- */
+  #app{display:none;padding-bottom:110px}
+  header{
+    position:sticky;top:0;z-index:10;background:rgba(10,13,18,.88);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);padding:10px 16px 8px;
+  }
+  .hrow{display:flex;justify-content:space-between;align-items:center}
+  .htitle{font-weight:900;font-size:17px}
+  #escapeBtn{display:none;background:none;border:1px solid var(--danger);color:var(--danger);border-radius:999px;padding:4px 12px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700}
+  #escapeBtn.pulse{animation:pulse 1s infinite}
+  @keyframes pulse{50%{background:rgba(255,59,48,.2)}}
+  .hstats{display:flex;gap:14px;font-size:12px;color:var(--sub);margin-top:4px;font-variant-numeric:tabular-nums}
+  .hstats b{color:var(--text);font-weight:700}
+  .hstats .down b{color:var(--danger)}
+  .gauge{margin-top:8px}
+  .gtrack{height:8px;background:var(--panel2);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+  .gfill{height:100%;width:0%;background:linear-gradient(90deg,#ffd23f,var(--fire1),var(--fire2));transition:width .4s}
+  .glabel{display:flex;justify-content:space-between;font-size:11px;color:var(--sub);margin-top:3px}
+  .glabel #lvname{color:var(--fire1);font-weight:800}
+  #trends{display:flex;gap:8px;overflow-x:auto;padding:8px 16px;border-bottom:1px solid var(--line);scrollbar-width:none}
+  #trends::-webkit-scrollbar{display:none}
+  .chip{flex:none;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--acc);white-space:nowrap}
+  .chip.hot{color:var(--fire1);border-color:rgba(255,147,49,.5)}
+
+  /* tweet cards */
+  #timeline{display:flex;flex-direction:column}
+  .tw{display:flex;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);animation:slidein .3s ease-out;background:var(--bg)}
+  @keyframes slidein{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  .av{flex:none;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;color:#fff}
+  .tb{flex:1;min-width:0}
+  .th{display:flex;align-items:center;gap:5px;font-size:14px;flex-wrap:wrap}
+  .th b{font-weight:800}
+  .vbadge{color:var(--acc);font-size:13px}
+  .hnd{color:var(--sub);font-size:13px}
+  .tx{font-size:15px;margin-top:2px;overflow-wrap:anywhere}
+  .tx .qq{color:var(--acc)}
+  .tf{display:flex;gap:22px;color:var(--sub);font-size:12px;margin-top:8px;font-variant-numeric:tabular-nums}
+  .tw.mine{background:var(--panel);border-left:3px solid var(--fire1)}
+  .tw.selfreply{background:rgba(77,163,255,.06);border-left:3px solid var(--acc)}
+  #mypost .tf{gap:16px;flex-wrap:wrap}
+  #mypost .tf .bad{color:var(--danger);font-weight:700}
+  .ratio{font-size:11px;color:var(--danger);margin-top:6px;display:none}
+
+  /* special cards */
+  .telop{
+    background:var(--telop-y);color:#111;font-weight:900;padding:12px 16px;font-size:15px;
+    display:flex;gap:10px;align-items:center;border-bottom:3px solid #111;animation:slidein .3s ease-out;
+  }
+  .telop .tag{flex:none;background:#d00000;color:#fff;padding:2px 10px;font-size:13px;letter-spacing:.15em}
+  .matome{background:#fff;color:#111;padding:16px;border-bottom:4px solid #d00000;animation:slidein .3s}
+  .matome .site{font-size:11px;color:#888;letter-spacing:.1em}
+  .matome h3{color:#d00000;font-size:17px;line-height:1.5;margin-top:4px;font-weight:900}
+  .matome .meta{font-size:11px;color:#888;margin-top:6px}
+  .overseas{background:#f7f4ec;color:#1a1a1a;padding:16px;font-family:Georgia,"Times New Roman","Hiragino Mincho ProN",serif;animation:slidein .3s;border-bottom:1px solid var(--line)}
+  .overseas .kicker{font-size:10px;letter-spacing:.25em;color:#8a2b2b;text-transform:uppercase;font-weight:700}
+  .overseas h3{font-size:18px;line-height:1.4;margin-top:4px}
+  .overseas p{font-size:13px;color:#555;margin-top:6px}
+  .seimei{background:#fdfdfb;color:#222;padding:22px 20px;font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;animation:slidein .3s;border-bottom:1px solid var(--line)}
+  .seimei h3{text-align:center;font-size:15px;letter-spacing:.4em;margin-bottom:10px}
+  .seimei p{font-size:13px;line-height:2}
+  .seimei .from{text-align:right;font-size:12px;margin-top:10px;color:#555}
+
+  /* level toast */
+  #toast{
+    position:fixed;top:38%;left:50%;z-index:50;transform:translate(-50%,-50%) rotate(-6deg) scale(.6);
+    border:5px solid var(--danger);color:var(--danger);padding:14px 26px;font-size:26px;font-weight:900;
+    border-radius:8px;background:rgba(10,13,18,.85);opacity:0;pointer-events:none;letter-spacing:.05em;text-align:center;white-space:nowrap;
+  }
+  #toast small{display:block;font-size:13px;letter-spacing:.3em}
+  #toast.show{animation:stamp 1.8s ease-out}
+  @keyframes stamp{
+    0%{opacity:0;transform:translate(-50%,-50%) rotate(-6deg) scale(1.8)}
+    12%{opacity:1;transform:translate(-50%,-50%) rotate(-6deg) scale(1)}
+    75%{opacity:1}100%{opacity:0}
+  }
+  .shake{animation:shake .5s}
+  @keyframes shake{
+    10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(3px)}
+    30%,50%,70%{transform:translateX(-5px)}40%,60%{transform:translateX(5px)}
+  }
+
+  /* fuel bar */
+  #fuelbar{
+    position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(10,13,18,.92);backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+  #fuelbar .fttl{font-size:10px;color:var(--sub);letter-spacing:.25em;text-align:center;margin-bottom:6px}
+  .fuel{display:flex;gap:8px;max-width:620px;margin:0 auto}
+  .fuel button{
+    flex:1;background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:12px;
+    padding:8px 2px;font-size:11px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:1px;
+  }
+  .fuel button .em{font-size:17px}
+  .fuel button:hover:not(:disabled){border-color:var(--fire1)}
+  .fuel button:disabled{opacity:.35;cursor:default}
+  #ffwd{position:fixed;right:14px;bottom:130px;z-index:25;background:var(--panel);border:1px solid var(--line);color:var(--sub);border-radius:999px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:inherit}
+  #ffwd.on{color:var(--fire1);border-color:var(--fire1)}
+
+  /* result */
+  #result{display:none;position:fixed;inset:0;z-index:60;background:rgba(5,6,9,.92);backdrop-filter:blur(6px);overflow-y:auto;padding:30px 16px 60px}
+  .cert{
+    max-width:560px;margin:0 auto;background:#fdfcf8;color:#1c1c1c;border-radius:6px;padding:30px 26px;
+    font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;position:relative;overflow:hidden;
+  }
+  .cert::after{content:"炎上";position:absolute;top:14px;right:-2px;border:4px solid rgba(208,0,0,.7);color:rgba(208,0,0,.7);font-size:26px;font-weight:900;padding:4px 10px;transform:rotate(12deg);border-radius:4px}
+  .cert h2{text-align:center;letter-spacing:.5em;font-size:19px;border-bottom:2px solid #1c1c1c;padding-bottom:12px}
+  .cert .sub2{text-align:center;font-size:11px;color:#777;margin-top:6px}
+  .certgrid{margin-top:18px;display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:14px}
+  .certgrid dt{color:#666;font-size:12px;padding-top:3px;white-space:nowrap}
+  .certgrid dd{font-weight:700;font-variant-numeric:tabular-nums}
+  .certgrid dd.big{font-size:26px;color:#d00000}
+  .title-row{margin-top:16px;background:#f3efe2;border:1px solid #d9d2b8;border-radius:4px;padding:12px;text-align:center}
+  .title-row .lbl{font-size:10px;letter-spacing:.3em;color:#8a7b45}
+  .title-row .val{font-size:18px;font-weight:900;margin-top:2px}
+  .apology{margin-top:18px;border-top:1px dashed #bbb;padding-top:14px}
+  .apology h4{font-size:12px;letter-spacing:.3em;color:#666;text-align:center}
+  .apology p{font-size:13px;line-height:2;margin-top:10px}
+  .resbtns{max-width:560px;margin:18px auto 0;display:flex;gap:10px}
+  .resbtns button{
+    flex:1;border-radius:999px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;border:1px solid var(--line);
+  }
+  #againBtn{background:linear-gradient(135deg,var(--fire1),var(--fire2));color:#fff;border:none}
+  #copyBtn{background:var(--panel);color:var(--text)}
+  .resnote{text-align:center;color:var(--sub);font-size:11px;margin-top:14px}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+  @media (max-width:400px){
+    .logo{font-size:36px}
+    .fuel button{font-size:10px}
+  }
+</style>
+
+<div id="heatbg"></div>
+<canvas id="embers"></canvas>
+
+<div class="wrap">
+
+  <!-- ============ setup ============ -->
+  <div id="setup">
+    <div>
+      <div class="logo">ボヤッター🔥<small>BOYATTER</small></div>
+      <p class="tagline">あなたの失言が、<b>今夜のトレンド</b>。</p>
+    </div>
+    <div class="composer">
+      <textarea id="draft" maxlength="140" placeholder="いまなにしてる?(何を書いても燃えます)"></textarea>
+      <div class="cbar">
+        <button class="gacha" id="gachaBtn" type="button">🎰 燃えそうな例文ガチャ</button>
+        <span class="charcount"><span id="ccount">0</span>/140</span>
+      </div>
+    </div>
+    <fieldset class="power">
+      <legend>火 力 設 定</legend>
+      <div class="powgrid">
+        <input type="radio" name="pow" id="p1" value="0"><label for="p1"><span class="em">🕯️</span><span class="nm">弱火</span>ちょっと燃える</label>
+        <input type="radio" name="pow" id="p2" value="1"><label for="p2"><span class="em">🔥</span><span class="nm">中火</span>テレビに出る</label>
+        <input type="radio" name="pow" id="p3" value="2"><label for="p3"><span class="em">🌋</span><span class="nm">強火</span>国が動く</label>
+        <input type="radio" name="pow" id="p4" value="3" checked><label for="p4"><span class="em">☄️</span><span class="nm">業火</span>歴史に残る</label>
+      </div>
+    </fieldset>
+    <button id="postBtn" type="button">投稿する(取り返しはつきません)</button>
+    <p class="disclaimer">※これはフィクションの炎上シミュレーターです。実在の人物・団体・スポンサー様・国連・神とは一切関係ありません。<br>実際のSNSでは、深呼吸してから投稿しましょう。</p>
+  </div>
+
+  <!-- ============ app ============ -->
+  <div id="app">
+    <header>
+      <div class="hrow">
+        <span class="htitle">🔥 ボヤッター</span>
+        <button id="escapeBtn" type="button">🏃 アカウントを消して逃げる</button>
+      </div>
+      <div class="hstats">
+        <span>表示 <b id="sImp">0</b></span>
+        <span>リポスト <b id="sRt">0</b></span>
+        <span class="down">フォロワー <b id="sFol">132</b></span>
+      </div>
+      <div class="gauge">
+        <div class="gtrack"><div class="gfill" id="gfill"></div></div>
+        <div class="glabel"><span>炎上レベル <b id="lvnum">0</b></span><span id="lvname">未着火</span></div>
+      </div>
+    </header>
+    <div id="trends"></div>
+    <div id="timeline"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<button id="ffwd" type="button" style="display:none">⏩ 時を加速</button>
+
+<div id="fuelbar" style="display:none">
+  <div class="fttl">— 燃 料 投 下(全部逆効果です)—</div>
+  <div class="fuel">
+    <button data-fuel="hanron"><span class="em">😤</span>反論する</button>
+    <button data-fuel="iiwake"><span class="em">😅</span>言い訳する</button>
+    <button data-fuel="shazai"><span class="em">🙇</span>謝罪する</button>
+    <button data-fuel="jien"><span class="em">🥸</span>別垢で自演擁護</button>
+    <button data-fuel="bengoshi"><span class="em">⚖️</span>法的措置</button>
+  </div>
+</div>
+
+<div id="result">
+  <div class="cert">
+    <h2>炎上結果通知書</h2>
+    <div class="sub2">ボヤッター炎上観測センター 発行</div>
+    <dl class="certgrid">
+      <dt>炎上偏差値</dt><dd class="big" id="rDev">—</dd>
+      <dt>到達レベル</dt><dd id="rLv">—</dd>
+      <dt>総表示回数</dt><dd id="rImp">—</dd>
+      <dt>失ったフォロワー</dt><dd id="rFol">—</dd>
+      <dt>推定損害額</dt><dd id="rDmg">—</dd>
+      <dt>炎上継続時間</dt><dd id="rTime">—</dd>
+      <dt>投下した燃料</dt><dd id="rFuel">—</dd>
+    </dl>
+    <div class="title-row"><div class="lbl">獲 得 称 号</div><div class="val" id="rTitle">—</div></div>
+    <div class="apology">
+      <h4>自動生成された謝罪文</h4>
+      <p id="rApology"></p>
+    </div>
+  </div>
+  <div class="resbtns">
+    <button id="copyBtn" type="button">結果をコピー</button>
+    <button id="againBtn" type="button">🔥 転生してもう一度燃える</button>
+  </div>
+  <p class="resnote">※フォロワーは戻りません(シミュレーション上)</p>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $=function(s){return document.querySelector(s)};
+var reduceMotion=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------------- data ---------------- */
+var EXAMPLES=[
+ "正直、きのこの山よりたけのこの里のほうが上だと思う",
+ "映画は倍速で見る派です。時間の節約なので",
+ "ラーメンにコショウかける人の気持ちがわからない",
+ "お土産のお菓子、職場で配る意味ある?",
+ "目玉焼きに醤油かける人とは分かり合えない",
+ "正直、卵かけご飯っておいしくなくない?",
+ "電車で並ぶ意味ってなくない?先に乗ったもん勝ちでしょ",
+ "誕生日を祝う文化、そろそろ終わりにしませんか",
+ "傘って濡れるからいらなくない?",
+ "犬派とか猫派とか言ってる人、ハムスターに謝って",
+ "夏休みの宿題は8月31日にやるのが正解",
+ "みそ汁は飲み物じゃなくておかずです。異論は認めない"
+];
+
+var POWERS=[
+ {name:"弱火",max:3,heat:0.55},
+ {name:"中火",max:5,heat:0.7},
+ {name:"強火",max:7,heat:0.85},
+ {name:"業火",max:8,heat:1.0}
+];
+
+var LEVELS=[
+ {n:"未着火",  imp:120,      rt:0,      fol:132,   interval:2600},
+ {n:"くすぶり",imp:4200,     rt:38,     fol:131,   interval:2100},
+ {n:"ボヤ",    imp:38000,    rt:900,    fol:126,   interval:1700},
+ {n:"炎上",    imp:410000,   rt:12000,  fol:88,    interval:1300},
+ {n:"大炎上",  imp:2800000,  rt:96000,  fol:9,     interval:1000},
+ {n:"特大炎上",imp:19000000, rt:520000, fol:0,     interval:800},
+ {n:"国家レベル",imp:88000000,rt:2100000,fol:-47,  interval:650},
+ {n:"世界規模",imp:410000000,rt:9800000,fol:-5200, interval:520},
+ {n:"観測史上最大",imp:1280000000,rt:52000000,fol:-999999,interval:420}
+];
+
+var TRENDS=[
+ ["#今日の晩ごはん","#ねむい","#猫の写真"],
+ ["#今日の晩ごはん","#それはどうなの","#ねむい"],
+ ["#魚拓","#これはひどい","#また炎上"],
+ ["#謝罪はよ","#炎上中","#トレンド1位おめでとう"],
+ ["#まとめ入り","#開示請求","#スクショ保存推奨","#謝罪はよ"],
+ ["#スポンサー契約解除","#ワイドショー","#本人だんまり"],
+ ["#国会中継","#官房長官コメント","#日経平均下落"],
+ ["#WorldIsWatching","#JapanExplain","#UN緊急会合"],
+ ["#人類共通の話題","#教科書掲載","#宇宙から観測","#神も引用"]
+];
+
+/* name, handle, avatar char, color, verified */
+var USERS=[
+ ["通りすがりの一般人","tourisugari_777","通","#5b6470"],
+ ["限界OL","genkai_ol_23","限","#8a5bb0"],
+ ["正義の味方(自称)","seigi_100pct","義","#c0392b"],
+ ["魚拓職人","gyotaku_pro","魚","#2980b9"],
+ ["論破王(予選落ち)","ronpa_ouji","論","#d68910"],
+ ["冷笑系大学生","reisho_univ","冷","#48627a"],
+ ["2児のママ","mama_futari","マ","#c2688f"],
+ ["5年前発掘し隊","hakkutsu_tai","掘","#7d6608"],
+ ["全肯定たまご","egg_newbie","卵","#95a5a6"],
+ ["炎上ウォッチャー","enjo_watcher","👀","#34495e"],
+ ["インフルエンサーK","influencer_k","K","#e67e22",1],
+ ["まとめ速報","matome_sokuho","ま","#d00000",1],
+ ["海外ニキ","overseas_niki","🌏","#16a085"],
+ ["自称・弁護士","jisho_bengoshi","法","#2c3e50"],
+ ["未来人(3026年)","from_3026","未","#6c3483",1],
+ ["神","kami_official","神","#b7950b",1]
+];
+
+/* replies: [minLevel, userIndex, text]  {q}=quote */
+var REPLIES=[
+ [0,8,"はじめまして!いい投稿ですね!"],
+ [1,0,"ん?{q}ってどういう意味ですか?"],
+ [1,5,"うわ"],
+ [1,1,"え、これ本気で言ってる…?"],
+ [1,0,"あの、消したほうがいいと思いますよ(小声)"],
+ [2,2,"これはアウト。完全にアウト。"],
+ [2,3,"魚拓取りました📸 消しても無駄です"],
+ [2,1,"引用失礼します。信じられない。{q}だそうです。"],
+ [2,2,"私は普段こういうこと言わない人間なんですが、さすがに一言言わせてください。(1/14)"],
+ [2,5,"まだ燃えてないの逆にすごい"],
+ [2,6,"子どもに見せられません。悲しいです。"],
+ [3,10,"これが今の日本です。拡散希望。"],
+ [3,4,"それってあなたの感想ですよね?あ、感想でしたか。失礼。"],
+ [3,7,"この方、5年前にも同じようなこと言ってます(画像1/4)"],
+ [3,0,"よくわかんないけど流れてきたので叩いておきますね"],
+ [3,9,"観測開始します。現在風速:強め。"],
+ [3,5,"祭りと聞いて"],
+ [3,13,"開示請求をご検討の方はDMまで(※資格取得は来年の予定です)"],
+ [4,6,"給食センターにお勤めの伯母も怒ってました"],
+ [4,3,"アーカイブ7種類保存済み。石板にも彫りました。"],
+ [4,12,"Why is this trending in Japan?? Can someone explain the {q} situation???"],
+ [4,2,"謝罪はまだですか?もう4分待ってます。"],
+ [4,8,"ここが炎上会場ですか?パンフレットはありますか?"],
+ [5,9,"風速:観測機器が壊れました"],
+ [5,1,"バイト先のテレビにあなた映ってますよ"],
+ [5,7,"小学校の卒業文集も発掘しました。「しょうらいのゆめ:えんじょう」…え?"],
+ [5,5,"ここまで来ると逆にファンです"],
+ [6,0,"国会中継にあなたの投稿が映ってて麦茶吹いた"],
+ [6,4,"総理より先に謝罪した方がいいのでは"],
+ [6,12,"BREAKING: my grandma in Ohio is asking about {q}"],
+ [7,12,"The whole world is watching. Literally. My cat is watching."],
+ [7,9,"気象庁が炎上警報を発表しました。観測史上初です。"],
+ [7,14,"3026年から来ました。あなたの炎上、まだ教科書に載ってます。"],
+ [8,14,"1000年後の入試に出ます。「この炎上の原因を40字以内で述べよ」"],
+ [8,15,"私も引用リポストしました。"],
+ [8,12,"NASA says the fire is visible from the ISS. Congrats?"]
+];
+
+/* fuel actions */
+var FUELS={
+ hanron:{self:"は?何が悪いんですか?具体的に言ってもらえます?",
+  re:[[2,"開き直ったぞおおおお"],[5,"反省の色:無色透明"],[9,"風速が倍になりました"]],heat:9},
+ iiwake:{self:"アカウントが乗っ取られていました。本当です。",
+  re:[[3,"乗っ取り(通算1,847件目)"],[5,"その言い訳、2010年に見ました"],[4,"乗っ取り犯も同じ誤字するんですね"]],heat:9},
+ shazai:{self:"この度は不快な思いをさせてしまい申し訳ありませんでした。",
+  re:[[2,"謝罪が遅い。あと誠意が足りない。あと行間も足りない。"],[1,"コピペ謝罪きたー"],[11,"【検証】謝罪文、8割がテンプレと一致"]],heat:8},
+ jien:{self:"通りすがりの無関係な第三者ですが、この方は本当にいい人です!",
+  re:[[3,"位置情報が完全に一致してて草"],[5,"文体が本人なんよ"],[9,"アカウント作成:3分前"]],heat:12},
+ bengoshi:{self:"悪質な投稿には法的措置を検討します。",
+  re:[[13,"すみません、その依頼はお断りしました"],[5,"弁護士に断られるの初めて見た"],[2,"脅しと受け取りました。追加で燃やします。"]],heat:10}
+};
+
+var TITLES=["無風の民","くすぶりの人","町内会の話題","今日のトレンド","まとめサイトの星","お茶の間の敵","国会答弁案件","国際問題","SNS史に残る伝説"];
+var DAMAGES=["0円(誰も見ていない)","3,400円(気まずさ換算)","12万円(胃薬代含む)","870万円(想定示談金)","2億4千万円(まとめ広告収益は他人へ)","19億円(スポンサー損失※契約してない)","740億円(GDP押し下げ効果)","8,900億円(国際会議の開催費)","84兆円(文明再建費用)"];
+
+var APO_A=["この度は、私の不適切な投稿により、","このたびの一件につきまして、","地球のみなさま、ならびに宇宙のみなさま。"];
+var APO_B=["多くの皆様にご不快な思いをおかけしましたこと、深くお詫び申し上げます。","各方面に多大なるご迷惑をおかけしましたこと、心よりお詫び申し上げます。","国内外・銀河系内外の皆様にご心配をおかけしましたこと、お詫び申し上げます。"];
+var APO_C=["今後は投稿前に深呼吸を3回行い、","再発防止のため、スマートフォンを冷蔵庫で保管し、","有識者による投稿前チェック体制(母)を導入し、","今後は文字を打つ前に一度正座をして、"];
+var APO_D=["再発防止に努めてまいります。","二度とこのようなことがないよう精進いたします。","一層の自己研鑽に励む所存です。"];
+
+/* ---------------- state ---------------- */
+var st=null;
+function newState(post,powIdx){
+ return {
+  post:post, quote:post.replace(/\s+/g,"").slice(0,12),
+  pow:POWERS[powIdx], level:0, heat:0, ticks:0,
+  imp:0, rt:0, fol:132, likes:3, reps:0,
+  nextReply:0, usedReplies:{}, fuelCount:0, speed:1,
+  start:0, elapsed:0, done:false, timer:null
+ };
+}
+
+/* ---------------- helpers ---------------- */
+function fmt(n){
+ if(n<=-900000) return "測定不能";
+ var neg=n<0; n=Math.abs(Math.round(n));
+ var s;
+ if(n>=100000000) s=(n/100000000).toFixed(1)+"億";
+ else if(n>=10000) s=Math.round(n/10000)+"万";
+ else s=n.toLocaleString();
+ return (neg?"-":"")+s;
+}
+function rnd(a){return a[Math.floor(Math.random()*a.length)]}
+function esc(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}
+function shake(){if(!reduceMotion){document.body.classList.remove("shake");void document.body.offsetWidth;document.body.classList.add("shake");}}
+
+var tl=$("#timeline");
+function addNode(el){tl.insertBefore(el,tl.children[1]||null)} /* keep my post pinned on top */
+
+function tweetCard(u,text,cls){
+ var d=document.createElement("div");
+ d.className="tw"+(cls?" "+cls:"");
+ var eng=st?Math.round(Math.pow(6,st.level)+Math.random()*99):3;
+ d.innerHTML='<div class="av" style="background:'+u[3]+'">'+esc(u[2])+'</div>'+
+  '<div class="tb"><div class="th"><b>'+esc(u[0])+'</b>'+(u[4]?'<span class="vbadge">✓</span>':'')+
+  '<span class="hnd">@'+esc(u[1])+'・今</span></div>'+
+  '<div class="tx">'+text+'</div>'+
+  '<div class="tf"><span>💬 '+fmt(Math.round(eng*0.3))+'</span><span>🔁 '+fmt(eng)+'</span><span>❤️ '+fmt(Math.round(eng*0.4))+'</span></div></div>';
+ return d;
+}
+function spawnReply(){
+ var pool=[];
+ for(var i=0;i<REPLIES.length;i++){
+  var r=REPLIES[i];
+  if(r[0]<=st.level && r[0]>=Math.max(0,st.level-2) && !st.usedReplies[i]) pool.push(i);
+ }
+ if(!pool.length){for(var j=0;j<REPLIES.length;j++){if(REPLIES[j][0]<=st.level)pool.push(j)}}
+ if(!pool.length)return;
+ var idx=rnd(pool); st.usedReplies[idx]=1;
+ var r=REPLIES[idx];
+ var txt=esc(r[2]).replace("{q}",'<span class="qq">「'+esc(st.quote)+'…」</span>');
+ addNode(tweetCard(USERS[r[1]],txt));
+ st.reps++;
+}
+
+function telop(text){
+ var d=document.createElement("div");d.className="telop";
+ d.innerHTML='<span class="tag">速報</span><span>'+esc(text)+'</span>';
+ addNode(d);shake();
+}
+function matome(title){
+ var d=document.createElement("div");d.className="matome";
+ d.innerHTML='<div class="site">まとめ速報24時 — 5分前</div><h3>'+esc(title)+'</h3><div class="meta">コメント(1,024) ★お気に入り(666)</div>';
+ addNode(d);
+}
+function overseas(kicker,h,p){
+ var d=document.createElement("div");d.className="overseas";
+ d.innerHTML='<div class="kicker">'+esc(kicker)+'</div><h3>'+esc(h)+'</h3><p>'+esc(p)+'</p>';
+ addNode(d);
+}
+function seimei(title,body,from){
+ var d=document.createElement("div");d.className="seimei";
+ d.innerHTML='<h3>'+esc(title)+'</h3><p>'+esc(body)+'</p><div class="from">'+esc(from)+'</div>';
+ addNode(d);
+}
+function toast(lv){
+ var t=$("#toast");
+ t.innerHTML='🔥 炎上レベル'+lv+' 🔥<small>'+LEVELS[lv].n+'</small>';
+ t.classList.remove("show");void t.offsetWidth;t.classList.add("show");
+}
+function setTrends(lv){
+ var box=$("#trends");box.innerHTML="";
+ TRENDS[Math.min(lv,TRENDS.length-1)].forEach(function(t,i){
+  var c=document.createElement("span");c.className="chip"+(lv>=3?" hot":"");
+  c.textContent=(i+1)+"位 "+t;box.appendChild(c);
+ });
+}
+
+/* ---------------- level events ---------------- */
+function onLevel(lv){
+ toast(lv);setTrends(lv);
+ var q=st.quote;
+ if(lv===2){$("#escapeBtn").style.display="inline-block";$("#mypost .ratio").style.display="block";}
+ if(lv===3){telop("「"+q+"…」投稿がトレンド1位に");}
+ if(lv===4){
+  matome("【悲報】一般人さん、「"+q+"…」と投稿してとんでもないことになるwwwwww");
+  telop("SNSで一般人の投稿が物議 専門家「初めて見る燃え方」");
+ }
+ if(lv===5){
+  seimei("お 知 ら せ","弊社と当該投稿者様の間に契約関係は一切ございませんが、世間の皆様の空気を鑑み、念のため契約を解除させていただきます。","株式会社スポンサー(契約実績なし)");
+  telop("ワイドショー各局、明日の特集を「あの投稿」に差し替え");
+  seimei("ご 連 絡","母です。電話に出なさい。夕飯は肉じゃがです。","実家");
+ }
+ if(lv===6){
+  telop("衆院予算委員会、審議一時中断「まず例の投稿について」");
+  seimei("記 者 会 見","当該投稿についてのご質問ですが、政府としてのコメントは差し控えます。個人的には、読みました。","内閣官房長官");
+  telop("日経平均、一時800円下落 市場関係者「例の投稿を織り込んだ」");
+ }
+ if(lv===7){
+  overseas("World / Breaking","Japanese social media post sparks unprecedented global reaction","Experts say the post, roughly translated as \""+q+"...\", has achieved what diplomacy could not: uniting the entire internet against one person.");
+  telop("国連安保理、緊急会合を招集「議題:例の投稿」");
+ }
+ if(lv===8){
+  overseas("Space","Flame visible from orbit, NASA confirms","The agency stated the burn is now classified as a celestial event and has been assigned a catalog number.");
+  seimei("公 式 声 明","本件につきまして、私も引用リポストいたしました。","神");
+  telop("歴史教科書への掲載が決定「2026年・SNS大炎上」");
+  $("#escapeBtn").classList.add("pulse");
+ }
+ if(lv>=st.pow.max){
+  if(st.pow.max<8){
+   setTimeout(function(){
+    if(st.done)return;
+    matome("【朗報】例の炎上、鎮火。ネット民、次の炎上へ移動「誰の話だっけ?」");
+    telop("鎮火を確認 消防庁「うちの管轄ではない」");
+    $("#escapeBtn").classList.add("pulse");
+   },6000*(1/st.speed));
+  }
+ }
+}
+
+/* ---------------- main loop ---------------- */
+function tick(){
+ if(st.done)return;
+ var dt=120*st.speed;
+ st.elapsed+=dt;st.ticks++;
+ /* heat */
+ if(st.level<st.pow.max){
+  st.heat+=st.pow.heat*st.speed;
+  var need=(st.level+1)*38;
+  if(st.heat>=need){st.heat=0;st.level++;onLevel(st.level);}
+ }
+ /* counters ease toward level targets */
+ var t=LEVELS[Math.min(st.level,st.pow.max)];
+ st.imp+=(t.imp-st.imp)*0.025*st.speed+Math.random()*st.level*3;
+ st.rt+=(t.rt-st.rt)*0.02*st.speed;
+ st.fol+=(t.fol-st.fol)*0.03*st.speed;
+ st.likes+=(st.level>=2? -st.likes*0.01 : 0.05)*st.speed; /* likes die while RT explodes = ratio */
+ $("#sImp").textContent=fmt(st.imp);
+ $("#sRt").textContent=fmt(st.rt);
+ $("#sFol").textContent=fmt(st.fol);
+ var mp=$("#mypost");
+ if(mp){
+  mp.querySelector(".f-rep").textContent="💬 "+fmt(st.reps*Math.max(1,st.level*st.level*40));
+  mp.querySelector(".f-rt").textContent="🔁 "+fmt(st.rt);
+  mp.querySelector(".f-like").textContent="❤️ "+fmt(Math.max(1,st.likes));
+  mp.querySelector(".f-imp").textContent="📊 "+fmt(st.imp);
+ }
+ /* gauge */
+ var frac=(st.level+Math.min(1,st.heat/((st.level+1)*38)))/8;
+ $("#gfill").style.width=Math.min(100,frac*100)+"%";
+ $("#lvnum").textContent=st.level;
+ $("#lvname").textContent=LEVELS[st.level].n;
+ $("#heatbg").style.opacity=Math.min(1,st.level/6);
+ /* replies */
+ st.nextReply-=dt;
+ if(st.nextReply<=0){
+  spawnReply();
+  st.nextReply=LEVELS[st.level].interval*(0.7+Math.random()*0.6);
+ }
+ /* trim timeline */
+ while(tl.children.length>45)tl.removeChild(tl.lastChild);
+}
+
+/* ---------------- fuel ---------------- */
+function useFuel(key,btn){
+ if(st.done)return;
+ var f=FUELS[key];st.fuelCount++;
+ var me=tweetCard(["あなた","you_yourself","私","#e67e22"],esc(f.self),"selfreply");
+ addNode(me);
+ btn.disabled=true;setTimeout(function(){btn.disabled=false},5000);
+ setTimeout(function(){
+  if(st.done)return;
+  f.re.forEach(function(r,i){
+   setTimeout(function(){
+    if(st.done)return;
+    addNode(tweetCard(USERS[r[0]],esc(r[1])));
+   },400+i*700);
+  });
+ },700);
+ st.heat+=f.heat;
+ shake();
+}
+
+/* ---------------- result ---------------- */
+function finish(){
+ if(st.done)return;st.done=true;
+ clearInterval(st.timer);
+ var lv=st.level;
+ var dev=Math.min(99.9,50+lv*5.5+st.fuelCount*1.5+Math.random()*3).toFixed(1);
+ $("#rDev").textContent=dev;
+ $("#rLv").textContent="レベル"+lv+"「"+LEVELS[lv].n+"」";
+ $("#rImp").textContent=fmt(st.imp)+" 回";
+ var lost=132-Math.round(st.fol);
+ $("#rFol").textContent=(st.fol<=-900000?"全員(概念ごと消滅)":lost+" 人");
+ $("#rDmg").textContent=DAMAGES[lv];
+ var sec=Math.round(st.elapsed/1000);
+ $("#rTime").textContent=(sec>=60?Math.floor(sec/60)+"分"+(sec%60)+"秒":sec+"秒")+"(体感:10年)";
+ $("#rFuel").textContent=st.fuelCount+" 回(全部逆効果でした)";
+ $("#rTitle").textContent=TITLES[lv];
+ $("#rApology").textContent=rnd(APO_A)+rnd(APO_B)+rnd(APO_C)+rnd(APO_D);
+ $("#result").style.display="block";
+ $("#fuelbar").style.display="none";
+ $("#ffwd").style.display="none";
+}
+
+/* ---------------- embers ---------------- */
+var cvs=$("#embers"),ctx=cvs.getContext("2d"),parts=[];
+function resize(){cvs.width=innerWidth;cvs.height=innerHeight}
+addEventListener("resize",resize);resize();
+function embersLoop(){
+ requestAnimationFrame(embersLoop);
+ ctx.clearRect(0,0,cvs.width,cvs.height);
+ if(reduceMotion||!st||st.done)return;
+ var want=st.level*6;
+ while(parts.length<want)parts.push({x:Math.random()*cvs.width,y:cvs.height+10,vy:0.6+Math.random()*1.6,vx:(Math.random()-0.5)*0.6,r:1+Math.random()*2.2,a:0.5+Math.random()*0.5});
+ for(var i=parts.length-1;i>=0;i--){
+  var p=parts[i];p.y-=p.vy;p.x+=p.vx;p.a-=0.003;
+  if(p.y<-10||p.a<=0){parts.splice(i,1);continue}
+  ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);
+  ctx.fillStyle="rgba(255,"+Math.round(100+Math.random()*80)+",40,"+p.a+")";ctx.fill();
+ }
+}
+embersLoop();
+
+/* ---------------- wiring ---------------- */
+$("#gachaBtn").addEventListener("click",function(){
+ var d=$("#draft");d.value=rnd(EXAMPLES);$("#ccount").textContent=d.value.length;
+});
+$("#draft").addEventListener("input",function(){$("#ccount").textContent=this.value.length});
+
+$("#postBtn").addEventListener("click",function(){
+ var text=$("#draft").value.trim();
+ if(!text){text=rnd(EXAMPLES);}
+ var powIdx=+document.querySelector('input[name="pow"]:checked').value;
+ st=newState(text,powIdx);
+ $("#setup").style.display="none";
+ $("#app").style.display="block";
+ $("#fuelbar").style.display="block";
+ $("#ffwd").style.display="block";
+ $("#result").style.display="none";
+ $("#escapeBtn").style.display="none";
+ $("#escapeBtn").classList.remove("pulse");
+ tl.innerHTML="";
+ var mine=tweetCard(["あなた","you_yourself","私","#e67e22"],esc(text),"mine");
+ mine.id="mypost";
+ mine.querySelector(".tf").innerHTML='<span class="f-rep bad">💬 0</span><span class="f-rt">🔁 0</span><span class="f-like">❤️ 3</span><span class="f-imp">📊 0</span>';
+ var ratio=document.createElement("div");ratio.className="ratio";ratio.textContent="⚠️ リプライ数がいいね数を大きく上回っています(通称:レシオ)";
+ mine.querySelector(".tb").appendChild(ratio);
+ tl.appendChild(mine);
+ setTrends(0);
+ st.nextReply=1500;
+ st.timer=setInterval(tick,120);
+ scrollTo(0,0);
+});
+
+$("#ffwd").addEventListener("click",function(){
+ st.speed=st.speed===1?3:1;
+ this.classList.toggle("on",st.speed===3);
+});
+$("#escapeBtn").addEventListener("click",finish);
+document.querySelectorAll(".fuel button").forEach(function(b){
+ b.addEventListener("click",function(){useFuel(b.dataset.fuel,b)});
+});
+$("#againBtn").addEventListener("click",function(){
+ $("#result").style.display="none";
+ $("#app").style.display="none";
+ $("#setup").style.display="flex";
+ $("#draft").value="";$("#ccount").textContent=0;
+ st=null;parts=[];
+ $("#heatbg").style.opacity=0;
+ scrollTo(0,0);
+});
+$("#copyBtn").addEventListener("click",function(){
+ var text="🔥炎上シミュレーター「ボヤッター」で炎上偏差値"+$("#rDev").textContent+"を記録しました。称号:「"+$("#rTitle").textContent+"」 #ボヤッター";
+ (navigator.clipboard?navigator.clipboard.writeText(text):Promise.reject()).then(function(){
+  $("#copyBtn").textContent="コピーしました";
+  setTimeout(function(){$("#copyBtn").textContent="結果をコピー"},1500);
+ }).catch(function(){prompt("コピーしてください",text)});
+});
+})();
+</script>
+<!-- ARTIFACT-END -->
+</body>
+</html>
