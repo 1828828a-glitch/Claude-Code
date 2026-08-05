@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>鬼ヶ島たんけん — Onigashima 3D</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #06121f; }
+  body { font-family: "Hiragino Maru Gothic ProN", "Yu Gothic", "Meiryo", sans-serif; }
+  #app { position: fixed; inset: 0; }
+  canvas { display: block; }
+
+  /* ---------- Title screen ---------- */
+  #title {
+    position: fixed; inset: 0; z-index: 20;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at 50% 35%, #2b3a67 0%, #101b33 55%, #060b18 100%);
+    color: #fff; text-align: center; transition: opacity .6s ease;
+  }
+  #title.hidden { opacity: 0; pointer-events: none; }
+  #title h1 {
+    font-size: clamp(3rem, 10vw, 6.5rem); letter-spacing: .12em;
+    color: #ffd97a; text-shadow: 0 0 24px rgba(255, 120, 60, .55), 0 4px 0 #7a2f12;
+    margin-bottom: .2em;
+  }
+  #title p.sub { font-size: clamp(.9rem, 2.5vw, 1.2rem); color: #cfe3ff; opacity: .85; margin-bottom: 2.2em; }
+  #startBtn {
+    font-size: clamp(1.1rem, 3vw, 1.5rem); font-family: inherit;
+    padding: .7em 2.6em; border-radius: 999px; border: 2px solid #ffd97a;
+    background: linear-gradient(180deg, #d43a2f, #8f1f18); color: #ffe9c2;
+    cursor: pointer; letter-spacing: .2em; box-shadow: 0 6px 18px rgba(0,0,0,.5);
+    transition: transform .15s ease;
+  }
+  #startBtn:hover { transform: scale(1.06); }
+  #title .help {
+    margin-top: 2.4em; font-size: clamp(.75rem, 2vw, .95rem); color: #9fb4d8; line-height: 1.9;
+  }
+  #title .help b { color: #ffd97a; font-weight: normal; }
+
+  /* ---------- HUD ---------- */
+  #hud {
+    position: fixed; inset: 0; z-index: 10; pointer-events: none;
+    opacity: 0; transition: opacity .8s ease; color: #fff;
+  }
+  #hud.on { opacity: 1; }
+  .badge {
+    position: absolute; top: 14px; display: flex; gap: 10px; align-items: center;
+    background: rgba(10, 16, 30, .55); border: 1px solid rgba(255, 217, 122, .4);
+    border-radius: 12px; padding: 8px 14px; backdrop-filter: blur(4px);
+    font-size: clamp(.85rem, 2.2vw, 1.05rem);
+  }
+  #scoreOni { left: 14px; }
+  #scoreGem { left: 14px; top: 62px; }
+  .badge .num { color: #ffd97a; font-size: 1.25em; min-width: 1.4em; text-align: right; }
+  #dayBtn {
+    position: absolute; top: 14px; right: 14px; pointer-events: auto;
+    background: rgba(10, 16, 30, .55); border: 1px solid rgba(255,217,122,.4);
+    color: #ffe9c2; border-radius: 12px; padding: 8px 16px; cursor: pointer;
+    font-family: inherit; font-size: clamp(.85rem, 2.2vw, 1rem); backdrop-filter: blur(4px);
+  }
+  #msg {
+    position: absolute; left: 50%; top: 18%; transform: translateX(-50%);
+    font-size: clamp(1.2rem, 4vw, 2rem); color: #ffd97a;
+    text-shadow: 0 2px 10px rgba(0,0,0,.7); opacity: 0; transition: opacity .4s;
+    white-space: nowrap;
+  }
+  #keys {
+    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+    font-size: clamp(.7rem, 1.8vw, .85rem); color: rgba(255,255,255,.65);
+    background: rgba(10,16,30,.4); padding: 6px 14px; border-radius: 10px;
+  }
+
+  /* ---------- Touch controls ---------- */
+  #stick, #atkBtn { display: none; position: fixed; z-index: 15; pointer-events: auto; }
+  body.touch #stick, body.touch #atkBtn { display: block; }
+  body.touch #keys { display: none; }
+  #stick {
+    left: 26px; bottom: 26px; width: 120px; height: 120px; border-radius: 50%;
+    background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.25);
+  }
+  #stickKnob {
+    position: absolute; left: 50%; top: 50%; width: 52px; height: 52px;
+    border-radius: 50%; background: rgba(255,217,122,.5);
+    transform: translate(-50%, -50%);
+  }
+  #atkBtn {
+    right: 30px; bottom: 40px; width: 84px; height: 84px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #e0564a, #8f1f18);
+    border: 2px solid #ffd97a; color: #ffe9c2; font-size: 1.5rem;
+    display: none; align-items: center; justify-content: center; user-select: none;
+  }
+  body.touch #atkBtn { display: flex; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="hud">
+  <div class="badge" id="scoreOni">👹 鬼退治 <span class="num" id="oniNum">0</span>/6</div>
+  <div class="badge" id="scoreGem">🍡 きびだんご <span class="num" id="gemNum">0</span>/8</div>
+  <button id="dayBtn">🌙 夜にする</button>
+  <div id="msg"></div>
+  <div id="keys">WASD / 矢印キー: 移動　マウスドラッグ: カメラ　Shift: ダッシュ　Space / クリック: 攻撃</div>
+</div>
+
+<div id="stick"><div id="stickKnob"></div></div>
+<div id="atkBtn">⚔️</div>
+
+<div id="title">
+  <h1>鬼ヶ島</h1>
+  <p class="sub">〜 リアルタイム 3D たんけん 〜</p>
+  <button id="startBtn">上 陸 す る</button>
+  <div class="help">
+    <b>WASD</b> で移動 / <b>マウスドラッグ</b> でカメラ / <b>Space・クリック</b> で攻撃<br>
+    島にひそむ <b>鬼を6匹</b> 退治して、<b>きびだんごを8個</b> あつめよう!
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js" } }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ============================================================
+   基本セットアップ
+============================================================ */
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+app.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 800);
+
+const DAY = {
+  sky: new THREE.Color(0x7ec8e3), fog: new THREE.Color(0xaed9ea),
+  sun: 1.25, amb: 0.55, lantern: 0.0, sunColor: new THREE.Color(0xfff2d0),
+};
+const NIGHT = {
+  sky: new THREE.Color(0x0a1230), fog: new THREE.Color(0x101c3a),
+  sun: 0.12, amb: 0.18, lantern: 1.6, sunColor: new THREE.Color(0x8fb0ff),
+};
+let dayBlend = 0;            // 0 = 昼, 1 = 夜
+let dayTarget = 0;
+
+scene.background = DAY.sky.clone();
+scene.fog = new THREE.Fog(DAY.fog.clone(), 60, 320);
+
+const sun = new THREE.DirectionalLight(0xfff2d0, DAY.sun);
+sun.position.set(60, 90, 40);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -110; sun.shadow.camera.right = 110;
+sun.shadow.camera.top = 110; sun.shadow.camera.bottom = -110;
+sun.shadow.camera.far = 300;
+scene.add(sun);
+const ambient = new THREE.AmbientLight(0xcfe8ff, DAY.amb);
+scene.add(ambient);
+const moon = new THREE.Mesh(
+  new THREE.SphereGeometry(6, 16, 16),
+  new THREE.MeshBasicMaterial({ color: 0xf5f3e0 })
+);
+moon.position.set(-140, 120, -160);
+scene.add(moon);
+
+/* ============================================================
+   地形 (プロシージャル鬼ヶ島)
+============================================================ */
+function hash(x, z) {
+  const s = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
+  return s - Math.floor(s);
+}
+function smoothNoise(x, z) {
+  const xi = Math.floor(x), zi = Math.floor(z);
+  const xf = x - xi, zf = z - zi;
+  const u = xf * xf * (3 - 2 * xf), v = zf * zf * (3 - 2 * zf);
+  const a = hash(xi, zi), b = hash(xi + 1, zi);
+  const c = hash(xi, zi + 1), d = hash(xi + 1, zi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+function fbm(x, z) {
+  let val = 0, amp = 1, freq = 1, norm = 0;
+  for (let i = 0; i < 4; i++) {
+    val += smoothNoise(x * freq, z * freq) * amp;
+    norm += amp; amp *= 0.5; freq *= 2.1;
+  }
+  return val / norm;
+}
+// 島の標高。中央の岩山 + なだらかな丘 + 浜辺。海面は y=0。
+function islandHeight(x, z) {
+  const d = Math.sqrt(x * x + z * z);
+  const falloff = Math.max(0, 1 - Math.pow(d / 95, 2.2));   // 島の輪郭
+  const base = fbm(x * 0.02 + 10, z * 0.02 + 10) * 10;      // 丘
+  const mountain = Math.max(0, 1 - d / 34) * 26;            // 中央の岩山
+  const h = (base + mountain) * falloff - 1.2;
+  return h;
+}
+
+const TERRAIN_SIZE = 240, TERRAIN_SEG = 150;
+const terrainGeo = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SEG, TERRAIN_SEG);
+terrainGeo.rotateX(-Math.PI / 2);
+{
+  const pos = terrainGeo.attributes.position;
+  const colors = new Float32Array(pos.count * 3);
+  const sand = new THREE.Color(0xe8d8a0), grass = new THREE.Color(0x5da44a);
+  const rock = new THREE.Color(0x8a7f78), dark = new THREE.Color(0x4c7a3a);
+  const tmp = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), z = pos.getZ(i);
+    const h = islandHeight(x, z);
+    pos.setY(i, h);
+    if (h < 0.6) tmp.copy(sand);
+    else if (h < 2.2) tmp.copy(sand).lerp(grass, (h - 0.6) / 1.6);
+    else if (h < 9) tmp.copy(grass).lerp(dark, (h - 2.2) / 6.8);
+    else tmp.copy(dark).lerp(rock, Math.min(1, (h - 9) / 8));
+    tmp.offsetHSL(0, 0, (hash(x * 3.7, z * 3.7) - 0.5) * 0.05);
+    colors[i * 3] = tmp.r; colors[i * 3 + 1] = tmp.g; colors[i * 3 + 2] = tmp.b;
+  }
+  terrainGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  terrainGeo.computeVertexNormals();
+}
+const terrain = new THREE.Mesh(
+  terrainGeo,
+  new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 })
+);
+terrain.receiveShadow = true;
+scene.add(terrain);
+
+/* ============================================================
+   海 (揺れる波)
+============================================================ */
+const seaGeo = new THREE.PlaneGeometry(900, 900, 72, 72);
+seaGeo.rotateX(-Math.PI / 2);
+const seaBase = seaGeo.attributes.position.array.slice();
+const sea = new THREE.Mesh(
+  seaGeo,
+  new THREE.MeshStandardMaterial({
+    color: 0x1b6ea8, transparent: true, opacity: 0.86,
+    roughness: 0.35, metalness: 0.1,
+  })
+);
+sea.position.y = 0;
+scene.add(sea);
+
+function updateSea(t) {
+  const pos = seaGeo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = seaBase[i * 3], z = seaBase[i * 3 + 2];
+    pos.setY(i, Math.sin(x * 0.07 + t * 1.4) * 0.45 + Math.cos(z * 0.09 + t * 1.1) * 0.4);
+  }
+  pos.needsUpdate = true;
+  seaGeo.computeVertexNormals();
+}
+
+/* ============================================================
+   小物ビルダー
+============================================================ */
+const M = (color, opt = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...opt });
+
+function groundAt(x, z) { return islandHeight(x, z); }
+
+function placeOnGround(obj, x, z, yOff = 0) {
+  obj.position.set(x, groundAt(x, z) + yOff, z);
+  scene.add(obj);
+  return obj;
+}
+
+function makeTree(scale = 1) {
+  const g = new THREE.Group();
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25 * scale, 0.4 * scale, 2.4 * scale, 6), M(0x6b4a2f));
+  trunk.position.y = 1.2 * scale; trunk.castShadow = true;
+  g.add(trunk);
+  const leafMat = M(0x2f7a3a);
+  for (let i = 0; i < 3; i++) {
+    const cone = new THREE.Mesh(new THREE.ConeGeometry((1.8 - i * 0.45) * scale, 1.7 * scale, 7), leafMat);
+    cone.position.y = (2.4 + i * 1.1) * scale;
+    cone.castShadow = true;
+    g.add(cone);
+  }
+  return g;
+}
+
+function makeSakura(scale = 1) {
+  const g = new THREE.Group();
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22 * scale, 0.35 * scale, 2 * scale, 6), M(0x5c4033));
+  trunk.position.y = scale; trunk.castShadow = true;
+  g.add(trunk);
+  const blossom = M(0xf5a9c4);
+  for (let i = 0; i < 4; i++) {
+    const s = new THREE.Mesh(new THREE.SphereGeometry((0.9 + hash(i, scale) * 0.5) * scale, 8, 6), blossom);
+    s.position.set((hash(i, 1) - 0.5) * 1.6 * scale, (2.1 + hash(i, 2) * 0.9) * scale, (hash(i, 3) - 0.5) * 1.6 * scale);
+    s.castShadow = true;
+    g.add(s);
+  }
+  return g;
+}
+
+function makeRock(scale = 1) {
+  const geo = new THREE.DodecahedronGeometry(scale, 0);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    pos.setXYZ(i,
+      pos.getX(i) * (0.8 + hash(i, 1) * 0.5),
+      pos.getY(i) * (0.6 + hash(i, 2) * 0.4),
+      pos.getZ(i) * (0.8 + hash(i, 3) * 0.5));
+  }
+  geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, M(0x7d7468));
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+
+function makeTorii(scale = 1) {
+  const g = new THREE.Group();
+  const red = M(0xc0392b, { roughness: 0.6 });
+  const black = M(0x222222);
+  const pillarGeo = new THREE.CylinderGeometry(0.35 * scale, 0.42 * scale, 6 * scale, 10);
+  for (const sx of [-1, 1]) {
+    const p = new THREE.Mesh(pillarGeo, red);
+    p.position.set(sx * 2.6 * scale, 3 * scale, 0);
+    p.castShadow = true;
+    g.add(p);
+  }
+  const top = new THREE.Mesh(new THREE.BoxGeometry(8.2 * scale, 0.55 * scale, 0.9 * scale), red);
+  top.position.y = 6.1 * scale; top.castShadow = true;
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(8.8 * scale, 0.35 * scale, 1.1 * scale), black);
+  cap.position.y = 6.55 * scale; cap.castShadow = true;
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(6.4 * scale, 0.4 * scale, 0.6 * scale), red);
+  beam.position.y = 4.9 * scale; beam.castShadow = true;
+  g.add(top, cap, beam);
+  return g;
+}
+
+function makeGate() {
+  // 鬼の砦の門
+  const g = new THREE.Group();
+  const wood = M(0x4a3524), dark = M(0x2c2018);
+  for (const sx of [-1, 1]) {
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(3, 9, 3), wood);
+    tower.position.set(sx * 5.5, 4.5, 0); tower.castShadow = true;
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(2.9, 2, 4), dark);
+    roof.position.set(sx * 5.5, 10, 0); roof.rotation.y = Math.PI / 4; roof.castShadow = true;
+    g.add(tower, roof);
+  }
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(14, 1.4, 2.4), wood);
+  lintel.position.y = 8; lintel.castShadow = true;
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(15.5, 0.8, 3.4), dark);
+  roof.position.y = 9; roof.castShadow = true;
+  g.add(lintel, roof);
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.4, 0.2), M(0xd9c9a0));
+  sign.position.set(0, 8, 1.35);
+  g.add(sign);
+  return g;
+}
+
+const lanternLights = [];
+function makeLantern() {
+  const g = new THREE.Group();
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 2.6, 6), M(0x3a2c1e));
+  pole.position.y = 1.3;
+  const box = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.9, 0.7),
+    new THREE.MeshStandardMaterial({ color: 0xffd98a, emissive: 0xff9a3c, emissiveIntensity: 0.0 }));
+  box.position.y = 2.9;
+  const cap = new THREE.Mesh(new THREE.ConeGeometry(0.65, 0.5, 4), M(0x222222));
+  cap.position.y = 3.6; cap.rotation.y = Math.PI / 4;
+  const light = new THREE.PointLight(0xff9a3c, 0, 16, 2);
+  light.position.y = 2.9;
+  g.add(pole, box, cap, light);
+  lanternLights.push({ light, box });
+  return g;
+}
+
+/* ============================================================
+   風景の配置
+============================================================ */
+placeOnGround(makeTorii(1.4), 0, 74).rotation.y = 0;      // 上陸地点の鳥居
+placeOnGround(makeGate(), 0, 6);                          // 山のふもとの砦門
+
+// 桟橋
+{
+  const pier = new THREE.Group();
+  const deckMat = M(0x8a6b45);
+  for (let i = 0; i < 7; i++) {
+    const plank = new THREE.Mesh(new THREE.BoxGeometry(3, 0.25, 1.7), deckMat);
+    plank.position.set(0, 0.8, 82 + i * 1.9);
+    plank.castShadow = true;
+    pier.add(plank);
+  }
+  scene.add(pier);
+}
+
+// 木・岩・提灯をばらまく
+const obstacles = [];   // {x, z, r} 簡易コリジョン
+for (let i = 0; i < 42; i++) {
+  const a = hash(i, 7) * Math.PI * 2, r = 24 + hash(i, 13) * 58;
+  const x = Math.cos(a) * r, z = Math.sin(a) * r;
+  const h = groundAt(x, z);
+  if (h < 1 || h > 12) continue;
+  const tree = hash(i, 21) < 0.3 ? makeSakura(0.9 + hash(i, 5)) : makeTree(0.8 + hash(i, 5) * 0.7);
+  placeOnGround(tree, x, z);
+  obstacles.push({ x, z, r: 1.1 });
+}
+for (let i = 0; i < 26; i++) {
+  const a = hash(i + 99, 3) * Math.PI * 2, r = 12 + hash(i + 99, 11) * 70;
+  const x = Math.cos(a) * r, z = Math.sin(a) * r;
+  const h = groundAt(x, z);
+  if (h < 0.3) continue;
+  const rock = makeRock(0.7 + hash(i, 17) * 1.6);
+  placeOnGround(rock, x, z, 0.3);
+  obstacles.push({ x, z, r: 1.2 });
+}
+const lanternSpots = [[4, 66], [-4, 66], [4, 40], [-4, 40], [5, 14], [-5, 14]];
+for (const [x, z] of lanternSpots) placeOnGround(makeLantern(), x, z);
+
+// 焚き火 + パーティクル
+const firePos = new THREE.Vector3(10, 0, 22);
+firePos.y = groundAt(firePos.x, firePos.z);
+{
+  const logs = new THREE.Group();
+  for (let i = 0; i < 3; i++) {
+    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 1.6, 6), M(0x4a3020));
+    log.rotation.z = Math.PI / 2; log.rotation.y = i * Math.PI / 3;
+    log.position.y = 0.18;
+    logs.add(log);
+  }
+  logs.position.copy(firePos);
+  scene.add(logs);
+}
+const fireLight = new THREE.PointLight(0xff6a2a, 1.4, 20, 2);
+fireLight.position.copy(firePos).y += 1.2;
+scene.add(fireLight);
+
+const EMBERS = 60;
+const emberGeo = new THREE.BufferGeometry();
+const emberPos = new Float32Array(EMBERS * 3);
+const emberLife = new Float32Array(EMBERS);
+for (let i = 0; i < EMBERS; i++) emberLife[i] = Math.random();
+emberGeo.setAttribute('position', new THREE.BufferAttribute(emberPos, 3));
+const embers = new THREE.Points(emberGeo, new THREE.PointsMaterial({
+  color: 0xff8c3a, size: 0.35, transparent: true, opacity: 0.9,
+  blending: THREE.AdditiveBlending, depthWrite: false,
+}));
+scene.add(embers);
+function updateEmbers(dt) {
+  for (let i = 0; i < EMBERS; i++) {
+    emberLife[i] += dt * (0.4 + hash(i, 2) * 0.5);
+    if (emberLife[i] > 1) emberLife[i] = 0;
+    const l = emberLife[i];
+    emberPos[i * 3] = firePos.x + Math.sin(i * 1.7 + l * 9) * 0.5 * (1 - l);
+    emberPos[i * 3 + 1] = firePos.y + 0.3 + l * 4.2;
+    emberPos[i * 3 + 2] = firePos.z + Math.cos(i * 2.3 + l * 7) * 0.5 * (1 - l);
+  }
+  emberGeo.attributes.position.needsUpdate = true;
+  embers.material.opacity = 0.5 + 0.4 * Math.sin(performance.now() * 0.01);
+}
+
+/* ============================================================
+   プレイヤー (桃太郎風)
+============================================================ */
+function makeHero() {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 1.1, 10), M(0x2e6fb7));
+  body.position.y = 1.0; body.castShadow = true;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 10), M(0xf4c99b));
+  head.position.y = 1.95; head.castShadow = true;
+  const band = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.07, 8, 16), M(0xffffff));
+  band.position.y = 2.05; band.rotation.x = Math.PI / 2;
+  const knot = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), M(0xffffff));
+  knot.position.set(0, 2.05, -0.42);
+  const legMat = M(0x424242);
+  const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.5, 6), legMat);
+  legL.position.set(-0.2, 0.25, 0);
+  const legR = legL.clone(); legR.position.x = 0.2;
+  // 刀
+  const sword = new THREE.Group();
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.3, 0.16), M(0xd9dee3, { metalness: 0.7, roughness: 0.25 }));
+  blade.position.y = 0.75;
+  const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.35, 6), M(0x7a2f12));
+  sword.add(blade, hilt);
+  sword.position.set(0.62, 1.25, 0.1);
+  sword.rotation.z = -0.3;
+  g.add(body, head, band, knot, legL, legR, sword);
+  g.userData.sword = sword;
+  return g;
+}
+const hero = makeHero();
+hero.position.set(0, groundAt(0, 78), 78);
+scene.add(hero);
+
+/* ============================================================
+   鬼
+============================================================ */
+const ONI_TOTAL = 6;
+const onis = [];
+function makeOni(color) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.62, 0.9, 6, 12), M(color));
+  body.position.y = 1.35; body.castShadow = true;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 10), M(color));
+  head.position.y = 2.6; head.castShadow = true;
+  const hornMat = M(0xf2e6c9);
+  for (const sx of [-1, 1]) {
+    const horn = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.5, 6), hornMat);
+    horn.position.set(sx * 0.26, 3.12, 0);
+    horn.rotation.z = -sx * 0.25;
+    g.add(horn);
+  }
+  const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffe25e, emissive: 0xffb300, emissiveIntensity: 0.8 });
+  for (const sx of [-1, 1]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), eyeMat);
+    eye.position.set(sx * 0.2, 2.68, 0.48);
+    g.add(eye);
+  }
+  const pants = new THREE.Mesh(new THREE.CylinderGeometry(0.66, 0.72, 0.5, 10), M(0xe8c02a));
+  pants.position.y = 0.85;
+  const club = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.3, 1.7, 8), M(0x5c4632));
+  club.position.set(0.85, 1.5, 0);
+  club.rotation.z = -0.5;
+  club.castShadow = true;
+  g.add(body, head, pants, club);
+  return g;
+}
+function spawnOni(i) {
+  const a = (i / ONI_TOTAL) * Math.PI * 2 + 0.4;
+  const r = 26 + hash(i, 31) * 34;
+  const x = Math.cos(a) * r, z = Math.sin(a) * r;
+  const mesh = makeOni(i % 2 === 0 ? 0xc0392b : 0x2e6fb7);
+  mesh.position.set(x, groundAt(x, z), z);
+  scene.add(mesh);
+  onis.push({
+    mesh, alive: true, speed: 2.2 + hash(i, 41) * 1.2,
+    target: new THREE.Vector2(x, z), wait: 0, bob: hash(i, 51) * 10,
+  });
+}
+for (let i = 0; i < ONI_TOTAL; i++) spawnOni(i);
+
+/* ============================================================
+   きびだんご (収集アイテム)
+============================================================ */
+const GEM_TOTAL = 8;
+const gems = [];
+{
+  const spots = [
+    [18, 60], [-24, 48], [40, 20], [-42, -8], [22, -34],
+    [-14, -46], [0, 30], [48, -28],
+  ];
+  for (let i = 0; i < GEM_TOTAL; i++) {
+    const [x, z] = spots[i];
+    const g = new THREE.Group();
+    const stickMat = M(0xd9c9a0);
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5, 6), stickMat);
+    stick.rotation.z = Math.PI / 2;
+    const colors = [0xf5a9c4, 0xffffff, 0x9fd8a0];
+    for (let j = 0; j < 3; j++) {
+      const ball = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8),
+        new THREE.MeshStandardMaterial({ color: colors[j], emissive: colors[j], emissiveIntensity: 0.25 }));
+      ball.position.x = (j - 1) * 0.5;
+      g.add(ball);
+    }
+    g.add(stick);
+    g.position.set(x, groundAt(x, z) + 1.4, z);
+    scene.add(g);
+    gems.push({ mesh: g, taken: false, baseY: g.position.y });
+  }
+}
+
+/* ============================================================
+   撃破パーティクル
+============================================================ */
+const bursts = [];
+function burst(pos, color) {
+  const n = 26;
+  const geo = new THREE.BufferGeometry();
+  const p = new Float32Array(n * 3);
+  const vel = [];
+  for (let i = 0; i < n; i++) {
+    p[i * 3] = pos.x; p[i * 3 + 1] = pos.y + 1.5; p[i * 3 + 2] = pos.z;
+    vel.push(new THREE.Vector3(
+      (Math.random() - 0.5) * 7, Math.random() * 7 + 2, (Math.random() - 0.5) * 7));
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({
+    color, size: 0.5, transparent: true, opacity: 1,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  }));
+  scene.add(pts);
+  bursts.push({ pts, vel, life: 1 });
+}
+function updateBursts(dt) {
+  for (let i = bursts.length - 1; i >= 0; i--) {
+    const b = bursts[i];
+    b.life -= dt * 1.4;
+    const pos = b.pts.geometry.attributes.position;
+    for (let j = 0; j < b.vel.length; j++) {
+      b.vel[j].y -= 12 * dt;
+      pos.setXYZ(j,
+        pos.getX(j) + b.vel[j].x * dt,
+        pos.getY(j) + b.vel[j].y * dt,
+        pos.getZ(j) + b.vel[j].z * dt);
+    }
+    pos.needsUpdate = true;
+    b.pts.material.opacity = Math.max(0, b.life);
+    if (b.life <= 0) { scene.remove(b.pts); b.pts.geometry.dispose(); bursts.splice(i, 1); }
+  }
+}
+
+/* ============================================================
+   サウンド (WebAudio 手作り効果音)
+============================================================ */
+let audioCtx = null;
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function playTone(freq, dur, type = 'sine', vol = 0.2, slide = 0) {
+  if (!audioCtx) return;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = type; o.frequency.value = freq;
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), audioCtx.currentTime + dur);
+  g.gain.setValueAtTime(vol, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  o.connect(g).connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + dur);
+}
+const sfx = {
+  swing: () => playTone(220, 0.12, 'sawtooth', 0.12, -140),
+  hit: () => { playTone(90, 0.25, 'square', 0.25, -50); playTone(50, 0.3, 'sine', 0.3, -20); },
+  collect: () => { playTone(660, 0.12, 'sine', 0.2); setTimeout(() => playTone(880, 0.18, 'sine', 0.2), 90); },
+  clear: () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => playTone(f, 0.3, 'triangle', 0.22), i * 160)),
+};
+
+/* ============================================================
+   入力
+============================================================ */
+const keys = {};
+addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) attack(); }
+});
+addEventListener('keyup', e => { keys[e.code] = false; });
+
+let camYaw = 0, camPitch = 0.35;
+let dragging = false, lastX = 0, lastY = 0;
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'touch') return;
+  dragging = true; lastX = e.clientX; lastY = e.clientY;
+});
+addEventListener('pointermove', e => {
+  if (!dragging) return;
+  camYaw -= (e.clientX - lastX) * 0.005;
+  camPitch = THREE.MathUtils.clamp(camPitch + (e.clientY - lastY) * 0.004, -0.1, 1.2);
+  lastX = e.clientX; lastY = e.clientY;
+});
+addEventListener('pointerup', () => { dragging = false; });
+
+// クリック攻撃 (ドラッグと区別)
+let downTime = 0;
+renderer.domElement.addEventListener('pointerdown', () => { downTime = performance.now(); });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (e.pointerType === 'touch') return;
+  if (performance.now() - downTime < 200) attack();
+});
+
+// ---- タッチ操作 ----
+const isTouch = matchMedia('(pointer: coarse)').matches;
+if (isTouch) document.body.classList.add('touch');
+const stick = document.getElementById('stick');
+const knob = document.getElementById('stickKnob');
+let stickVec = { x: 0, y: 0 }, stickId = null;
+stick.addEventListener('touchstart', e => { stickId = e.changedTouches[0].identifier; }, { passive: true });
+addEventListener('touchmove', e => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === stickId) {
+      const r = stick.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      let dx = (t.clientX - cx) / (r.width / 2), dy = (t.clientY - cy) / (r.height / 2);
+      const len = Math.hypot(dx, dy);
+      if (len > 1) { dx /= len; dy /= len; }
+      stickVec = { x: dx, y: dy };
+      knob.style.transform = `translate(calc(-50% + ${dx * 34}px), calc(-50% + ${dy * 34}px))`;
+    } else if (touchCamId === t.identifier) {
+      camYaw -= (t.clientX - touchCamX) * 0.006;
+      camPitch = THREE.MathUtils.clamp(camPitch + (t.clientY - touchCamY) * 0.005, -0.1, 1.2);
+      touchCamX = t.clientX; touchCamY = t.clientY;
+    }
+  }
+}, { passive: true });
+addEventListener('touchend', e => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === stickId) {
+      stickId = null; stickVec = { x: 0, y: 0 };
+      knob.style.transform = 'translate(-50%, -50%)';
+    }
+    if (t.identifier === touchCamId) touchCamId = null;
+  }
+});
+let touchCamId = null, touchCamX = 0, touchCamY = 0;
+renderer.domElement.addEventListener('touchstart', e => {
+  const t = e.changedTouches[0];
+  if (touchCamId === null && t.identifier !== stickId) {
+    touchCamId = t.identifier; touchCamX = t.clientX; touchCamY = t.clientY;
+  }
+}, { passive: true });
+document.getElementById('atkBtn').addEventListener('touchstart', e => { e.preventDefault(); attack(); });
+
+/* ============================================================
+   ゲーム状態 & HUD
+============================================================ */
+let started = false, cleared = false;
+let oniCount = 0, gemCount = 0;
+const oniNum = document.getElementById('oniNum');
+const gemNum = document.getElementById('gemNum');
+const msgEl = document.getElementById('msg');
+let msgTimer = null;
+function showMsg(text, ms = 2200) {
+  msgEl.textContent = text;
+  msgEl.style.opacity = 1;
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => { msgEl.style.opacity = 0; }, ms);
+}
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  initAudio();
+  document.getElementById('title').classList.add('hidden');
+  document.getElementById('hud').classList.add('on');
+  started = true;
+  showMsg('鬼ヶ島に 上陸した!', 2600);
+});
+
+const dayBtn = document.getElementById('dayBtn');
+dayBtn.addEventListener('click', () => {
+  dayTarget = dayTarget === 0 ? 1 : 0;
+  dayBtn.textContent = dayTarget === 1 ? '☀️ 昼にする' : '🌙 夜にする';
+});
+
+/* ============================================================
+   攻撃
+============================================================ */
+let attackCd = 0, swingT = -1;
+function attack() {
+  if (!started || attackCd > 0) return;
+  attackCd = 0.45; swingT = 0;
+  sfx.swing();
+  for (const o of onis) {
+    if (!o.alive) continue;
+    const d = o.mesh.position.distanceTo(hero.position);
+    if (d < 3.4) {
+      o.alive = false;
+      burst(o.mesh.position, 0xffc23c);
+      scene.remove(o.mesh);
+      oniCount++;
+      oniNum.textContent = oniCount;
+      sfx.hit();
+      showMsg(oniCount >= ONI_TOTAL ? '鬼を ぜんぶ 退治した!!' : `鬼を退治! のこり ${ONI_TOTAL - oniCount} 匹`);
+      checkClear();
+      break;
+    }
+  }
+}
+function checkClear() {
+  if (!cleared && oniCount >= ONI_TOTAL && gemCount >= GEM_TOTAL) {
+    cleared = true;
+    sfx.clear();
+    setTimeout(() => showMsg('🎉 鬼ヶ島 かんぜん制覇! おめでとう! 🎉', 8000), 800);
+  }
+}
+
+/* ============================================================
+   メインループ
+============================================================ */
+const clock = new THREE.Clock();
+const heroVel = new THREE.Vector3();
+
+function updateHero(dt) {
+  let ix = 0, iz = 0;
+  if (keys.KeyW || keys.ArrowUp) iz -= 1;
+  if (keys.KeyS || keys.ArrowDown) iz += 1;
+  if (keys.KeyA || keys.ArrowLeft) ix -= 1;
+  if (keys.KeyD || keys.ArrowRight) ix += 1;
+  ix += stickVec.x; iz += stickVec.y;
+  const len = Math.hypot(ix, iz);
+  const running = keys.ShiftLeft || keys.ShiftRight;
+  const speed = running ? 13 : 7.5;
+
+  if (len > 0.01) {
+    const nx = ix / Math.max(1, len), nz = iz / Math.max(1, len);
+    // カメラ基準の移動方向
+    const sin = Math.sin(camYaw), cos = Math.cos(camYaw);
+    const dx = nx * cos + nz * sin;
+    const dz = nz * cos - nx * sin;
+    heroVel.set(dx * speed, 0, dz * speed);
+    hero.rotation.y = Math.atan2(dx, dz);
+  } else {
+    heroVel.multiplyScalar(Math.max(0, 1 - dt * 10));
+  }
+
+  let nx = hero.position.x + heroVel.x * dt;
+  let nz = hero.position.z + heroVel.z * dt;
+  // 障害物との簡易衝突
+  for (const ob of obstacles) {
+    const dx = nx - ob.x, dz = nz - ob.z;
+    const d = Math.hypot(dx, dz);
+    if (d < ob.r + 0.5 && d > 0.001) {
+      const push = (ob.r + 0.5 - d);
+      nx += (dx / d) * push; nz += (dz / d) * push;
+    }
+  }
+  // 海には入れない(浅瀬まで)
+  const h = groundAt(nx, nz);
+  if (h > -0.4) {
+    hero.position.x = nx; hero.position.z = nz;
+    hero.position.y = Math.max(h, -0.2);
+  }
+  // 歩行アニメ
+  const t = performance.now() * 0.012;
+  const moving = heroVel.lengthSq() > 1;
+  hero.children.forEach(c => { c.userData._baseY ??= c.position.y; });
+  hero.position.y += moving ? Math.abs(Math.sin(t)) * 0.12 : 0;
+
+  // 刀振りアニメ
+  const sword = hero.userData.sword;
+  if (swingT >= 0) {
+    swingT += dt * 5;
+    sword.rotation.z = -0.3 - Math.sin(Math.min(swingT, 1) * Math.PI) * 1.8;
+    if (swingT >= 1) swingT = -1;
+  }
+  attackCd = Math.max(0, attackCd - dt);
+}
+
+function updateCamera(dt) {
+  const dist = 11, height = 4.5;
+  const tx = hero.position.x + Math.sin(camYaw) * dist * Math.cos(camPitch);
+  const tz = hero.position.z + Math.cos(camYaw) * dist * Math.cos(camPitch);
+  const ty = hero.position.y + height + Math.sin(camPitch) * dist;
+  const ground = groundAt(tx, tz) + 1.2;
+  camera.position.lerp(new THREE.Vector3(tx, Math.max(ty, ground), tz), 1 - Math.pow(0.001, dt));
+  camera.lookAt(hero.position.x, hero.position.y + 2, hero.position.z);
+}
+
+function updateOnis(dt, t) {
+  for (const o of onis) {
+    if (!o.alive) continue;
+    const m = o.mesh;
+    const distToHero = m.position.distanceTo(hero.position);
+    let tx, tz, spd = o.speed;
+    if (started && distToHero < 16) {
+      tx = hero.position.x; tz = hero.position.z; spd = o.speed * 1.6; // 追いかける
+    } else {
+      if (o.wait > 0) { o.wait -= dt; }
+      const d2 = Math.hypot(m.position.x - o.target.x, m.position.z - o.target.y);
+      if (d2 < 1.5 && o.wait <= 0) {
+        const a = Math.random() * Math.PI * 2, r = 20 + Math.random() * 45;
+        o.target.set(Math.cos(a) * r, Math.sin(a) * r);
+        o.wait = 1 + Math.random() * 2;
+      }
+      tx = o.target.x; tz = o.target.y;
+    }
+    const dx = tx - m.position.x, dz = tz - m.position.z;
+    const d = Math.hypot(dx, dz);
+    if (d > 1.2 && o.wait <= 0.01) {
+      const nx = m.position.x + (dx / d) * spd * dt;
+      const nz = m.position.z + (dz / d) * spd * dt;
+      const h = groundAt(nx, nz);
+      if (h > 0.1) {
+        m.position.x = nx; m.position.z = nz; m.position.y = h;
+        m.rotation.y = Math.atan2(dx, dz);
+      } else {
+        o.target.set((Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60);
+      }
+    }
+    m.position.y = groundAt(m.position.x, m.position.z) + Math.abs(Math.sin(t * 4 + o.bob)) * 0.15;
+  }
+}
+
+function updateGems(dt, t) {
+  for (const g of gems) {
+    if (g.taken) continue;
+    g.mesh.rotation.y = t * 1.5;
+    g.mesh.position.y = g.baseY + Math.sin(t * 2.5 + g.baseY) * 0.25;
+    if (started && g.mesh.position.distanceTo(hero.position) < 2.2) {
+      g.taken = true;
+      burst(g.mesh.position, 0xf5a9c4);
+      scene.remove(g.mesh);
+      gemCount++;
+      gemNum.textContent = gemCount;
+      sfx.collect();
+      showMsg(gemCount >= GEM_TOTAL ? 'きびだんご コンプリート!' : `きびだんご ゲット! (${gemCount}/${GEM_TOTAL})`);
+      checkClear();
+    }
+  }
+}
+
+function updateDayNight(dt) {
+  dayBlend += (dayTarget - dayBlend) * Math.min(1, dt * 1.5);
+  scene.background.copy(DAY.sky).lerp(NIGHT.sky, dayBlend);
+  scene.fog.color.copy(DAY.fog).lerp(NIGHT.fog, dayBlend);
+  sun.intensity = THREE.MathUtils.lerp(DAY.sun, NIGHT.sun, dayBlend);
+  sun.color.copy(DAY.sunColor).lerp(NIGHT.sunColor, dayBlend);
+  ambient.intensity = THREE.MathUtils.lerp(DAY.amb, NIGHT.amb, dayBlend);
+  moon.material.color.setScalar(0.4 + dayBlend * 0.6);
+  const flicker = 0.85 + Math.sin(performance.now() * 0.011) * 0.1 + Math.sin(performance.now() * 0.027) * 0.05;
+  for (const { light, box } of lanternLights) {
+    light.intensity = THREE.MathUtils.lerp(DAY.lantern, NIGHT.lantern, dayBlend) * flicker;
+    box.material.emissiveIntensity = dayBlend * flicker * 1.2;
+  }
+  fireLight.intensity = (0.6 + dayBlend * 1.2) * flicker;
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.1);
+  const t = clock.elapsedTime;
+  if (started) updateHero(dt);
+  updateCamera(dt);
+  updateOnis(dt, t);
+  updateGems(dt, t);
+  updateSea(t);
+  updateEmbers(dt);
+  updateBursts(dt);
+  updateDayNight(dt);
+  renderer.render(scene, camera);
+}
+animate();
+
+// デバッグ/テスト用フック
+window.__game = { hero, onis, gems, get oniCount() { return oniCount; }, get gemCount() { return gemCount; } };
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
