@@ -316,7 +316,15 @@ var EXAMPLES=[
  "傘って濡れるからいらなくない?",
  "犬派とか猫派とか言ってる人、ハムスターに謝って",
  "夏休みの宿題は8月31日にやるのが正解",
- "みそ汁は飲み物じゃなくておかずです。異論は認めない"
+ "みそ汁は飲み物じゃなくておかずです。異論は認めない",
+ "唐揚げにレモン、聞かずにかけます",
+ "「了解です」を「り」で返す文化、正直好き",
+ "朝型人間アピールする人、なんか苦手",
+ "鍋の〆は雑炊じゃなくてラーメン一択",
+ "推しは推せるときに推せって言うけど、貯金が先では?",
+ "ディズニーよりUSJ派です。理由は特にないです",
+ "エスカレーターは歩く派です。急いでるので",
+ "正月って別に楽しくなくない?"
 ];
 
 var POWERS=[
@@ -442,22 +450,42 @@ var OPINION_REPLIES=[
  [3,1,"最後まで読んで通報しました"],
  [4,10,"討論番組から出演依頼です。ただしあなたの席は火の中です。"]
 ];
-/* generated filler for late-game variety */
-var GEN_PRE=["いや","えっと","率直に言うと","何度読み返しても","家族会議の結果","3日考えましたが","寝て起きても","AIに聞いてみたんですが"];
-var GEN_SUF=["これはダメでした","擁護できませんでした","すごい時代になりましたね","無理という結論です","燃えて当然かと思います","言葉が出ません","歴史の教科書で会いましょう"];
+/* ---- combinatorial reply generator: opener x reaction x closer ---- */
+var OPENERS=["","","いや、","えっと、","マジで","率直に言うと、","何回読んでも","通知が来て飛んできたけど、","お風呂から上がったら","バイトの休憩中に見たけど、","家族のグループLINEに流れてきたけど、","電車で見て乗り過ごしたけど、","3年ROMってたけど、","AIに聞いてみたんですが、","寝て起きてもう一回読んだけど、","歯磨きの途中だけど、"];
+var REACT_LOW=["これはちょっと…","ん?ってなりました","二度見しました","目を疑いました","無言でスクショしました","そっ閉じしかけました","心がざわつきました","消すなら今のうちですよ","嫌な予感がします"];
+var REACT_MID=["これは完全にアウトです","燃えるべくして燃えてますね","擁護の準備をしましたが無理でした","歴史が動く音がしました","スマホを落としました","会社の朝礼で共有されました","風向きが完全に変わりましたね","もう止まらないと思います","教習所で習わなかったんですか"];
+var REACT_HIGH=["もう国が動いてます","地球のニュースになってます","孫の代まで語り継ぎます","天気予報より先に報道されてました","もはや天体現象です","人類の教訓として保存しました","衛星写真に写ってました","もう表現できる言語が地球にありません"];
+var CLOSERS=["","","。以上です。","。おやすみなさい。","。既読つけてすみません。","。あとは任せました。","(1/7)","※個人の感想です","。震えてます。","。合掌。"];
+function comboReply(lv){
+ var re=lv<=2?REACT_LOW:lv<=5?REACT_MID:REACT_HIGH;
+ return rnd(OPENERS)+rnd(re)+rnd(CLOSERS);
+}
+/* ---- generated random accounts so the crowd changes every run ---- */
+var NAME_A=["限界","伝説の","通りすがりの","自称","匿名希望の","夜勤明けの","偏差値52の","近所の","カフェイン中毒の","二度寝失敗した","炎上観測歴10年の","低浮上の","顔も知らない","育休中の","財布を落とした"];
+var NAME_B=["OL","大学生","会社員","主婦","評論家","研究者","おじさん","エンジニア","農家","占い師","パティシエ","司書","僧侶","気象予報士","塾講師"];
+var HANDLE_W=["neko","fire","mochi","zubora","yoru","dango","kinoko","sauna","kani","udon","gyoza","hikage","tanuki","melon"];
+function randUser(){
+ var n=rnd(NAME_A)+rnd(NAME_B);
+ return [n,rnd(HANDLE_W)+"_"+Math.floor(Math.random()*9000+1000),n.slice(0,1),"hsl("+Math.floor(Math.random()*360)+",40%,42%)"];
+}
+function sample(arr,n){
+ var a=arr.slice(),out=[];
+ while(out.length<n&&a.length)out.push(a.splice(Math.floor(Math.random()*a.length),1)[0]);
+ return out;
+}
 
-/* fuel actions */
+/* fuel actions: 3 counter-replies are sampled from each pool per use */
 var FUELS={
  hanron:{self:"は?何が悪いんですか?具体的に言ってもらえます?",
-  re:[[2,"開き直ったぞおおおお"],[5,"反省の色:無色透明"],[9,"風速が倍になりました"]],heat:9},
+  re:[[2,"開き直ったぞおおおお"],[5,"反省の色:無色透明"],[9,"風速が倍になりました"],[4,"具体的に言われたら黙るくせに"],[1,"逆ギレ確認。記録しました。"],[7,"開き直りの瞬間、額に入れて飾りました"]],heat:9},
  iiwake:{self:"アカウントが乗っ取られていました。本当です。",
-  re:[[3,"乗っ取り(通算1,847件目)"],[5,"その言い訳、2010年に見ました"],[4,"乗っ取り犯も同じ誤字するんですね"]],heat:9},
+  re:[[3,"乗っ取り(通算1,847件目)"],[5,"その言い訳、2010年に見ました"],[4,"乗っ取り犯も同じ誤字するんですね"],[9,"乗っ取り犯、投稿時間もあなたと同じ生活リズムですね"],[2,"では乗っ取り犯に謝罪してもらってください"],[1,"猫がスマホ踏んだ、まで見えた"]],heat:9},
  shazai:{self:"この度は不快な思いをさせてしまい申し訳ありませんでした。",
-  re:[[2,"謝罪が遅い。あと誠意が足りない。あと行間も足りない。"],[1,"コピペ謝罪きたー"],[11,"【検証】謝罪文、8割がテンプレと一致"]],heat:8},
+  re:[[2,"謝罪が遅い。あと誠意が足りない。あと行間も足りない。"],[1,"コピペ謝罪きたー"],[11,"【検証】謝罪文、8割がテンプレと一致"],[5,"「不快な思いをさせたら」じゃなくてさせたんだよなあ"],[6,"謝る相手、私たちじゃなくない?"],[3,"謝罪文も魚拓取りました📸"]],heat:8},
  jien:{self:"通りすがりの無関係な第三者ですが、この方は本当にいい人です!",
-  re:[[3,"位置情報が完全に一致してて草"],[5,"文体が本人なんよ"],[9,"アカウント作成:3分前"]],heat:12},
+  re:[[3,"位置情報が完全に一致してて草"],[5,"文体が本人なんよ"],[9,"アカウント作成:3分前"],[4,"無関係な第三者、本人のスマホから投稿するな"],[1,"擁護アカウントのアイコン、初期設定のままで草"],[7,"「いい人です!」の誤字まで一緒"]],heat:12},
  bengoshi:{self:"悪質な投稿には法的措置を検討します。",
-  re:[[13,"すみません、その依頼はお断りしました"],[5,"弁護士に断られるの初めて見た"],[2,"脅しと受け取りました。追加で燃やします。"]],heat:10}
+  re:[[13,"すみません、その依頼はお断りしました"],[5,"弁護士に断られるの初めて見た"],[2,"脅しと受け取りました。追加で燃やします。"],[9,"「検討します」は着火剤に分類されます"],[4,"法的措置(自分が受ける側)"],[1,"六法全書も燃えてます"]],heat:10}
 };
 
 var TITLES=["無風の民","くすぶりの人","町内会の話題","今日のトレンド","まとめサイトの星","お茶の間の敵","国会答弁案件","国際問題","SNS史に残る伝説"];
@@ -471,8 +499,10 @@ var APO_D=["再発防止に努めてまいります。","二度とこのよう�
 /* ---------------- state ---------------- */
 var st=null;
 function newState(post,powIdx){
+ var q=post.replace(/\s+/g,"");
+ if(q.length>12){var s=Math.floor(Math.random()*Math.min(q.length-12,8));q=q.slice(s,s+12);}
  return {
-  post:post, quote:post.replace(/\s+/g,"").slice(0,12),
+  post:post, quote:q,
   pow:POWERS[powIdx], level:0, heat:0, ticks:0,
   imp:0, rt:0, fol:132, likes:3, reps:0,
   nextReply:0, usedReplies:{}, fuelCount:0, usedFuel:{}, speed:1,
@@ -526,19 +556,19 @@ function addNode(el){tl.insertBefore(el,tl.children[1]||null)} /* keep my post p
 function tweetCard(u,text,cls){
  var d=document.createElement("div");
  d.className="tw"+(cls?" "+cls:"");
- var eng=st?Math.round(Math.pow(6,st.level)+Math.random()*99):3;
+ var eng=st?Math.round(Math.pow(6,st.level)*(0.2+Math.random()*6)+Math.random()*99):3;
  d.innerHTML='<div class="av" style="background:'+u[3]+'">'+esc(u[2])+'</div>'+
   '<div class="tb"><div class="th"><b>'+esc(u[0])+'</b>'+(u[4]?'<span class="vbadge">✓</span>':'')+
   '<span class="hnd">@'+esc(u[1])+'・今</span></div>'+
   '<div class="tx">'+text+'</div>'+
-  '<div class="tf"><span>💬 '+fmt(Math.round(eng*0.3))+'</span><span>🔁 '+fmt(eng)+'</span><span>❤️ '+fmt(Math.round(eng*0.4))+'</span></div></div>';
+  '<div class="tf"><span>💬 '+fmt(Math.round(eng*(0.1+Math.random()*0.5)))+'</span><span>🔁 '+fmt(eng)+'</span><span>❤️ '+fmt(Math.round(eng*(0.05+Math.random()*0.8)))+'</span></div></div>';
  return d;
 }
 function spawnReply(){
  var lv=st.level;
- /* late game: 25% generated combos so the pool never feels exhausted */
- if(lv>=4&&Math.random()<0.25){
-  addNode(tweetCard(rnd(USERS),esc(rnd(GEN_PRE)+"、"+rnd(GEN_SUF))));
+ /* 40% generated combos from generated accounts: different crowd every run */
+ if(Math.random()<0.4){
+  addNode(tweetCard(randUser(),esc(comboReply(lv))));
   st.reps++;popSound(lv);return;
  }
  var pool=[];
@@ -589,42 +619,106 @@ function setTrends(lv){
  });
 }
 
-/* ---------------- level events ---------------- */
+/* ---------------- level events (each picks a random variant per run) ---------------- */
 function onLevel(lv){
  toast(lv);setTrends(lv);
  var q=st.quote;
  if(lv===2){$("#escapeBtn").style.display="inline-block";$("#mypost .ratio").style.display="block";}
- if(lv===3){telop("「"+q+"…」投稿がトレンド1位に");}
+ if(lv===3){telop(rnd([
+  "「"+q+"…」投稿がトレンド1位に",
+  "SNS各所で「"+q+"…」が急拡散 まとめ班が出動",
+  "トレンド急上昇:あなたの名前(本名ではない)"
+ ]));}
  if(lv===4){
-  matome("【悲報】一般人さん、「"+q+"…」と投稿してとんでもないことになるwwwwww");
-  telop("SNSで一般人の投稿が物議 専門家「初めて見る燃え方」");
+  matome(rnd([
+   "【悲報】一般人さん、「"+q+"…」と投稿してとんでもないことになるwwwwww",
+   "【画像】「"+q+"…」と投稿した人の末路がこちら",
+   "【速報】例の投稿者、まだ気付いていない模様「通知が重くて開けない」"
+  ]));
+  telop(rnd([
+   "SNSで一般人の投稿が物議 専門家「初めて見る燃え方」",
+   "「あの投稿」がニュースサイト12社に同時掲載",
+   "消防庁「これはうちの火事ではない」と異例の声明"
+  ]));
  }
  if(lv===5){
-  seimei("お 知 ら せ","弊社と当該投稿者様の間に契約関係は一切ございませんが、世間の皆様の空気を鑑み、念のため契約を解除させていただきます。","株式会社スポンサー(契約実績なし)");
-  telop("ワイドショー各局、明日の特集を「あの投稿」に差し替え");
-  seimei("ご 連 絡","母です。電話に出なさい。夕飯は肉じゃがです。","実家");
+  seimei("お 知 ら せ",rnd([
+   "弊社と当該投稿者様の間に契約関係は一切ございませんが、世間の皆様の空気を鑑み、念のため契約を解除させていただきます。",
+   "当該投稿者様がどなたか存じ上げませんが、弊社は無関係である旨、お取引先様各位にお伝え申し上げます。",
+   "弊社製品が当該投稿の背景に写り込んでいた件につきまして、当該製品の販売を本日をもって終了いたします。"
+  ]),"株式会社スポンサー(契約実績なし)");
+  telop(rnd([
+   "ワイドショー各局、明日の特集を「あの投稿」に差し替え",
+   "夕方のニュース、天気予報を短縮して「あの投稿」を特集へ",
+   "街頭インタビュー実施中「あの投稿、どう思いますか?」"
+  ]));
+  seimei("ご 連 絡",rnd([
+   "母です。電話に出なさい。夕飯は肉じゃがです。",
+   "母です。あんた何をしたの。おばあちゃんのタブレットにも出てきたわよ。",
+   "父です。母さんが泣いています。あと回覧板にあなたの話が載りました。"
+  ]),"実家");
  }
  if(lv===6){
-  telop("衆院予算委員会、審議一時中断「まず例の投稿について」");
-  seimei("記 者 会 見","当該投稿についてのご質問ですが、政府としてのコメントは差し控えます。個人的には、読みました。","内閣官房長官");
-  telop("日経平均、一時800円下落 市場関係者「例の投稿を織り込んだ」");
+  telop(rnd([
+   "衆院予算委員会、審議一時中断「まず例の投稿について」",
+   "党首討論、冒頭のテーマが「例の投稿」に変更",
+   "官邸前に報道各社が集結「投稿への見解求める」"
+  ]));
+  seimei("記 者 会 見",rnd([
+   "当該投稿についてのご質問ですが、政府としてのコメントは差し控えます。個人的には、読みました。",
+   "本件は個人の投稿であり政府の立場はございません。なお閣議で全員が既読であることは確認しております。",
+   "コメントは差し控えますが、控えきれない場合は後日改めて燃やされます。失礼、発表します。"
+  ]),"内閣官房長官");
+  telop(rnd([
+   "日経平均、一時800円下落 市場関係者「例の投稿を織り込んだ」",
+   "円相場が乱高下 要因は「例の投稿」とアナリスト",
+   "帝国データバンク「炎上関連損失、過去最大」"
+  ]));
  }
  if(lv===7){
-  overseas("World / Breaking","Japanese social media post sparks unprecedented global reaction","Experts say the post, roughly translated as \""+q+"...\", has achieved what diplomacy could not: uniting the entire internet against one person.");
-  telop("国連安保理、緊急会合を招集「議題:例の投稿」");
+  overseas("World / Breaking",rnd([
+   "Japanese social media post sparks unprecedented global reaction",
+   "One post, one planet: how a single tweet united the world (against one person)",
+   "Explained: the Japanese post your entire timeline is angry about"
+  ]),"Experts say the post, roughly translated as \""+q+"...\", has achieved what diplomacy could not: uniting the entire internet against one person.");
+  telop(rnd([
+   "国連安保理、緊急会合を招集「議題:例の投稿」",
+   "G7首脳、共同声明を発表「遺憾である」",
+   "国際宇宙ステーション「地上が明るい」と報告"
+  ]));
  }
  if(lv===8){
-  overseas("Space","Flame visible from orbit, NASA confirms","The agency stated the burn is now classified as a celestial event and has been assigned a catalog number.");
-  seimei("公 式 声 明","本件につきまして、私も引用リポストいたしました。","神");
-  telop("歴史教科書への掲載が決定「2026年・SNS大炎上」");
+  overseas("Space",rnd([
+   "Flame visible from orbit, NASA confirms",
+   "Astronomers assign catalog number to Japanese internet flame",
+   "New celestial object detected. It is a tweet."
+  ]),"The agency stated the burn is now classified as a celestial event and has been assigned a catalog number.");
+  seimei("公 式 声 明",rnd([
+   "本件につきまして、私も引用リポストいたしました。",
+   "一部始終を見ておりました。ノーコメントとさせていただきます。(見ました)",
+   "7日目ですが、休むのをやめて観測に戻りました。"
+  ]),"神");
+  telop(rnd([
+   "歴史教科書への掲載が決定「2026年・SNS大炎上」",
+   "国立博物館「炎上の実物大展示」を来春開催へ",
+   "新元号の候補に「鎮火」が浮上"
+  ]));
   $("#escapeBtn").classList.add("pulse");
  }
  if(lv>=st.pow.max){
   if(st.pow.max<8){
    setTimeout(function(){
     if(st.done)return;
-    matome("【朗報】例の炎上、鎮火。ネット民、次の炎上へ移動「誰の話だっけ?」");
-    telop("鎮火を確認 消防庁「うちの管轄ではない」");
+    matome(rnd([
+     "【朗報】例の炎上、鎮火。ネット民、次の炎上へ移動「誰の話だっけ?」",
+     "【衝撃】あの炎上、もっと大きい炎上に上書きされて消滅",
+     "【無常】3日で全員忘れた件について"
+    ]));
+    telop(rnd([
+     "鎮火を確認 消防庁「うちの管轄ではない」",
+     "鎮火を確認 気象庁「炎上警報を解除」",
+     "ネットの関心、既に次の炎上へ移動"
+    ]));
     $("#escapeBtn").classList.add("pulse");
     setTimeout(function(){finish("auto")},7000);
    },6000*(1/st.speed));
@@ -698,7 +792,7 @@ function useFuel(key,btn){
  btn.disabled=true;setTimeout(function(){btn.disabled=false},5000);
  setTimeout(function(){
   if(st.done)return;
-  f.re.forEach(function(r,i){
+  sample(f.re,3).forEach(function(r,i){
    setTimeout(function(){
     if(st.done)return;
     addNode(tweetCard(USERS[r[0]],esc(r[1])));
