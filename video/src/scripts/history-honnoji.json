@@ -1,0 +1,71 @@
+{
+  "title": "本能寺の変・3分でわかる",
+  "scenes": [
+    {
+      "type": "title",
+      "chip": "日本史",
+      "title": "本能寺の変",
+      "subtitle": "TENSHO 10 ・ 1582",
+      "background": "washi",
+      "transition": "flash"
+    },
+    {
+      "type": "statement",
+      "text": "たった/一夜で、/天下は/ひっくり返った。",
+      "emphasis": ["一夜"],
+      "mode": "riseUp",
+      "background": "radial"
+    },
+    {
+      "type": "narration",
+      "text": "天正10年6月2日。京都・本能寺に、\n織田信長はわずかな供回りだけで滞在していた。",
+      "emphasis": ["織田信長"],
+      "image": "photos/sample-scene.svg"
+    },
+    {
+      "type": "timeline",
+      "heading": "その日、何が起きたか",
+      "events": [
+        { "year": "6/1 夜", "label": "明智光秀、丹波亀山城を進発" },
+        { "year": "6/2 未明", "label": "桂川を渡り「敵は本能寺にあり」" },
+        { "year": "6/2 早朝", "label": "本能寺を包囲、信長自刃" },
+        { "year": "6/13", "label": "山崎の戦いで光秀が敗死" }
+      ],
+      "background": "grid",
+      "transition": "slide"
+    },
+    {
+      "type": "quote",
+      "text": "是非に及ばず",
+      "source": "織田信長／信長公記",
+      "background": "plain",
+      "durationInSeconds": 4
+    },
+    {
+      "type": "compare",
+      "heading": "動機は今も分かっていない",
+      "left": {
+        "label": "怨恨説",
+        "text": "度重なる叱責と\n領地替えへの不満が\n積み重なった"
+      },
+      "right": {
+        "label": "野望説",
+        "text": "天下を狙える好機が\n目の前に転がり込んだ\nと判断した"
+      },
+      "background": "stripes"
+    },
+    {
+      "type": "stat",
+      "value": 11,
+      "suffix": "日",
+      "label": "光秀が天下人だった時間",
+      "background": "radial"
+    },
+    {
+      "type": "outro",
+      "text": "歴史は、\n一晩でひっくり返る。",
+      "cta": "チャンネル登録",
+      "background": "burst"
+    }
+  ]
+}

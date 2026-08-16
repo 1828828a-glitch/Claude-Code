@@ -1,2 +1,8 @@
 __pycache__/
 *.pyc
+
+# Remotion (video/)
+node_modules/
+video/out/
+video/refs/
+.remotion/

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <!-- 素材の置き方を示すためのサンプル画像。
+       実際の制作では public/photos/ に写真やイラストを置き、
+       台本から "image": "photos/xxx.jpg" のように参照する。 -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#10131a"/>
+      <stop offset="55%" stop-color="#2a1c1c"/>
+      <stop offset="100%" stop-color="#5b2417"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.78" r="0.5">
+      <stop offset="0%" stop-color="#ff8a3d" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#ff8a3d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#sky)"/>
+  <circle cx="1450" cy="230" r="90" fill="#f0e6d2" opacity="0.85"/>
+  <rect width="1920" height="1080" fill="url(#glow)"/>
+
+  <!-- 遠景の山 -->
+  <path d="M0 720 L300 560 L540 700 L820 520 L1080 700 L1400 580 L1700 700 L1920 620 L1920 1080 L0 1080 Z"
+        fill="#0d1014" opacity="0.85"/>
+
+  <!-- 寺の輪郭 -->
+  <g fill="#07090c">
+    <path d="M700 760 L960 640 L1220 760 Z"/>
+    <rect x="760" y="760" width="400" height="30"/>
+    <path d="M740 850 L960 770 L1180 850 Z"/>
+    <rect x="800" y="850" width="320" height="150"/>
+    <rect x="930" y="905" width="60" height="95" fill="#ff9a4a" opacity="0.6"/>
+    <rect x="820" y="1000" width="280" height="80"/>
+  </g>
+
+  <!-- 手前の木立 -->
+  <g fill="#05070a">
+    <path d="M120 1080 L180 820 L240 1080 Z"/>
+    <path d="M1660 1080 L1730 780 L1800 1080 Z"/>
+  </g>
+</svg>

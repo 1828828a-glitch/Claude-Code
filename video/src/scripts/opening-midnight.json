@@ -1,0 +1,42 @@
+{
+  "title": "深夜解体新書 オープニング",
+  "scenes": [
+    {
+      "type": "statement",
+      "text": "その常識、/本当に/正しい？",
+      "emphasis": ["本当に"],
+      "mode": "pop",
+      "background": "grid",
+      "durationInSeconds": 1.8
+    },
+    {
+      "type": "credit",
+      "role": "NAVIGATOR",
+      "names": ["里見 architect", "白石 ひばり"],
+      "background": "radial",
+      "durationInSeconds": 1.6
+    },
+    {
+      "type": "credit",
+      "role": "GUEST",
+      "names": ["九条 玲", "アンドウ・タケル", "MC 石動"],
+      "background": "stripes",
+      "durationInSeconds": 1.8
+    },
+    {
+      "type": "statement",
+      "text": "毎週/金曜/深夜1時",
+      "mode": "slideIn",
+      "background": "burst",
+      "durationInSeconds": 1.6
+    },
+    {
+      "type": "logo",
+      "title": "MIDNIGHT\nANATOMY",
+      "tagline": "深夜解体新書",
+      "background": "radial",
+      "durationInSeconds": 3.6,
+      "transition": "cut"
+    }
+  ]
+}

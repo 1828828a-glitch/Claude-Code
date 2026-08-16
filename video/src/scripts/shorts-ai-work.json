@@ -1,0 +1,53 @@
+{
+  "title": "AIに仕事を奪われる人の共通点",
+  "scenes": [
+    {
+      "type": "statement",
+      "text": "AIに/仕事を/奪われる人の/共通点",
+      "emphasis": ["奪われる"],
+      "mode": "pop",
+      "durationInSeconds": 1.6
+    },
+    {
+      "type": "statement",
+      "text": "結論から言う。",
+      "mode": "riseUp",
+      "background": "plain",
+      "durationInSeconds": 1.0
+    },
+    {
+      "type": "bullets",
+      "heading": "この3つ、当てはまる？",
+      "items": [
+        "指示されないと動けない",
+        "作業の理由を説明できない",
+        "完成物を自分で検品しない"
+      ],
+      "background": "grid",
+      "durationInSeconds": 5.5
+    },
+    {
+      "type": "statement",
+      "text": "逆に言えば、/ここを埋めれば/勝てる。",
+      "emphasis": ["勝てる"],
+      "mode": "wave",
+      "background": "burst",
+      "durationInSeconds": 2.2
+    },
+    {
+      "type": "stat",
+      "value": 30,
+      "suffix": "分",
+      "label": "1日にこれだけ考える時間を取る",
+      "background": "radial",
+      "durationInSeconds": 2.6
+    },
+    {
+      "type": "outro",
+      "text": "明日から\nやってみて。",
+      "cta": "保存して見返す",
+      "background": "stripes",
+      "durationInSeconds": 2.6
+    }
+  ]
+}
