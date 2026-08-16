@@ -62,7 +62,7 @@ npx remotion render src/index.ts <ID> out/video.mp4
 |---|---|---|
 | `title` | 冒頭・章タイトル | `title` `subtitle` `chip` |
 | `statement` | 決め台詞の全画面キネティックタイポ | `text` `emphasis` `mode` |
-| `narration` | 画像＋テロップの基本カット | `text` `emphasis` `image` |
+| `narration` | 画像＋テロップの基本カット | `text` `emphasis` `image` `imagePrompt` |
 | `bullets` | 箇条書きの順次表示 | `heading` `items` |
 | `timeline` | 年表 | `heading` `events[{year,label}]` |
 | `compare` | 左右2分割の比較 | `heading` `left` `right` |
@@ -72,7 +72,7 @@ npx remotion render src/index.ts <ID> out/video.mp4
 | `credit` | 出演者・スタッフ | `role` `names` |
 | `outro` | 締め・CTA | `text` `cta` |
 
-全シーン共通で `durationInSeconds` `background` `transition` `image` `telop` が使える。
+全シーン共通で `durationInSeconds` `background` `transition` `image` `imagePrompt` `telop` が使える。
 
 ### 覚えておくと効く記法
 
@@ -87,6 +87,28 @@ npx remotion render src/index.ts <ID> out/video.mp4
 - パレット: `sumi`(黒地・シリアス) `washi`(和紙・歴史) `neon`(番組OP) `pop`(明るい・ショート)
 - 背景: `plain` `radial` `stripes` `grid` `burst`(集中線) `washi`
 - 繋ぎ: `cut` `flash` `fade` `slide` `zoom`
+
+## 絵をつける
+
+文字だけだと「動くスライド」に見える。解説系は絵が入って初めて動画になるので、
+台本を書いたら画像を当てるところまでをセットで考える。
+
+シーンに `imagePrompt`（何を描くか）、台本のトップレベルに `imageStyle`（どう描くか）を書く。
+画風を1箇所にまとめないとカットごとに絵柄がバラつくので、必ず分ける。
+
+```bash
+npm run assets -- src/scripts/xxx.json --dry-run   # プロンプトの確認（無料）
+OPENAI_API_KEY=sk-... npm run assets -- src/scripts/xxx.json
+```
+
+`public/photos/` に保存され、台本の `image` に書き戻される。
+ファイル名にプロンプトのハッシュが入るので、プロンプトを直さない限り再生成されない。
+
+絵を当てる／当てないの判断:
+
+- **当てる** … `narration` `statement` `title` `outro`。文字が少なく、絵で語れるカット
+- **当てない** … `timeline` `compare` `bullets` `stat`。文字情報が主役なので、
+  背景に絵を敷くと読めなくなる。`background` のパターンで十分
 
 ## 参考動画から雰囲気を盗む
 

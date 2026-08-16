@@ -1,5 +1,6 @@
 {
   "title": "本能寺の変・3分でわかる",
+  "imageStyle": "戦国時代の日本を描いた、落ち着いた色数の少ない和風イラスト。墨と朱を基調にした夜の情景。写真ではなく手描きの絵画調。人物の顔は描き込まず、シルエットや後ろ姿で示すこと。",
   "scenes": [
     {
       "type": "title",
@@ -7,29 +8,47 @@
       "title": "本能寺の変",
       "subtitle": "TENSHO 10 ・ 1582",
       "background": "washi",
-      "transition": "flash"
+      "transition": "flash",
+      "imagePrompt": "夜の京都、本能寺の伽藍を遠景から捉えた構図。月明かりと、遠くにわずかな炎の気配。"
     },
     {
       "type": "statement",
       "text": "たった/一夜で、/天下は/ひっくり返った。",
-      "emphasis": ["一夜"],
+      "emphasis": [
+        "一夜"
+      ],
       "mode": "riseUp",
       "background": "radial"
     },
     {
       "type": "narration",
       "text": "天正10年6月2日。京都・本能寺に、\n織田信長はわずかな供回りだけで滞在していた。",
-      "emphasis": ["織田信長"],
-      "image": "photos/sample-scene.svg"
+      "emphasis": [
+        "織田信長"
+      ],
+      "image": "photos/sample-scene.svg",
+      "imagePrompt": "灯りのともる本能寺の一室。障子越しに人影がひとつ、静かに座している。夜半の静けさ。"
     },
     {
       "type": "timeline",
       "heading": "その日、何が起きたか",
       "events": [
-        { "year": "6/1 夜", "label": "明智光秀、丹波亀山城を進発" },
-        { "year": "6/2 未明", "label": "桂川を渡り「敵は本能寺にあり」" },
-        { "year": "6/2 早朝", "label": "本能寺を包囲、信長自刃" },
-        { "year": "6/13", "label": "山崎の戦いで光秀が敗死" }
+        {
+          "year": "6/1 夜",
+          "label": "明智光秀、丹波亀山城を進発"
+        },
+        {
+          "year": "6/2 未明",
+          "label": "桂川を渡り「敵は本能寺にあり」"
+        },
+        {
+          "year": "6/2 早朝",
+          "label": "本能寺を包囲、信長自刃"
+        },
+        {
+          "year": "6/13",
+          "label": "山崎の戦いで光秀が敗死"
+        }
       ],
       "background": "grid",
       "transition": "slide"

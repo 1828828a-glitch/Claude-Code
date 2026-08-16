@@ -85,6 +85,43 @@ npx remotion still src/index.ts HistoryExplainer out/check.png --frame=120
 - **transition** — `cut` `flash` `fade` `slide` `zoom`
 - **pace** — 全体のテンポ。`0.8` で2割速くなる
 
+## 絵を生成する
+
+文字だけの動画は、どれだけアニメーションを凝っても「動くスライド」に見える。
+参考にしている解説動画が強いのは絵があるからなので、ここが完成度の分かれ目になる。
+
+台本のシーンに `imagePrompt` を書いて、生成コマンドを叩く。
+
+```json
+{
+  "imageStyle": "戦国時代の日本を描いた、色数の少ない和風イラスト。墨と朱を基調にした夜の情景。手描きの絵画調。",
+  "scenes": [
+    {
+      "type": "narration",
+      "text": "天正10年6月2日。京都・本能寺に、\n織田信長はわずかな供回りだけで滞在していた。",
+      "imagePrompt": "灯りのともる本能寺の一室。障子越しに人影がひとつ、静かに座している。"
+    }
+  ]
+}
+```
+
+```bash
+export OPENAI_API_KEY=sk-...
+npm run assets -- src/scripts/history-honnoji.json
+
+# 課金する前にプロンプトだけ見たいとき
+npm run assets -- src/scripts/history-honnoji.json --dry-run
+```
+
+生成された画像は `public/photos/` に保存され、台本の `image` に書き戻される。
+**「何を描くか」は `imagePrompt`、「どう描くか」は `imageStyle`** と分けるのがコツで、
+画風を1箇所にまとめておかないとカットごとに絵柄がバラつく。
+
+- 解像度は台本の `format` から自動で決まる（横型なら 1536×1024、縦型なら 1024×1536）
+- ファイル名にプロンプトのハッシュが入るので、**プロンプトを直せば作り直され、直さなければ課金されない**
+- `--force` で作り直し、`--only 3,5` で特定のカットだけ、`--quality high` で高品質
+- 生成された画像には自動で Ken Burns 効果（寄り／パン）と微細な手ブレがかかる
+
 ## 参考動画の雰囲気を真似する
 
 真似したい動画があるときは、フレームを抜き出して Claude に見せるのが一番速い。
@@ -128,7 +165,8 @@ src/
   scenes/           シーン1種類につき1コンポーネント
   scripts/          台本 JSON
 tools/
-  extract-frames.sh 参考動画からフレームを抽出
+  extract-frames.sh    参考動画からフレームを抽出
+  generate-images.mjs  台本の imagePrompt から画像を生成
 ```
 
 ## 演出を足すとき

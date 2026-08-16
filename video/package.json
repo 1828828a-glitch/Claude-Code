@@ -8,6 +8,7 @@
     "render": "remotion render",
     "still": "remotion still",
     "compositions": "remotion compositions",
+    "assets": "node tools/generate-images.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

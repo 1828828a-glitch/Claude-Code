@@ -42,6 +42,11 @@ const baseScene = {
   transition: transitionKindSchema.optional(),
   /** 画面に敷く画像（public/ からの相対パス、または URL） */
   image: z.string().optional(),
+  /**
+   * このカットの絵をどう描くか。`npm run assets` で画像を生成し、
+   * 結果のパスが `image` に書き戻される。レンダリング時には使わない。
+   */
+  imagePrompt: z.string().optional(),
   /** 画面下に出すナレーションテロップ */
   telop: z.string().optional(),
 };
@@ -168,6 +173,12 @@ export const scriptSchema = z.object({
    * 自動計算された尺すべてに掛かる。
    */
   pace: z.number().positive().default(1),
+  /**
+   * 全カットの画像に共通で効かせる画風の指定。
+   * 1カットずつプロンプトを書くと絵柄がバラバラになるので、
+   * 「何を描くか」は各シーンの imagePrompt、「どう描くか」はここ、と分ける。
+   */
+  imageStyle: z.string().optional(),
   /** BGM（public/ からの相対パス）。無ければ無音 */
   bgm: z.string().optional(),
   /** BGM の音量 0〜1 */
