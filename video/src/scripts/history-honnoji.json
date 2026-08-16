@@ -1,6 +1,9 @@
 {
   "title": "本能寺の変・3分でわかる",
   "imageStyle": "戦国時代の日本を描いた、落ち着いた色数の少ない和風イラスト。墨と朱を基調にした夜の情景。写真ではなく手描きの絵画調。人物の顔は描き込まず、シルエットや後ろ姿で示すこと。",
+  "voiceName": "onyx",
+  "voiceInstructions": "落ち着いた低めの声で、ドキュメンタリーのナレーションのように。煽らず、句読点でしっかり間を取って読む。",
+  "voiceSpeed": 1.0,
   "scenes": [
     {
       "type": "title",
@@ -9,7 +12,8 @@
       "subtitle": "TENSHO 10 ・ 1582",
       "background": "washi",
       "transition": "flash",
-      "imagePrompt": "夜の京都、本能寺の伽藍を遠景から捉えた構図。月明かりと、遠くにわずかな炎の気配。"
+      "imagePrompt": "夜の京都、本能寺の伽藍を遠景から捉えた構図。月明かりと、遠くにわずかな炎の気配。",
+      "voiceText": "本能寺の変。天正十年、千五百八十二年。"
     },
     {
       "type": "statement",
@@ -18,7 +22,8 @@
         "一夜"
       ],
       "mode": "riseUp",
-      "background": "radial"
+      "background": "radial",
+      "voiceText": "たった一夜で、天下はひっくり返った。"
     },
     {
       "type": "narration",
@@ -27,7 +32,8 @@
         "織田信長"
       ],
       "image": "photos/sample-scene.svg",
-      "imagePrompt": "灯りのともる本能寺の一室。障子越しに人影がひとつ、静かに座している。夜半の静けさ。"
+      "imagePrompt": "灯りのともる本能寺の一室。障子越しに人影がひとつ、静かに座している。夜半の静けさ。",
+      "voiceText": "天正十年六月二日。京都、本能寺に、織田信長はわずかな供回りだけで滞在していた。"
     },
     {
       "type": "timeline",
@@ -51,7 +57,8 @@
         }
       ],
       "background": "grid",
-      "transition": "slide"
+      "transition": "slide",
+      "voiceText": "その日、何が起きたのか。順に見ていこう。"
     },
     {
       "type": "quote",
@@ -71,20 +78,23 @@
         "label": "野望説",
         "text": "天下を狙える好機が\n目の前に転がり込んだ\nと判断した"
       },
-      "background": "stripes"
+      "background": "stripes",
+      "voiceText": "動機については、今なお定説がない。"
     },
     {
       "type": "stat",
       "value": 11,
       "suffix": "日",
       "label": "光秀が天下人だった時間",
-      "background": "radial"
+      "background": "radial",
+      "voiceText": "光秀が天下人でいられたのは、わずか十一日だった。"
     },
     {
       "type": "outro",
       "text": "歴史は、\n一晩でひっくり返る。",
       "cta": "チャンネル登録",
-      "background": "burst"
+      "background": "burst",
+      "voiceText": "歴史は、一晩でひっくり返る。"
     }
   ]
 }

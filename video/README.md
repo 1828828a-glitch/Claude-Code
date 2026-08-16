@@ -122,6 +122,62 @@ npm run assets -- src/scripts/history-honnoji.json --dry-run
 - `--force` で作り直し、`--only 3,5` で特定のカットだけ、`--quality high` で高品質
 - 生成された画像には自動で Ken Burns 効果（寄り／パン）と微細な手ブレがかかる
 
+## ナレーションを入れる
+
+声を入れる効能は「喋ってくれること」だけではない。
+**カットの尺が、文字数からの推定ではなく実際の音声の長さで決まるようになる。**
+テロップと声がズレなくなるので、解説動画としての質が一段変わる。
+
+シーンに `voiceText`（読み上げる文）を書いて生成する。
+
+```json
+{
+  "voiceName": "onyx",
+  "voiceInstructions": "落ち着いた低めの声で、ドキュメンタリーのナレーションのように。",
+  "voiceSpeed": 1.0,
+  "scenes": [
+    {
+      "type": "narration",
+      "text": "天正10年6月2日。京都・本能寺に、\n織田信長はわずかな供回りだけで滞在していた。",
+      "voiceText": "天正十年六月二日。京都、本能寺に、織田信長はわずかな供回りだけで滞在していた。"
+    }
+  ]
+}
+```
+
+```bash
+export OPENAI_API_KEY=sk-...
+npm run voice -- src/scripts/history-honnoji.json
+
+npm run voice -- src/scripts/history-honnoji.json --dry-run   # 読み上げる文の確認（無料）
+```
+
+`public/voice/` に保存され、台本の `voiceFile` と `voiceSeconds`（実測秒数）が
+書き戻される。以降そのカットの尺は音声の長さで確定し、全体テンポ (`pace`) の
+影響も受けない（声が途中で切れるのが一番みっともないため）。
+
+- **画面の文字と `voiceText` は分けて書く。** 画面は短く、読みは自然な話し言葉に。
+  数字は「10年」ではなく「十年」と書いた方が正しく読まれる
+- 声: `alloy` `nova` `onyx` `sage` `coral` `echo` など
+- ファイル名に文言・声・速度のハッシュが入るので、変えたときだけ作り直される
+- `--force` で作り直し、`--only 3,5` で特定のカットだけ
+
+## BGM を入れる
+
+`public/bgm/` に音楽ファイルを置いて指定する。生成はしないので、
+使用条件を自分で確認したものを置くこと。
+
+```json
+{ "bgm": "bgm/calm.mp3", "bgmVolume": 0.25, "bgmDuckVolume": 0.07 }
+```
+
+自動でやること:
+
+- **ナレーション中は音量を下げる（ダッキング）** — 声にBGMを同じ音量で被せると
+  一気に素人っぽくなる。声が始まる少し前から下げ、終わったら戻す
+- 曲が動画より短ければループする
+- 冒頭と末尾はフェードする
+
 ## 参考動画の雰囲気を真似する
 
 真似したい動画があるときは、フレームを抜き出して Claude に見せるのが一番速い。
@@ -158,15 +214,21 @@ src/
     layout.ts       画面サイズに応じた文字サイズ・安全領域
     text.ts         日本語テキストの分割と採寸
     timing.ts       イージングとバネのプリセット
+    audio.ts        BGM の音量カーブ（ダッキング・フェード）
   theme/
     tokens.ts       パレット・解像度・安全領域
     fonts.ts        フォント（ローカルバンドル）
   components/       アニメーションの部品（キネティックタイポ、テロップ等）
   scenes/           シーン1種類につき1コンポーネント
   scripts/          台本 JSON
+public/
+  photos/    画像（手持ち素材と生成物）
+  voice/     ナレーション音声（生成物）
+  bgm/       BGM（手で置く）
 tools/
   extract-frames.sh    参考動画からフレームを抽出
   generate-images.mjs  台本の imagePrompt から画像を生成
+  generate-voice.mjs   台本の voiceText からナレーション音声を生成
 ```
 
 ## 演出を足すとき
@@ -184,5 +246,9 @@ tools/
   1行が極端に長いと小さくなりすぎる。`\n` で改行を入れる。
 - **短いカットで文字が出切らない** — シーンの尺に合わせてアニメーション速度は
   自動で詰まる。それでも足りないなら `durationInSeconds` を伸ばす。
-- **レンダリングが遅い** — `--concurrency` を上げる。既定は 2
-  （`remotion.config.ts`）。
+- **レンダリングが遅い** — `--concurrency` はコア数から自動で決まる。
+  ただしソフトウェアGL環境ではむしろ 2 程度に下げた方が速いことがある。
+- **声が途中で切れる** — 起きないはずだが、もし起きたら `voiceSeconds` が
+  実ファイルとズレている。`npm run voice -- <台本> --force` で作り直す。
+- **BGM がうるさい／小さい** — `bgmVolume`（通常時）と `bgmDuckVolume`
+  （ナレーション中）は別々に調整する。

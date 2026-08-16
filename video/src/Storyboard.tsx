@@ -14,6 +14,7 @@ import { Telop } from "./components/Telop";
 import { Flash } from "./components/Accents";
 import { FontPreloader } from "./components/FontPreloader";
 import { buildTimeline, transitionOverlap } from "./lib/duration";
+import { buildBgmVolume } from "./lib/audio";
 import { isLight } from "./lib/color";
 import { SceneDurationContext } from "./lib/sceneContext";
 import { EASE } from "./lib/timing";
@@ -166,6 +167,11 @@ const SceneFrame: React.FC<{
       ) : null}
 
       {incoming === "flash" ? <Flash at={0} durationInFrames={5} /> : null}
+
+      {/* このカットのナレーション。Sequence の中なのでカット頭から鳴る */}
+      {scene.voiceFile ? (
+        <Audio src={resolveSrc(scene.voiceFile)} name="ナレーション" />
+      ) : null}
     </AbsoluteFill>
   );
 };
@@ -205,14 +211,31 @@ const collectText = (script: Script): string => {
 export const Storyboard: React.FC<{ script: Script }> = ({ script }) => {
   const { fps } = useVideoConfig();
   const palette = getPalette(script.palette);
-  const { timings } = buildTimeline(script, fps);
+  const { timings, totalFrames } = buildTimeline(script, fps);
+
+  // ナレーション中は BGM を下げ、前後はフェードさせる
+  const bgmVolume = buildBgmVolume({
+    timings,
+    fps,
+    totalFrames,
+    base: script.bgmVolume,
+    duck: Math.min(script.bgmDuckVolume, script.bgmVolume),
+  });
 
   return (
     <AbsoluteFill style={{ background: palette.bgDeep }}>
       <FontPreloader sampleText={collectText(script)} />
 
       {script.bgm ? (
-        <Audio src={resolveSrc(script.bgm)} volume={script.bgmVolume} />
+        <Audio
+          src={resolveSrc(script.bgm)}
+          name="BGM"
+          // 曲が動画より短くても最後まで鳴らす
+          loop
+          // ループしても音量カーブは動画全体の時間軸で評価してほしい
+          loopVolumeCurveBehavior="extend"
+          volume={bgmVolume}
+        />
       ) : null}
 
       {timings.map(({ scene, from, durationInFrames }, i) => {

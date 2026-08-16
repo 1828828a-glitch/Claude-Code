@@ -60,6 +60,36 @@ export const sceneSeconds = (scene: Scene): number => {
   }
 };
 
+/** ナレーションの後ろに置く「間」（秒）。言い終わった瞬間に切り替わると忙しない */
+export const VOICE_TAIL_SECONDS = 0.45;
+
+/**
+ * タイムライン上でそのシーンが占める秒数。
+ *
+ * ナレーション音声があるカットは、その実測の長さが絶対になる。
+ * 声が途中で切れるのが一番みっともないので、pace(全体テンポ)も掛けない。
+ * 「絵を長く見せたい」ときのために durationInSeconds が長ければそちらを採る。
+ */
+export const timelineSeconds = (scene: Scene, pace: number): number => {
+  if (scene.voiceSeconds !== undefined) {
+    return Math.max(
+      scene.voiceSeconds + VOICE_TAIL_SECONDS,
+      scene.durationInSeconds ?? 0,
+    );
+  }
+
+  // まだ音声を作っていないカット。読み上げにかかる時間で仮に見積もっておくと、
+  // `npm run voice` を回す前のプレビューでも尺が大きくズレない
+  if (scene.voiceText) {
+    return Math.max(
+      estimateNarrationSeconds(scene.voiceText) + VOICE_TAIL_SECONDS,
+      sceneSeconds(scene),
+    ) * pace;
+  }
+
+  return sceneSeconds(scene) * pace;
+};
+
 export type Timing = {
   scene: Scene;
   /** 開始フレーム（トランジションの重なりを考慮済み） */
@@ -105,7 +135,7 @@ export const buildTimeline = (
   script.scenes.forEach((scene, i) => {
     const durationInFrames = Math.max(
       1,
-      Math.round(sceneSeconds(scene) * script.pace * fps),
+      Math.round(timelineSeconds(scene, script.pace) * fps),
     );
     timings.push({ scene, from: cursor, durationInFrames });
 

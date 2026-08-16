@@ -49,6 +49,18 @@ const baseScene = {
   imagePrompt: z.string().optional(),
   /** 画面下に出すナレーションテロップ */
   telop: z.string().optional(),
+  /**
+   * このカットで読み上げるナレーション。`npm run voice` で音声を作り、
+   * `voiceFile` と `voiceSeconds` が書き戻される。
+   */
+  voiceText: z.string().optional(),
+  /** 生成された音声（public/ からの相対パス）。自動で埋まる */
+  voiceFile: z.string().optional(),
+  /**
+   * 音声の実測の長さ（秒）。自動で埋まる。
+   * これがあるカットは、文字数からの推定ではなくこの尺が使われる。
+   */
+  voiceSeconds: z.number().positive().optional(),
 };
 
 /** 章タイトル・冒頭のタイトル */
@@ -179,10 +191,22 @@ export const scriptSchema = z.object({
    * 「何を描くか」は各シーンの imagePrompt、「どう描くか」はここ、と分ける。
    */
   imageStyle: z.string().optional(),
-  /** BGM（public/ からの相対パス）。無ければ無音 */
+  /** ナレーションの声。OpenAI の音声名（alloy, nova, onyx, sage, coral など） */
+  voiceName: z.string().default("alloy"),
+  /** 読み方の指示（落ち着いて、ドキュメンタリー調で、など） */
+  voiceInstructions: z.string().optional(),
+  /** 読み上げ速度。1 が標準 */
+  voiceSpeed: z.number().min(0.25).max(4).default(1),
+
+  /** BGM（public/ からの相対パス）。無ければ無音。動画より短ければループする */
   bgm: z.string().optional(),
   /** BGM の音量 0〜1 */
   bgmVolume: z.number().min(0).max(1).default(0.25),
+  /**
+   * ナレーションが流れている間の BGM の音量。
+   * 声に被せたまま同じ音量で鳴らすと一気に素人っぽくなるので、既定で下げる。
+   */
+  bgmDuckVolume: z.number().min(0).max(1).default(0.07),
   scenes: z.array(sceneSchema).min(1),
 });
 

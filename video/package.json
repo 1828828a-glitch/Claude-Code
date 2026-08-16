@@ -9,6 +9,7 @@
     "still": "remotion still",
     "compositions": "remotion compositions",
     "assets": "node tools/generate-images.mjs",
+    "voice": "node tools/generate-voice.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

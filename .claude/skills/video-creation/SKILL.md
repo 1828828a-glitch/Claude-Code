@@ -72,7 +72,8 @@ npx remotion render src/index.ts <ID> out/video.mp4
 | `credit` | 出演者・スタッフ | `role` `names` |
 | `outro` | 締め・CTA | `text` `cta` |
 
-全シーン共通で `durationInSeconds` `background` `transition` `image` `imagePrompt` `telop` が使える。
+全シーン共通で `durationInSeconds` `background` `transition` `image` `imagePrompt`
+`telop` `voiceText` が使える。
 
 ### 覚えておくと効く記法
 
@@ -109,6 +110,34 @@ OPENAI_API_KEY=sk-... npm run assets -- src/scripts/xxx.json
 - **当てる** … `narration` `statement` `title` `outro`。文字が少なく、絵で語れるカット
 - **当てない** … `timeline` `compare` `bullets` `stat`。文字情報が主役なので、
   背景に絵を敷くと読めなくなる。`background` のパターンで十分
+
+## 声とBGMをつける
+
+ナレーションを入れると、**カットの尺が文字数の推定ではなく実際の音声の長さで
+確定する**。テロップと声がズレなくなるので、絵の次に効くのがこれ。
+
+シーンに `voiceText`（読み上げる文）、台本のトップレベルに `voiceName` と
+`voiceInstructions`（読み方）を書く。
+
+```bash
+npm run voice -- src/scripts/xxx.json --dry-run   # 読み上げる文の確認（無料）
+OPENAI_API_KEY=sk-... npm run voice -- src/scripts/xxx.json
+```
+
+`public/voice/` に保存され、`voiceFile` と `voiceSeconds` が台本に書き戻される。
+
+台本を書くときの注意:
+
+- **画面の文字と `voiceText` は別物として書く。** 画面は短く要点だけ、
+  読みは自然な話し言葉にする。同じ文字列をコピーしない
+- 数字と固有名詞は読み方が崩れやすい。「10年」より「十年」、
+  「1582」より「千五百八十二年」と書く
+- 声を入れたら `pace` は効かなくなる（音声の尺が優先されるため）。
+  テンポを変えたいときは `voiceSpeed` を使う
+
+BGM は `public/bgm/` に置いて `bgm` で指定する。生成はしない（ライセンスのため）。
+ナレーション中は自動で音量が下がり、ループとフェードも自動なので、
+台本側は `bgm` `bgmVolume` `bgmDuckVolume` を書くだけでいい。
 
 ## 参考動画から雰囲気を盗む
 
