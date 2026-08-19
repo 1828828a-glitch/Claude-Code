@@ -47,6 +47,12 @@ const baseScene = {
    * 結果のパスが `image` に書き戻される。レンダリング時には使わない。
    */
   imagePrompt: z.string().optional(),
+  /**
+   * このカットに登場させるキャラクター。台本トップレベルの `characters` の
+   * キーを書く。`npm run assets` がキャラシート画像を参照として渡すので、
+   * 複数カットに出しても同じ姿になる。
+   */
+  characters: z.array(z.string()).optional(),
   /** 画面下に出すナレーションテロップ */
   telop: z.string().optional(),
   /**
@@ -239,6 +245,23 @@ export const scriptSchema = z.object({
    * 「何を描くか」は各シーンの imagePrompt、「どう描くか」はここ、と分ける。
    */
   imageStyle: z.string().optional(),
+  /**
+   * 繰り返し登場する人物。
+   *
+   * 1カットずつ独立に生成すると顔が毎回変わってしまうので、
+   * 先に「キャラシート」を1枚作り、それを参照画像として各カットに渡す。
+   * 解説動画で同じ人物が何度も出るなら、ここを使わないと成立しない。
+   */
+  characters: z
+    .record(
+      z.object({
+        /** どんな人物か。キャラシートを作るときのプロンプト */
+        prompt: z.string(),
+        /** 生成されたキャラシート（public/ からの相対パス）。自動で埋まる */
+        sheet: z.string().optional(),
+      }),
+    )
+    .optional(),
   /** ナレーションの声。OpenAI の音声名（alloy, nova, onyx, sage, coral など） */
   voiceName: z.string().default("alloy"),
   /** 読み方の指示（落ち着いて、ドキュメンタリー調で、など） */

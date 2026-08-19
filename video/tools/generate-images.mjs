@@ -2,24 +2,37 @@
 /**
  * 台本の各カットの絵を OpenAI の画像モデルで生成する。
  *
- * 台本に `imagePrompt` が書かれたシーンだけを対象にして画像を作り、
- * 保存先のパスを `image` に書き戻す。すでに `image` があって実ファイルも
- * あるカットは飛ばすので、何度実行しても増えた分だけしか課金されない。
+ * 2段階で作る:
+ *   1段目 キャラシート  - 繰り返し出る人物を1枚ずつ作る
+ *   2段目 各カットの絵  - そのカットに出る人物のシートを参照画像として渡す
+ *
+ * 2段階にしているのは、1カットずつ独立に生成すると同じ人物の顔が
+ * 毎回変わってしまうため。解説動画で信長が5カット出るなら、5枚とも
+ * 同じ顔である必要がある。
+ *
+ * すでに生成済みのものは飛ばすので、何度実行しても増えた分しか課金されない。
  *
  * 使い方:
  *   OPENAI_API_KEY=sk-... node tools/generate-images.mjs src/scripts/xxx.json
  *
  * オプション:
- *   --dry-run           API を叩かず、送信するプロンプトだけを表示する（無料）
+ *   --dry-run           API を叩かず、送る内容だけを表示する（無料）
  *   --force             既存の画像を無視して作り直す
  *   --quality <level>   low | medium | high | auto  (既定 medium)
  *   --only <n[,n...]>   指定した番号のシーンだけ生成する（1始まり）
+ *   --fidelity <level>  参照画像の再現度 high | low (既定 high)
+ *
+ * 環境変数:
+ *   OPENAI_API_KEY   必須（--dry-run 時は不要）
+ *   OPENAI_BASE_URL  既定 https://api.openai.com/v1 （プロキシや検証用）
  */
 import { readFile, writeFile, mkdir, access } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import path from "node:path";
 
-const API_URL = "https://api.openai.com/v1/images/generations";
+const BASE_URL = (
+  process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1"
+).replace(/\/$/, "");
 const MODEL = "gpt-image-1";
 
 /** 台本の format から、モデルが受け付ける解像度に変換する */
@@ -29,8 +42,19 @@ const SIZE_BY_FORMAT = {
   square: "1024x1024",
 };
 
+const fail = (message) => {
+  console.error(`エラー: ${message}`);
+  process.exit(1);
+};
+
 const parseArgs = (argv) => {
-  const options = { quality: "medium", dryRun: false, force: false, only: null };
+  const options = {
+    quality: "medium",
+    fidelity: "high",
+    dryRun: false,
+    force: false,
+    only: null,
+  };
   const positional = [];
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -38,6 +62,7 @@ const parseArgs = (argv) => {
     if (arg === "--dry-run") options.dryRun = true;
     else if (arg === "--force") options.force = true;
     else if (arg === "--quality") options.quality = argv[++i];
+    else if (arg === "--fidelity") options.fidelity = argv[++i];
     else if (arg === "--only")
       options.only = new Set(
         (argv[++i] ?? "").split(",").map((n) => Number(n.trim())),
@@ -52,61 +77,120 @@ const parseArgs = (argv) => {
   return { scriptPath: positional[0], options };
 };
 
-const fail = (message) => {
-  console.error(`エラー: ${message}`);
-  process.exit(1);
-};
-
 const exists = async (p) =>
   access(p).then(
     () => true,
     () => false,
   );
 
-/**
- * プロンプトから決まるファイル名。
- * プロンプトを書き換えたら別ファイルになるので、
- * 「文言を直したのに古い絵のまま」という事故が起きない。
- */
-const fileNameFor = (scriptName, index, prompt) => {
-  const digest = createHash("sha1").update(prompt).digest("hex").slice(0, 8);
-  return `${scriptName}-${String(index + 1).padStart(2, "0")}-${digest}.png`;
-};
+const digest = (...parts) =>
+  createHash("sha1").update(parts.join(" ")).digest("hex").slice(0, 8);
+
+/** ファイル名に使えない文字を落とす */
+const slug = (name) =>
+  name.replace(/[^\p{L}\p{N}_-]/gu, "").slice(0, 24) || "char";
 
 /**
- * 実際に送るプロンプト。
- * 画風(imageStyle)を後ろに付けることで、全カットの絵柄を揃える。
- * 文字は Remotion 側で乗せるので、画像には焼き込ませない。
+ * 画面に文字を入れさせない、余白を残させる、という共通の縛り。
+ * 文字は Remotion 側で乗せるし、映像ではズームやパンをかけるため。
  */
-const buildPrompt = (scenePrompt, imageStyle) =>
+const COMMON_RULES = [
+  "画像内に文字・ロゴ・透かしを一切入れないこと。",
+  "被写体は中央寄りに配置し、上下左右に余白を残すこと。",
+];
+
+const buildScenePrompt = (scenePrompt, imageStyle, characterNames) => {
+  const lines = [scenePrompt, imageStyle];
+  if (characterNames.length > 0) {
+    lines.push(
+      `参照画像の人物（${characterNames.join("、")}）を、` +
+        "顔・髪型・服装・配色を変えずにそのまま登場させること。",
+    );
+  }
+  return [...lines.filter(Boolean), ...COMMON_RULES].join("\n");
+};
+
+const buildCharacterPrompt = (charPrompt, imageStyle) =>
   [
-    scenePrompt,
+    charPrompt,
     imageStyle,
-    "画像内に文字・ロゴ・透かしを一切入れないこと。",
-    "被写体は中央寄りに配置し、上下左右に余白を残すこと（映像でズームやパンをかけるため）。",
+    "全身が入った立ち絵。正面向き、自然な立ち姿。",
+    "背景は無地の単色にして、人物だけがはっきり分かるようにすること。",
+    ...COMMON_RULES,
   ]
     .filter(Boolean)
     .join("\n");
 
-const generateImage = async ({ prompt, size, quality, apiKey }) => {
-  const response = await fetch(API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({ model: MODEL, prompt, size, quality, n: 1 }),
-  });
+const decodeImage = (body) => {
+  const b64 = body?.data?.[0]?.b64_json;
+  if (!b64) {
+    throw new Error(
+      `画像が返りませんでした: ${JSON.stringify(body).slice(0, 300)}`,
+    );
+  }
+  return Buffer.from(b64, "base64");
+};
 
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`${response.status} ${response.statusText}\n${detail}`);
+const checkResponse = async (response) => {
+  if (response.ok) return response.json();
+  const detail = await response.text();
+  throw new Error(
+    `${response.status} ${response.statusText}\n${detail.slice(0, 500)}`,
+  );
+};
+
+/** 参照画像なしの生成 */
+const generate = async ({ prompt, size, quality, apiKey }) =>
+  decodeImage(
+    await checkResponse(
+      await fetch(`${BASE_URL}/images/generations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({ model: MODEL, prompt, size, quality, n: 1 }),
+      }),
+    ),
+  );
+
+/**
+ * 参照画像ありの生成。キャラの一貫性を保つのはこちら。
+ * multipart で送る必要があるので JSON ではなく FormData を使う。
+ */
+const generateWithReferences = async ({
+  prompt,
+  size,
+  quality,
+  fidelity,
+  references,
+  apiKey,
+}) => {
+  const form = new FormData();
+  form.append("model", MODEL);
+  form.append("prompt", prompt);
+  form.append("size", size);
+  form.append("quality", quality);
+  form.append("n", "1");
+  form.append("input_fidelity", fidelity);
+
+  for (const ref of references) {
+    const bytes = await readFile(ref.path);
+    form.append(
+      "image[]",
+      new File([bytes], path.basename(ref.path), { type: "image/png" }),
+    );
   }
 
-  const body = await response.json();
-  const b64 = body?.data?.[0]?.b64_json;
-  if (!b64) throw new Error(`画像が返りませんでした: ${JSON.stringify(body)}`);
-  return Buffer.from(b64, "base64");
+  return decodeImage(
+    await checkResponse(
+      await fetch(`${BASE_URL}/images/edits`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}` },
+        body: form,
+      }),
+    ),
+  );
 };
 
 const main = async () => {
@@ -122,36 +206,96 @@ const main = async () => {
   const outDir = path.join("public", "photos");
   await mkdir(outDir, { recursive: true });
 
-  const size = SIZE_BY_FORMAT[script.format ?? "landscape"] ?? SIZE_BY_FORMAT.landscape;
+  const size =
+    SIZE_BY_FORMAT[script.format ?? "landscape"] ?? SIZE_BY_FORMAT.landscape;
+  const imageStyle = script.imageStyle;
 
-  // 台本を書き換えたときだけ保存する。--dry-run では一切書かない
   let changed = false;
   const saveScript = async () => {
     if (options.dryRun || !changed) return;
     await writeFile(scriptPath, `${JSON.stringify(script, null, 2)}\n`);
   };
-  const setImage = (scene, fileName) => {
-    const next = path.posix.join("photos", fileName);
+
+  // 1段目: キャラシート
+  const characters = script.characters ?? {};
+  const sheets = new Map();
+
+  for (const [name, def] of Object.entries(characters)) {
+    const prompt = buildCharacterPrompt(def.prompt, imageStyle);
+    const file = `_char-${slug(name)}-${digest(prompt)}.png`;
+    const outPath = path.join(outDir, file);
+    sheets.set(name, { path: outPath, file });
+
+    if (!options.force && (await exists(outPath))) {
+      if (def.sheet !== path.posix.join("photos", file)) {
+        def.sheet = path.posix.join("photos", file);
+        changed = true;
+      }
+      console.log(`[キャラ] ${name}: 生成済み -> ${file}`);
+      continue;
+    }
+
+    if (options.dryRun) {
+      console.log(`[キャラ] ${name} -> ${file}\n${prompt}\n`);
+      continue;
+    }
+
+    process.stdout.write(`[キャラ] ${name} 生成中... `);
+    try {
+      const image = await generate({
+        prompt,
+        size: "1024x1024",
+        quality: options.quality,
+        apiKey,
+      });
+      await writeFile(outPath, image);
+      def.sheet = path.posix.join("photos", file);
+      changed = true;
+      await saveScript();
+      console.log(`${file} (${Math.round(image.length / 1024)}KB)`);
+    } catch (error) {
+      console.log("失敗");
+      console.error(`  ${error.message}`);
+      fail("キャラシートが無いと以降のカットで人物が揃わないため中断します。");
+    }
+  }
+
+  // 2段目: 各カットの絵
+  const setImage = (scene, file) => {
+    const next = path.posix.join("photos", file);
     if (scene.image === next) return;
     scene.image = next;
     changed = true;
   };
 
   const targets = [];
-  for (const [index, scene] of script.scenes.entries()) {
+  for (const [index, scene] of (script.scenes ?? []).entries()) {
     if (!scene.imagePrompt) continue;
     if (options.only && !options.only.has(index + 1)) continue;
 
-    const fileName = fileNameFor(scriptName, index, scene.imagePrompt);
-    const outPath = path.join(outDir, fileName);
+    const names = (scene.characters ?? []).filter((n) => {
+      if (sheets.has(n)) return true;
+      console.warn(
+        `  警告: シーン${index + 1} のキャラ「${n}」は characters に未定義。無視します。`,
+      );
+      return false;
+    });
+    const references = names.map((n) => sheets.get(n));
+
+    const prompt = buildScenePrompt(scene.imagePrompt, imageStyle, names);
+    // 参照画像が変われば作り直したいので、シート名もハッシュに含める
+    const file = `${scriptName}-${String(index + 1).padStart(2, "0")}-${digest(
+      prompt,
+      ...references.map((r) => r.file),
+    )}.png`;
+    const outPath = path.join(outDir, file);
 
     if (!options.force && (await exists(outPath))) {
-      // 生成済み。パスだけ確実に台本へ反映しておく
-      setImage(scene, fileName);
-      console.log(`- ${index + 1}. 生成済みなので飛ばします → ${fileName}`);
+      setImage(scene, file);
+      console.log(`- ${index + 1}. 生成済みなので飛ばします -> ${file}`);
       continue;
     }
-    targets.push({ index, scene, outPath, fileName });
+    targets.push({ index, scene, outPath, file, prompt, references, names });
   }
 
   if (targets.length === 0) {
@@ -161,31 +305,43 @@ const main = async () => {
   }
 
   console.log(
-    `${targets.length}カットを生成します（${size} / quality=${options.quality}）\n`,
+    `\n${targets.length}カットを生成します（${size} / quality=${options.quality}）\n`,
   );
 
   let failures = 0;
-  for (const { index, scene, outPath, fileName } of targets) {
-    const prompt = buildPrompt(scene.imagePrompt, script.imageStyle);
-
+  for (const {
+    index,
+    scene,
+    outPath,
+    file,
+    prompt,
+    references,
+    names,
+  } of targets) {
     if (options.dryRun) {
-      console.log(`--- ${index + 1}. ${fileName}\n${prompt}\n`);
+      const ref = names.length > 0 ? ` [参照: ${names.join(", ")}]` : "";
+      console.log(`--- ${index + 1}. ${file}${ref}\n${prompt}\n`);
       continue;
     }
 
     process.stdout.write(`- ${index + 1}. 生成中... `);
     try {
-      const image = await generateImage({
-        prompt,
-        size,
-        quality: options.quality,
-        apiKey,
-      });
+      const image =
+        references.length > 0
+          ? await generateWithReferences({
+              prompt,
+              size,
+              quality: options.quality,
+              fidelity: options.fidelity,
+              references,
+              apiKey,
+            })
+          : await generate({ prompt, size, quality: options.quality, apiKey });
+
       await writeFile(outPath, image);
-      setImage(scene, fileName);
-      // 1枚ごとに書き戻す。途中で失敗しても、できた分は残る
+      setImage(scene, file);
       await saveScript();
-      console.log(`${fileName} (${Math.round(image.length / 1024)}KB)`);
+      console.log(`${file} (${Math.round(image.length / 1024)}KB)`);
     } catch (error) {
       failures += 1;
       console.log("失敗");
