@@ -263,7 +263,9 @@ npm run voice-import -- src/scripts/xxx.json <音声フォルダ>
 
 ## BGM を入れる
 
-`public/bgm/` に音楽ファイルを置いて指定する。生成はしないので、
+`npm run bgm` で、静かなピアノのループ曲がコード合成で
+`public/bgm/calm-piano.wav` にできる（効果音と同じ方式なのでライセンス問題なし）。
+既製の曲を使う場合は `public/bgm/` に置いて指定する。生成しない曲は
 使用条件を自分で確認したものを置くこと。
 
 ```json

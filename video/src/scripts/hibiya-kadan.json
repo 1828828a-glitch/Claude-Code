@@ -3,6 +3,7 @@
   "palette": "washi",
   "background": "washi",
   "transition": "fade",
+  "bgm": "bgm/calm-piano.wav",
   "imageStyle": "ホテルの宴会場やアトリエの花を描いた、透明感のある水彩風イラスト。生成りの紙に、深い緑と淡い紅、金をひと差し。写真ではなく、にじみを生かした手描きの絵画調。人物は描かないか、描いても顔を大きく見せない。",
   "voiceName": "sage",
   "voiceInstructions": "上品で穏やかな声で、美術館の音声ガイドのように。急がず、言葉の余韻を残して読む。",
@@ -48,6 +49,7 @@
         "label": "この研修",
         "text": "手順ではなく\n「視線」と「言い分」を言語化する"
       },
+      "image": "photos/hibiya-outro.png",
       "voiceText": "挑んだのは手順の言語化ではない。プロの、見方の言語化だった。",
       "voiceFile": "voice/manual-hibiya-kadan-03.wav",
       "voiceSeconds": 5.717
@@ -110,6 +112,7 @@
           "name": "tick"
         }
       ],
+      "image": "photos/hibiya-title.png",
       "voiceText": "プロが見た目の先で守るものが見えてくる。華やかさと格。迫力と会話。写真映えと居心地。",
       "voiceFile": "voice/manual-hibiya-kadan-07.wav",
       "voiceSeconds": 8.16

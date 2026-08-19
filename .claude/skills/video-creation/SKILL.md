@@ -175,7 +175,8 @@ OPENAI_API_KEY=sk-... npm run voice -- src/scripts/xxx.json
 ファイル名でフォルダに置き `npm run voice-import -- <台本> <フォルダ>`。
 長さを実測して台本に書き戻すので、以降の挙動は API 生成と同じ。
 
-BGM は `public/bgm/` に置いて `bgm` で指定する。生成はしない（ライセンスのため）。
+BGM は `npm run bgm` でコード合成の静かなピアノループが public/bgm/calm-piano.wav に
+できる（ライセンス問題なし）。既製の曲を使うなら `public/bgm/` に置いて `bgm` で指定。
 ナレーション中は自動で音量が下がり、ループとフェードも自動なので、
 台本側は `bgm` `bgmVolume` `bgmDuckVolume` を書くだけでいい。
 

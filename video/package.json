@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "map": "node tools/fetch-map.mjs",
     "sfx": "node tools/make-sfx.mjs",
+    "bgm": "node tools/make-bgm.mjs",
     "voice-import": "node tools/import-voice.mjs"
   },
   "dependencies": {
