@@ -60,7 +60,7 @@ npx remotion still src/index.ts HistoryExplainer out/check.png --frame=120
 ### シーンの種類
 
 `title` `statement` `narration` `bullets` `timeline` `compare` `quote`
-`stat` `logo` `credit` `outro` の11種類。
+`stat` `map` `progress` `logo` `credit` `outro` の13種類。
 それぞれのキーは [`src/lib/schema.ts`](src/lib/schema.ts) が唯一の正。
 
 ### 日本語のための記法
@@ -121,6 +121,56 @@ npm run assets -- src/scripts/history-honnoji.json --dry-run
 - ファイル名にプロンプトのハッシュが入るので、**プロンプトを直せば作り直され、直さなければ課金されない**
 - `--force` で作り直し、`--only 3,5` で特定のカットだけ、`--quality high` で高品質
 - 生成された画像には自動で Ken Burns 効果（寄り／パン）と微細な手ブレがかかる
+
+## 地図とゲージを出す
+
+解説動画で一番効くのが「地図に色を塗る」と「ゲージを伸ばす」。
+言葉で説明せずに、どこが・どれだけ を一目で分からせられる。
+
+### 地図
+
+地図データは再配布条件があるためリポジトリに入れていない。まず取得する。
+
+```bash
+npm run map          # 日本の都道府県地図を public/maps/ に落とす
+```
+
+```json
+{
+  "type": "map",
+  "heading": "天下統一まで、あと少し",
+  "highlight": ["京都府", "滋賀県", "岐阜県", "愛知県"],
+  "focus": "highlight",
+  "zoom": 0.62,
+  "progress": { "label": "天下統一", "value": 83 },
+  "attribution": "出典: 地球地図日本（国土地理院）"
+}
+```
+
+- `highlight` に書いた順に、1地域ずつ色が乗っていく
+- `focus: "highlight"` で塗る地域に寄る。日本は斜めに長いので、
+  全体に合わせると本州が小さくなってしまう。`zoom` で引き具合を調整する
+- `progress` を書くと地図の下にゲージが出る
+
+**ライセンスに注意。** 既定の地図は地球地図日本（国土地理院）由来で、
+非営利なら出典明記、営利なら出典明記＋著作権者への利用報告が必要。
+`attribution` に書けば画面に焼き込める。
+
+### ゲージ
+
+```json
+{
+  "type": "progress",
+  "heading": "本能寺の変・直前の勢力",
+  "items": [
+    { "label": "織田信長", "value": 83 },
+    { "label": "明智光秀", "value": 6 }
+  ]
+}
+```
+
+棒の伸びと数字のカウントアップは同じタイミングに揃えてある。
+ここがズレると途端に安っぽく見えるため。
 
 ## ナレーションを入れる
 
@@ -215,6 +265,7 @@ src/
     text.ts         日本語テキストの分割と採寸
     timing.ts       イージングとバネのプリセット
     audio.ts        BGM の音量カーブ（ダッキング・フェード）
+    geo.ts          地図データ → SVG パス（メルカトル投影）
   theme/
     tokens.ts       パレット・解像度・安全領域
     fonts.ts        フォント（ローカルバンドル）
@@ -229,6 +280,7 @@ tools/
   extract-frames.sh    参考動画からフレームを抽出
   generate-images.mjs  台本の imagePrompt から画像を生成
   generate-voice.mjs   台本の voiceText からナレーション音声を生成
+  fetch-map.mjs        地図データを取得して簡略化
 ```
 
 ## 演出を足すとき

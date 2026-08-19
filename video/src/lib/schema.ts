@@ -149,6 +149,52 @@ export const creditSceneSchema = z.object({
   ...baseScene,
 });
 
+/** 地図に色を塗って見せる */
+export const mapSceneSchema = z.object({
+  type: z.literal("map"),
+  heading: z.string().optional(),
+  /** 地図データ（public/ からの相対パス）。`npm run map` で取得する */
+  geo: z.string().default("maps/japan-prefectures.json"),
+  /** 塗る地域名。台本に書いた順に色が乗っていく */
+  highlight: z.array(z.string()).default([]),
+  /** 地図と一緒に出すゲージ */
+  progress: z
+    .object({
+      label: z.string().optional(),
+      value: z.number(),
+      suffix: z.string().optional(),
+    })
+    .optional(),
+  /**
+   * 画面に収める対象。
+   * "all" は地図全体、"highlight" は塗る地域に寄る。
+   * 日本は斜めに長いので、全体に合わせると本州が小さくなる。
+   */
+  focus: z.enum(["all", "highlight"]).default("all"),
+  /** 寄り具合の微調整。1 より小さくすると引く */
+  zoom: z.number().positive().default(1),
+  /** 出典表記。地図データのライセンス上必要になることが多い */
+  attribution: z.string().optional(),
+  ...baseScene,
+});
+
+/** ゲージを並べて比較する */
+export const progressSceneSchema = z.object({
+  type: z.literal("progress"),
+  heading: z.string().optional(),
+  items: z
+    .array(
+      z.object({
+        label: z.string(),
+        value: z.number(),
+        suffix: z.string().optional(),
+      }),
+    )
+    .min(1),
+  suffix: z.string().default("%"),
+  ...baseScene,
+});
+
 /** 締め・CTA */
 export const outroSceneSchema = z.object({
   type: z.literal("outro"),
@@ -166,6 +212,8 @@ export const sceneSchema = z.discriminatedUnion("type", [
   compareSceneSchema,
   quoteSceneSchema,
   statSceneSchema,
+  mapSceneSchema,
+  progressSceneSchema,
   logoSceneSchema,
   creditSceneSchema,
   outroSceneSchema,

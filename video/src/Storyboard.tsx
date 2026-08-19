@@ -36,6 +36,8 @@ import {
   StatScene,
 } from "./scenes/DataScenes";
 import { LogoScene, CreditScene } from "./scenes/BroadcastScenes";
+import { MapScene } from "./scenes/MapScene";
+import { ProgressScene } from "./scenes/ProgressScene";
 
 /** 台本の1シーンを対応するコンポーネントに振り分ける */
 const SceneRouter: React.FC<{ scene: Scene; palette: Palette }> = ({
@@ -61,6 +63,10 @@ const SceneRouter: React.FC<{ scene: Scene; palette: Palette }> = ({
       return <CompareScene scene={scene} palette={palette} />;
     case "stat":
       return <StatScene scene={scene} palette={palette} />;
+    case "map":
+      return <MapScene scene={scene} palette={palette} />;
+    case "progress":
+      return <ProgressScene scene={scene} palette={palette} />;
     case "logo":
       return <LogoScene scene={scene} palette={palette} />;
     case "credit":

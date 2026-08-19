@@ -5,4 +5,6 @@ __pycache__/
 node_modules/
 video/out/
 video/refs/
+# 地図データは再配布条件があるため入れない（npm run map で各自取得）
+video/public/maps/
 .remotion/

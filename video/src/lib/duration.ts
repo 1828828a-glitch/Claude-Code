@@ -45,6 +45,11 @@ export const sceneSeconds = (scene: Scene): number => {
       return Math.max(3.0, estimateNarrationSeconds(scene.text, 4.5) + 1.2);
     case "stat":
       return 3.0;
+    case "map":
+      // 塗られていく様子を見せる時間 + 見終わる間
+      return Math.max(3.5, scene.highlight.length * 0.12 + 2.8);
+    case "progress":
+      return Math.max(3.0, scene.items.length * 0.9 + 1.8);
     case "logo":
       return 3.2;
     case "credit":

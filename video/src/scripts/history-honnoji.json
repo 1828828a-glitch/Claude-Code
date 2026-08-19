@@ -61,6 +61,45 @@
       "voiceText": "その日、何が起きたのか。順に見ていこう。"
     },
     {
+      "type": "map",
+      "heading": "天下統一まで、あと少し",
+      "geo": "maps/japan-prefectures.json",
+      "highlight": [
+        "京都府",
+        "滋賀県",
+        "岐阜県",
+        "愛知県",
+        "三重県",
+        "奈良県",
+        "大阪府",
+        "兵庫県",
+        "和歌山県",
+        "福井県",
+        "石川県",
+        "富山県",
+        "静岡県",
+        "山梨県",
+        "長野県",
+        "岡山県",
+        "鳥取県",
+        "島根県",
+        "広島県",
+        "香川県",
+        "徳島県",
+        "新潟県"
+      ],
+      "progress": {
+        "label": "天下統一",
+        "value": 83,
+        "suffix": "%"
+      },
+      "attribution": "※都道府県で近似 / 出典: 地球地図日本（国土地理院）",
+      "background": "plain",
+      "voiceText": "この時点で、織田信長は天下統一の八割方を手中に収めていた。",
+      "focus": "highlight",
+      "zoom": 0.62
+    },
+    {
       "type": "quote",
       "text": "是非に及ばず",
       "source": "織田信長／信長公記",
@@ -80,6 +119,25 @@
       },
       "background": "stripes",
       "voiceText": "動機については、今なお定説がない。"
+    },
+    {
+      "type": "progress",
+      "heading": "本能寺の変・直前の勢力",
+      "items": [
+        {
+          "label": "織田信長",
+          "value": 83
+        },
+        {
+          "label": "明智光秀",
+          "value": 6
+        },
+        {
+          "label": "羽柴秀吉",
+          "value": 11
+        }
+      ],
+      "background": "grid"
     },
     {
       "type": "stat",

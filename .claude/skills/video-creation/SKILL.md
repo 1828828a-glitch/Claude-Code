@@ -68,6 +68,8 @@ npx remotion render src/index.ts <ID> out/video.mp4
 | `compare` | 左右2分割の比較 | `heading` `left` `right` |
 | `quote` | 引用・史料 | `text` `source` |
 | `stat` | 数字を1つ大きく（カウントアップ） | `value` `label` `suffix` |
+| `map` | 地図に色を塗る | `highlight` `focus` `zoom` `progress` `attribution` |
+| `progress` | ゲージを並べて比較 | `heading` `items[{label,value}]` |
 | `logo` | 番組ロゴカード | `title` `tagline` |
 | `credit` | 出演者・スタッフ | `role` `names` |
 | `outro` | 締め・CTA | `text` `cta` |
@@ -110,6 +112,24 @@ OPENAI_API_KEY=sk-... npm run assets -- src/scripts/xxx.json
 - **当てる** … `narration` `statement` `title` `outro`。文字が少なく、絵で語れるカット
 - **当てない** … `timeline` `compare` `bullets` `stat`。文字情報が主役なので、
   背景に絵を敷くと読めなくなる。`background` のパターンで十分
+
+## 地図とゲージ
+
+`map` と `progress` は解説動画で一番効く2つ。言葉で説明せずに
+「どこが」「どれだけ」を一目で分からせられる。
+
+地図データは再配布条件があるのでリポジトリに入っていない。先に取得する:
+
+```bash
+npm run map    # public/maps/japan-prefectures.json ができる
+```
+
+- `highlight` に書いた順に1地域ずつ色が乗る
+- `focus: "highlight"` + `zoom` で注目領域に寄る。日本は斜めに長いので、
+  全体に合わせると本州が小さくなる。0.6 前後が使いやすい
+- **`attribution` を必ず書く。** 既定の地図は地球地図日本（国土地理院）由来で、
+  非営利なら出典明記、営利なら出典明記＋著作権者への利用報告が必要
+- 地域名はデータのプロパティ名と完全一致させる（例: 「京都」ではなく「京都府」）
 
 ## 声とBGMをつける
 
