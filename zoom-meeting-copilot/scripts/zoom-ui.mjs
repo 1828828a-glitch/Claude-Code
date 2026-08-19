@@ -67,33 +67,39 @@ export async function bodyText(page) {
 }
 
 // Zoom labels its toggles with the action they perform, so a visible "Mute"
-// control means the microphone is currently on.
+// control means the microphone is currently on. The accessible name varies by
+// screen and locale ("Mute", "ミュート", "マイクをミュート", …); a lookaround
+// keeps "Unmute"/"ミュート解除" from matching the mute patterns.
 export function microphoneOffControls(frame) {
   return [
-    frame.getByRole("button", { name: /^mute my (microphone|audio)|^(mute|ミュート)(\s|$)/i }).filter({ hasNotText: /un|解除/i }),
-    frame.locator('button[aria-label*="mute" i]:not([aria-label*="unmute" i])'),
-    frame.locator('button[aria-label*="ミュートする"], button[aria-label^="ミュート"]:not([aria-label*="解除"])'),
+    frame.locator('#preview-audio-control-button[aria-label*="ミュート"]:not([aria-label*="解除"]), #preview-audio-control-button[aria-label*="mute" i]:not([aria-label*="unmute" i])'),
+    frame.locator('button[aria-label*="ミュート"]:not([aria-label*="解除"]):not([aria-label*="全員"])'),
+    frame.locator('button[aria-label*="mute" i]:not([aria-label*="unmute" i]):not([aria-label*="all" i])'),
+    frame.getByRole("button", { name: /(?<!un)mute|ミュート(?!(を)?解除)/i }).filter({ hasNotText: /unmute|解除|全員|all/i }),
   ];
 }
 
 export function microphoneOnControls(frame) {
   return [
-    frame.getByRole("button", { name: /unmute my (microphone|audio)|unmute|ミュート(を)?解除/i }),
+    frame.locator('#preview-audio-control-button[aria-label*="解除"], #preview-audio-control-button[aria-label*="unmute" i]'),
     frame.locator('button[aria-label*="unmute" i], button[aria-label*="ミュート解除"], button[aria-label*="ミュートを解除"]'),
+    frame.getByRole("button", { name: /unmute|ミュート(を)?解除/i }),
   ];
 }
 
 export function cameraOffControls(frame) {
   return [
-    frame.getByRole("button", { name: /stop video|ビデオの停止|ビデオを停止/i }),
-    frame.locator('button[aria-label*="stop video" i], button[aria-label*="ビデオの停止"], button[aria-label*="ビデオを停止"]'),
+    frame.locator('#preview-video-control-button[aria-label*="オフ"], #preview-video-control-button[aria-label*="停止"], #preview-video-control-button[aria-label*="stop" i]'),
+    frame.getByRole("button", { name: /stop (my )?video|ビデオを(オフ|停止)|ビデオの停止/i }),
+    frame.locator('button[aria-label*="stop video" i], button[aria-label*="ビデオをオフ"], button[aria-label*="ビデオの停止"], button[aria-label*="ビデオを停止"]'),
   ];
 }
 
 export function cameraOnControls(frame) {
   return [
-    frame.getByRole("button", { name: /start video|ビデオの開始|ビデオを開始/i }),
-    frame.locator('button[aria-label*="start video" i], button[aria-label*="ビデオの開始"], button[aria-label*="ビデオを開始"]'),
+    frame.locator('#preview-video-control-button[aria-label*="オン"], #preview-video-control-button[aria-label*="開始"], #preview-video-control-button[aria-label*="start" i]'),
+    frame.getByRole("button", { name: /start (my )?video|ビデオを(オン|開始)|ビデオの開始/i }),
+    frame.locator('button[aria-label*="start video" i], button[aria-label*="ビデオをオン"], button[aria-label*="ビデオの開始"], button[aria-label*="ビデオを開始"]'),
   ];
 }
 
@@ -115,9 +121,10 @@ export async function joinComputerAudioIfOffered(page) {
 // callers must keep the microphone muted until both devices are "selected".
 export async function selectAudioDevices(page) {
   const audioMenuButtons = (frame) => [
-    frame.getByRole("button", { name: /audio settings|オーディオ設定|more audio controls|音声オプション/i }),
-    frame.locator('button[aria-label*="audio settings" i], button[aria-label*="オーディオ設定"]'),
-    frame.locator(".join-audio-container__arrow, .audio-option-menu__arrow"),
+    frame.getByRole("button", { name: /audio (settings|options?)|more audio controls|オーディオ ?(設定|オプション)|音声 ?(設定|オプション)/i }),
+    frame.locator('button[aria-label*="audio" i][aria-label*="setting" i], button[aria-label*="audio" i][aria-label*="option" i]'),
+    frame.locator('button[aria-label*="オーディオ設定"], button[aria-label*="オーディオオプション"], button[aria-label*="オーディオ オプション"], button[aria-label*="音声オプション"]'),
+    frame.locator(".join-audio-container__arrow, .audio-option-menu__arrow, #preview-audio-menu-button"),
   ];
 
   const opened = await clickVisible(page, audioMenuButtons, 2_000);
