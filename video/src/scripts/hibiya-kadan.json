@@ -15,7 +15,9 @@
       "transition": "flash",
       "imagePrompt": "夜明けの花のアトリエ。作業台の上に、束ねる前の花々と花鋏が静かに置かれている。窓から差す薄い朝の光。人物はいない。画面全体を淡く、余白を広く。",
       "voiceText": "一流のクリエイターは、花を決める前に何を見ているのか。",
-      "image": "photos/hibiya-title.png"
+      "image": "photos/hibiya-title.png",
+      "voiceFile": "voice/manual-hibiya-kadan-01.wav",
+      "voiceSeconds": 4.8
     },
     {
       "type": "statement",
@@ -31,7 +33,9 @@
           "name": "impact"
         }
       ],
-      "voiceText": "プロの技は、マニュアルにならない。"
+      "voiceText": "プロの技は、マニュアルにならない。",
+      "voiceFile": "voice/manual-hibiya-kadan-02.wav",
+      "voiceSeconds": 3.115
     },
     {
       "type": "compare",
@@ -44,7 +48,9 @@
         "label": "この研修",
         "text": "手順ではなく\n「視線」と「言い分」を言語化する"
       },
-      "voiceText": "挑んだのは手順の言語化ではない。プロの、見方の言語化だった。"
+      "voiceText": "挑んだのは手順の言語化ではない。プロの、見方の言語化だった。",
+      "voiceFile": "voice/manual-hibiya-kadan-03.wav",
+      "voiceSeconds": 5.717
     },
     {
       "type": "statement",
@@ -54,7 +60,9 @@
       ],
       "mode": "focus",
       "background": "radial",
-      "voiceText": "答えは、最初のコンマ五秒にある。"
+      "voiceText": "答えは、最初のコンマ五秒にある。",
+      "voiceFile": "voice/manual-hibiya-kadan-04.wav",
+      "voiceSeconds": 3.243
     },
     {
       "type": "narration",
@@ -64,7 +72,9 @@
       ],
       "imagePrompt": "ホテルの晩餐会場の円卓。中央に、密集して豪華に盛られた花の装飾。キャンドルの灯り。テーブル全体が入る引きの構図で、花が主役。人物は描かない。 画面下 4分の1 はテーブルクロスの無地で静かに。",
       "voiceText": "豪華な装花を見せて、問う。良い悪いの前に、最初にどこを見たか。",
-      "image": "photos/hibiya-a.png"
+      "image": "photos/hibiya-a.png",
+      "voiceFile": "voice/manual-hibiya-kadan-05.wav",
+      "voiceSeconds": 6.304
     },
     {
       "type": "narration",
@@ -74,7 +84,9 @@
       ],
       "imagePrompt": "同じホテルの晩餐会場の同じ円卓。今度は花を美しく間引き、空間と余白を生かした装飾。向かいの席が見通せる。同じキャンドルの灯り、同じ引きの構図。人物は描かない。 画面下 4分の1 はテーブルクロスの無地で静かに。",
       "voiceText": "花を美しく間引いた一枚と比べる。何が変わり、誰に効くのか。",
-      "image": "photos/hibiya-b.png"
+      "image": "photos/hibiya-b.png",
+      "voiceFile": "voice/manual-hibiya-kadan-06.wav",
+      "voiceSeconds": 5.931
     },
     {
       "type": "bullets",
@@ -98,7 +110,9 @@
           "name": "tick"
         }
       ],
-      "voiceText": "プロが見た目の先で守るものが見えてくる。華やかさと格。迫力と会話。写真映えと居心地。"
+      "voiceText": "プロが見た目の先で守るものが見えてくる。華やかさと格。迫力と会話。写真映えと居心地。",
+      "voiceFile": "voice/manual-hibiya-kadan-07.wav",
+      "voiceSeconds": 8.16
     },
     {
       "type": "quote",
@@ -113,7 +127,9 @@
       ],
       "voiceText": "予算か、品か。その二択の外に、提案をつくる。",
       "imagePrompt": "生成りの紙の上に、一輪の淡い紅の花が斜めに置かれた静物。余白を大きく取り、画面の下半分はほぼ無地。淡く上品に。",
-      "image": "photos/hibiya-quote.png"
+      "image": "photos/hibiya-quote.png",
+      "voiceFile": "voice/manual-hibiya-kadan-08.wav",
+      "voiceSeconds": 4.907
     },
     {
       "type": "statement",
@@ -123,7 +139,9 @@
       ],
       "mode": "riseUp",
       "background": "grid",
-      "voiceText": "手順書はAIで一瞬にコピーされる。経験に裏打ちされた視線だけは、真似できない。"
+      "voiceText": "手順書はAIで一瞬にコピーされる。経験に裏打ちされた視線だけは、真似できない。",
+      "voiceFile": "voice/manual-hibiya-kadan-09.wav",
+      "voiceSeconds": 6.933
     },
     {
       "type": "outro",
@@ -132,7 +150,9 @@
       "background": "radial",
       "voiceText": "会社の財産は、視線の中にある。",
       "imagePrompt": "宴会場の入口から見た、完成した装花のある会場の遠景。柔らかい夕方の光、席に人の気配はあるが顔は見えない。画面下 4分の1 は落ち着いた暗めのトーンで静かに。",
-      "image": "photos/hibiya-outro.png"
+      "image": "photos/hibiya-outro.png",
+      "voiceFile": "voice/manual-hibiya-kadan-10.wav",
+      "voiceSeconds": 3.275
     }
   ]
 }
