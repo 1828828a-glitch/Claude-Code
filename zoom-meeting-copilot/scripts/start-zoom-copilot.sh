@@ -38,15 +38,42 @@ if [ -n "$environment_cdp_port" ]; then
   export MEETING_COPILOT_CDP_PORT
 fi
 
+# Keep the dedicated browser open so the operator can complete a sign-in, but
+# hand the microphone back to the previous macOS input while they do.
+pause_for_signin() {
+  launch_completed=1
+  "$repo_root/scripts/restore-audio.sh" >/dev/null 2>&1 || true
+  printf '\nSign in to %s in the dedicated Chrome window that stays open,\n' "$1" >&2
+  printf 'then rerun the same command:\n' >&2
+  printf '  ./scripts/start-zoom-copilot.sh "%s"\n' "$meeting_url" >&2
+}
+
 audio_configured=1
 "$repo_root/scripts/configure-audio.sh"
 dedicated_launch_started=1
+set +e
 "$repo_root/scripts/open-chatgpt-live.sh" --restart-profile
+chatgpt_status=$?
+set -e
+if [ "$chatgpt_status" -eq 10 ]; then
+  # First run: ChatGPT is not signed in yet. The failure trap must not close
+  # the browser here, or signing in becomes impossible.
+  pause_for_signin 'ChatGPT'
+  exit 10
+elif [ "$chatgpt_status" -ne 0 ]; then
+  exit "$chatgpt_status"
+fi
+
 set +e
 "$repo_root/scripts/open-gpt-participant.sh" --join "$meeting_url"
 join_status=$?
 set -e
-if [ "$join_status" -eq 18 ]; then
+if [ "$join_status" -eq 13 ]; then
+  # The meeting only admits signed-in participants; keep the browser open for
+  # the Zoom sign-in.
+  pause_for_signin 'Zoom'
+  exit 13
+elif [ "$join_status" -eq 18 ]; then
   # Joined, but the BlackHole devices are unverified. Leave the participant
   # muted and the session running so the operator can fix the devices by hand;
   # unmuting now could loop meeting audio back into the meeting.
