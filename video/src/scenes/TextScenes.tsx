@@ -166,10 +166,12 @@ export const NarrationScene: React.FC<
         text={scene.text}
         palette={palette}
         position={hasImage ? "bottom" : "center"}
-        fontSize={fit(scene.text, hasImage ? 58 : 76)}
+        // 文字サイズは「実際に置かれる容器の幅」で採寸する。
+        // 採寸幅より容器が狭いと、意図しない位置で折り返してしまう
+        fontSize={fit(scene.text, hasImage ? 58 : 76, hasImage ? 0.98 : 0.82)}
         emphasis={scene.emphasis}
         outlineWidth={hasImage ? s(6) : 0}
-        style={hasImage ? undefined : { padding: "0 12%" }}
+        style={hasImage ? undefined : { padding: "0 9%" }}
       />
     </AbsoluteFill>
   );
