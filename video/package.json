@@ -12,7 +12,8 @@
     "voice": "node tools/generate-voice.mjs",
     "typecheck": "tsc --noEmit",
     "map": "node tools/fetch-map.mjs",
-    "sfx": "node tools/make-sfx.mjs"
+    "sfx": "node tools/make-sfx.mjs",
+    "voice-import": "node tools/import-voice.mjs"
   },
   "dependencies": {
     "@fontsource/anton": "^5.3.0",

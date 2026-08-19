@@ -171,6 +171,10 @@ OPENAI_API_KEY=sk-... npm run voice -- src/scripts/xxx.json
 - 声を入れたら `pace` は効かなくなる（音声の尺が優先されるため）。
   テンポを変えたいときは `voiceSpeed` を使う
 
+音声を外部で用意する場合（VOICEVOX・録音など）は、カット番号で始まる
+ファイル名でフォルダに置き `npm run voice-import -- <台本> <フォルダ>`。
+長さを実測して台本に書き戻すので、以降の挙動は API 生成と同じ。
+
 BGM は `public/bgm/` に置いて `bgm` で指定する。生成はしない（ライセンスのため）。
 ナレーション中は自動で音量が下がり、ループとフェードも自動なので、
 台本側は `bgm` `bgmVolume` `bgmDuckVolume` を書くだけでいい。

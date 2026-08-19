@@ -248,6 +248,19 @@ npm run voice -- src/scripts/history-honnoji.json --dry-run   # 読み上げる�
 - ファイル名に文言・声・速度のハッシュが入るので、変えたときだけ作り直される
 - `--force` で作り直し、`--only 3,5` で特定のカットだけ
 
+### 音声を外部で作る場合（APIなし）
+
+VOICEVOX などの無料ソフトや自分の声の録音でもナレーションを入れられる。
+カット番号で始まる名前（`01.wav` `02.mp3`…）でフォルダに置いて:
+
+```bash
+npm run voice-import -- src/scripts/xxx.json <音声フォルダ>
+```
+
+長さは Remotion 同梱の ffprobe で実測して台本に書き戻すので、
+テロップ同期は API 生成と同じ精度になる。wav / mp3 / m4a / aac / ogg / flac 対応。
+手動音声は `npm run voice` に上書きされない。
+
 ## BGM を入れる
 
 `public/bgm/` に音楽ファイルを置いて指定する。生成はしないので、
@@ -367,6 +380,7 @@ tools/
   extract-frames.sh    参考動画からフレームを抽出
   generate-images.mjs  台本の imagePrompt から画像を生成
   generate-voice.mjs   台本の voiceText からナレーション音声を生成
+  import-voice.mjs     外部で作った音声（VOICEVOX・録音等）を取り込む
   fetch-map.mjs        地図データを取得して簡略化
   make-sfx.mjs         効果音を合成
 ```
