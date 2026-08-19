@@ -66,28 +66,34 @@ DURATION="$(ffprobe -v error -show_entries format=duration \
   -of default=noprint_wrappers=1:nokey=1 "$VIDEO")"
 echo "▸ 尺: ${DURATION}秒 / ${FRAME_COUNT}枚を等間隔で抽出"
 
-# 尺全体から等間隔で抜く。冒頭に寄せると同じような絵ばかりになるため
-FPS="$(awk -v n="$FRAME_COUNT" -v d="$DURATION" 'BEGIN { printf "%.6f", n / d }')"
-
-ffmpeg -loglevel error -y -i "$VIDEO" \
-  -vf "fps=${FPS},scale=960:-2" \
-  -frames:v "$FRAME_COUNT" \
-  -q:v 3 \
-  "$OUT_DIR/frame-%03d.jpg"
+# 尺全体から等間隔で抜く。冒頭に寄せると同じような絵ばかりになる。
+#
+# fps フィルタを使う手もあるが、最小構成の ffmpeg ビルドには fps や tile が
+# 入っていないことがある（Remotion 同梱のものがまさにそう）。
+# 1枚ずつシークして取る方式なら scale だけで済み、枚数もぴったり揃う。
+for i in $(seq 0 $((FRAME_COUNT - 1))); do
+  TS="$(awk -v i="$i" -v n="$FRAME_COUNT" -v d="$DURATION" \
+    'BEGIN { printf "%.3f", d * (i + 0.5) / n }')"
+  ffmpeg -loglevel error -y -ss "$TS" -i "$VIDEO" \
+    -frames:v 1 -vf "scale=960:-2" -q:v 3 \
+    "$OUT_DIR/frame-$(printf '%03d' "$i").jpg"
+done
 
 ACTUAL="$(find "$OUT_DIR" -name 'frame-*.jpg' | wc -l | tr -d ' ')"
 echo "▸ ${ACTUAL}枚を書き出しました: $OUT_DIR"
 
 # コンタクトシート（全フレームを1枚のタイル画像に）。
 # Claude に「動画全体の流れ」を一度に見せるのに使う。
+# tile フィルタが無いビルドもあるので、失敗しても本体の処理は止めない。
 COLS=4
 ROWS=$(( (ACTUAL + COLS - 1) / COLS ))
-if (( ACTUAL > 0 )); then
-  ffmpeg -loglevel error -y -i "$OUT_DIR/frame-%03d.jpg" \
-    -vf "scale=480:-2,tile=${COLS}x${ROWS}" \
-    -frames:v 1 -q:v 3 \
-    "$OUT_DIR/contact-sheet.jpg"
+if (( ACTUAL > 0 )) && ffmpeg -loglevel error -y -i "$OUT_DIR/frame-%03d.jpg" \
+  -vf "scale=480:-2,tile=${COLS}x${ROWS}" -frames:v 1 -q:v 3 \
+  "$OUT_DIR/contact-sheet.jpg" 2>/dev/null; then
   echo "▸ コンタクトシート: $OUT_DIR/contact-sheet.jpg"
+else
+  echo "▸ コンタクトシートは作れませんでした（tile フィルタ無しの ffmpeg）。"
+  echo "  個別フレームを直接読ませてください。"
 fi
 
 cat <<EOF
