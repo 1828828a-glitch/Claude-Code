@@ -6,6 +6,20 @@
 // Google Meet version (https://github.com/bb8ad8/meeting-copilot).
 
 import { chromium } from "playwright-core";
+import {
+  bodyText,
+  cameraOffControls,
+  cameraOnControls,
+  clickVisible,
+  devicesVerified,
+  findVisible,
+  joinComputerAudioIfOffered,
+  microphoneOffControls,
+  microphoneOnControls,
+  REJECTED_TEXT,
+  selectAudioDevices,
+  writeTrackedDevices,
+} from "./zoom-ui.mjs";
 
 const args = process.argv.slice(2);
 const options = {
@@ -71,9 +85,6 @@ if (!Number.isFinite(options.joinDelay) || options.joinDelay < 0) {
   process.exit(2);
 }
 
-const MICROPHONE_DEVICE = /BlackHole 16ch/i;
-const SPEAKER_DEVICE = /BlackHole 2ch/i;
-
 const browser = await chromium.connectOverCDP(options.cdp);
 const contexts = browser.contexts();
 if (contexts.length === 0) {
@@ -104,55 +115,6 @@ await page.bringToFront();
 await page.waitForLoadState("domcontentloaded");
 page.setDefaultTimeout(5_000);
 
-// The Web Client renders in the top document on zoom.us/wc, but some flows
-// (browser-join interstitial, embedded client) place it in an iframe.
-function candidateFrames() {
-  return page
-    .frames()
-    .filter((frame) => /zoom\.us/i.test(frame.url()) || frame === page.mainFrame());
-}
-
-async function locatorIsVisible(locator) {
-  try {
-    return (await locator.count()) > 0 && (await locator.first().isVisible());
-  } catch {
-    return false;
-  }
-}
-
-async function findVisible(buildLocators) {
-  for (const frame of candidateFrames()) {
-    for (const locator of buildLocators(frame)) {
-      if (await locatorIsVisible(locator)) {
-        return locator.first();
-      }
-    }
-  }
-  return null;
-}
-
-async function clickVisible(buildLocators, timeout = 2_000) {
-  const target = await findVisible(buildLocators);
-  if (!target) {
-    return false;
-  }
-  try {
-    await target.click({ timeout });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function bodyText() {
-  const texts = await Promise.all(
-    candidateFrames().map((frame) =>
-      frame.locator("body").innerText({ timeout: 1_000 }).catch(() => ""),
-    ),
-  );
-  return texts.join("\n");
-}
-
 let nameFilled = false;
 let passcodeFilled = false;
 let microphoneState = "unavailable";
@@ -160,29 +122,46 @@ let cameraState = "unavailable";
 let devices = { microphone: "unknown", speaker: "unknown" };
 let joinStatus = "not-requested";
 
+function report(overrides = {}) {
+  const result = {
+    url: page.url(),
+    permission: `microphone granted for ${meetingOrigin}`,
+    participantNameFilled: nameFilled,
+    passcodeFilled,
+    microphoneMuted: microphoneState === "off",
+    cameraDisabled: cameraState !== "on",
+    cameraState,
+    microphoneDevice: devices.microphone,
+    speakerDevice: devices.speaker,
+    joinStatus,
+    ...overrides,
+  };
+  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+}
+
 // Dismiss the cookie banner when the region shows one; it can cover the
 // pre-join controls.
-await clickVisible((frame) => [
+await clickVisible(page, (frame) => [
   frame.locator("#onetrust-accept-btn-handler"),
   frame.getByRole("button", { name: /accept cookies|すべて(の Cookie を)?受け入れる/i }),
 ], 1_000);
 
 // A /j/ URL that slipped through redirects to the launcher page; move to the
 // browser client when Zoom offers the link.
-await clickVisible((frame) => [
+await clickVisible(page, (frame) => [
   frame.getByRole("link", { name: /join from your browser|ブラウザから参加/i }),
   frame.locator('a[web_client], a.mbTuHb, a[href*="/wc/"]').filter({ hasText: /browser|ブラウザ/i }),
 ], 1_500);
 await page.waitForLoadState("domcontentloaded");
 
-const pageText = await bodyText();
+const pageText = await bodyText(page);
 if (/sign in to join|この(ミーティング|会議)は認証|authorized attendees only|サインインしてください/i.test(pageText)) {
   report({ joinStatus: "signin-required" });
   process.exit(13);
 }
 
 async function fillFirst(buildLocators, value) {
-  const field = await findVisible(buildLocators);
+  const field = await findVisible(page, buildLocators);
   if (!field) {
     return false;
   }
@@ -200,7 +179,7 @@ nameFilled = await fillFirst((frame) => [
   frame.getByLabel(/^(name|名前)$/i),
 ], options.name);
 
-const passcodeField = await findVisible((frame) => [
+const passcodeField = await findVisible(page, (frame) => [
   frame.locator("#input-for-pwd"),
   frame.getByPlaceholder(/passcode|パスコード/i),
   frame.getByLabel(/passcode|パスコード/i),
@@ -213,47 +192,16 @@ if (passcodeField) {
     await passcodeField.fill(options.passcode);
     passcodeFilled = true;
   } else {
-    report({ joinStatus: "passcode-required", participantNameFilled: nameFilled });
+    report({ joinStatus: "passcode-required" });
     process.exit(17);
   }
 }
 
-// Pre-join microphone and camera toggles. Zoom labels the buttons with the
-// resulting action, so "Unmute" visible means the microphone is currently off.
-function microphoneOffControls(frame) {
-  return [
-    frame.getByRole("button", { name: /^(mute|ミュート)(\s|$)/i }).filter({ hasNotText: /un|解除/i }),
-    frame.locator('button[aria-label*="mute" i]:not([aria-label*="unmute" i])'),
-    frame.locator('button[aria-label*="ミュートする"], button[aria-label^="ミュート"]:not([aria-label*="解除"])'),
-  ];
-}
-
-function microphoneOnControls(frame) {
-  return [
-    frame.getByRole("button", { name: /unmute|ミュート(を)?解除/i }),
-    frame.locator('button[aria-label*="unmute" i], button[aria-label*="ミュート解除"], button[aria-label*="ミュートを解除"]'),
-  ];
-}
-
-function cameraOffControls(frame) {
-  return [
-    frame.getByRole("button", { name: /stop video|ビデオの停止|ビデオを停止/i }),
-    frame.locator('button[aria-label*="stop video" i], button[aria-label*="ビデオの停止"], button[aria-label*="ビデオを停止"]'),
-  ];
-}
-
-function cameraOnControls(frame) {
-  return [
-    frame.getByRole("button", { name: /start video|ビデオの開始|ビデオを開始/i }),
-    frame.locator('button[aria-label*="start video" i], button[aria-label*="ビデオの開始"], button[aria-label*="ビデオを開始"]'),
-  ];
-}
-
 async function visibleControlState({ on, off }) {
-  if (await findVisible(on)) {
+  if (await findVisible(page, on)) {
     return "on";
   }
-  if (await findVisible(off)) {
+  if (await findVisible(page, off)) {
     return "off";
   }
   return "unavailable";
@@ -264,7 +212,7 @@ microphoneState = await visibleControlState({
   off: microphoneOnControls,
 });
 if (microphoneState === "on") {
-  await clickVisible(microphoneOffControls);
+  await clickVisible(page, microphoneOffControls);
   await page.waitForTimeout(300);
   microphoneState = await visibleControlState({
     on: microphoneOffControls,
@@ -277,7 +225,7 @@ cameraState = await visibleControlState({
   off: cameraOnControls,
 });
 if (cameraState === "on") {
-  await clickVisible(cameraOffControls);
+  await clickVisible(page, cameraOffControls);
   await page.waitForTimeout(300);
   cameraState = await visibleControlState({
     on: cameraOffControls,
@@ -288,48 +236,8 @@ if (cameraState === "on") {
   throw new Error("The Zoom camera could not be disabled before joining.");
 }
 
-// Device selection. The pre-join screen and the in-meeting footer expose an
-// audio menu next to the microphone button; Zoom revises this UI often, so a
-// failure here downgrades to manual selection instead of aborting.
-async function selectAudioDevices() {
-  const opened = await clickVisible((frame) => [
-    frame.getByRole("button", { name: /audio settings|オーディオ設定|more audio controls|音声オプション/i }),
-    frame.locator('button[aria-label*="audio settings" i], button[aria-label*="オーディオ設定"]'),
-    frame.locator(".join-audio-container__arrow, .audio-option-menu__arrow"),
-  ], 2_000);
-  if (!opened) {
-    return { microphone: "unknown", speaker: "unknown" };
-  }
-
-  async function pickDevice(sectionPattern, devicePattern) {
-    const item = await findVisible((frame) => [
-      frame.getByRole("menuitem", { name: devicePattern }),
-      frame.getByRole("menuitemradio", { name: devicePattern }),
-      frame.locator("a, li, button").filter({ hasText: devicePattern }),
-    ]);
-    if (!item) {
-      return "not-found";
-    }
-    try {
-      await item.click({ timeout: 2_000 });
-      return "selected";
-    } catch {
-      return "not-found";
-    }
-  }
-
-  const microphone = await pickDevice(/select a microphone|マイクを選択/i, MICROPHONE_DEVICE);
-  // Re-open the menu; some layouts close it after each selection.
-  await clickVisible((frame) => [
-    frame.getByRole("button", { name: /audio settings|オーディオ設定|more audio controls|音声オプション/i }),
-    frame.locator(".join-audio-container__arrow, .audio-option-menu__arrow"),
-  ], 1_000);
-  const speaker = await pickDevice(/select a speaker|スピーカーを選択/i, SPEAKER_DEVICE);
-  await page.keyboard.press("Escape").catch(() => {});
-  return { microphone, speaker };
-}
-
-devices = await selectAudioDevices();
+devices = await selectAudioDevices(page);
+writeTrackedDevices(options.url, devices);
 
 if (options.join) {
   const joinButtons = (frame) => [
@@ -337,15 +245,20 @@ if (options.join) {
     frame.locator("button.preview-join-button, button.zm-btn--primary").filter({ hasText: /join|参加/i }),
   ];
 
-  const joinButton = await findVisible(joinButtons);
+  const joinButton = await findVisible(page, joinButtons);
   if (!joinButton) {
-    const text = await bodyText();
+    const text = await bodyText(page);
     if (/leave|退出/i.test(text)) {
       joinStatus = "already-joined";
     } else {
       joinStatus = "requested-status-unknown";
     }
   } else {
+    // Never enter the meeting with an unverified microphone; the muted mic is
+    // the last line of defense against unintended speech.
+    if (microphoneState !== "off") {
+      throw new Error("The Zoom microphone could not be verified as muted before joining.");
+    }
     await page.waitForTimeout(options.joinDelay * 1_000);
     await joinButton.click({ timeout: 5_000 });
 
@@ -357,7 +270,7 @@ if (options.join) {
             /host will let you in|waiting for the host|まもなくミーティング|お待ちください|入室を許可/i.test(text) ||
             /join audio|オーディオに参加/i.test(text) ||
             /leave|退出/i.test(text) ||
-            /removed|できません|invalid|無効/i.test(text)
+            /been removed|参加できません|入室できません|incorrect passcode|パスコードが|invalid meeting|無効なミーティング/i.test(text)
           );
         },
         undefined,
@@ -365,12 +278,12 @@ if (options.join) {
       )
       .catch(() => {});
 
-    const text = await bodyText();
+    const text = await bodyText(page);
     if (/incorrect passcode|パスコードが(正しく|違)/i.test(text)) {
       joinStatus = "passcode-rejected";
     } else if (/host will let you in|waiting for the host|まもなくミーティング|お待ちください|入室を許可/i.test(text)) {
       joinStatus = "waiting-for-admission";
-    } else if (/been removed|できません|declined/i.test(text)) {
+    } else if (REJECTED_TEXT.test(text)) {
       joinStatus = "rejected";
     } else if (/join audio|オーディオに参加|leave|退出|mute|ミュート/i.test(text)) {
       joinStatus = "joined";
@@ -380,21 +293,16 @@ if (options.join) {
   }
 
   if (joinStatus === "joined" || joinStatus === "already-joined") {
-    // Computer audio must be joined explicitly or the participant hears
-    // nothing and cannot speak.
-    await clickVisible((frame) => [
-      frame.getByRole("button", { name: /join audio by computer|コンピュータ(ー)?(で)?オーディオ(に|で)参加/i }),
-      frame.locator("button").filter({ hasText: /join audio by computer|コンピュータ(ー)?.*オーディオ/i }),
-    ], 10_000);
-    await page.waitForTimeout(1_000);
+    await joinComputerAudioIfOffered(page);
 
     // Devices can only be confirmed once the in-meeting footer exists.
-    if (devices.microphone !== "selected" || devices.speaker !== "selected") {
-      const retried = await selectAudioDevices();
+    if (!devicesVerified(devices)) {
+      const retried = await selectAudioDevices(page);
       devices = {
         microphone: devices.microphone === "selected" ? "selected" : retried.microphone,
         speaker: devices.speaker === "selected" ? "selected" : retried.speaker,
       };
+      writeTrackedDevices(options.url, devices);
     }
 
     // Re-verify the microphone stays muted after joining audio.
@@ -403,26 +311,9 @@ if (options.join) {
       off: microphoneOnControls,
     });
     if (inMeetingMicState === "on") {
-      await clickVisible(microphoneOffControls);
+      await clickVisible(page, microphoneOffControls);
     }
   }
-}
-
-function report(overrides = {}) {
-  const result = {
-    url: page.url(),
-    permission: `microphone granted for ${meetingOrigin}`,
-    participantNameFilled: nameFilled,
-    passcodeFilled: passcodeFilled,
-    microphoneMuted: microphoneState === "off",
-    cameraDisabled: cameraState !== "on",
-    cameraState,
-    microphoneDevice: devices.microphone,
-    speakerDevice: devices.speaker,
-    joinStatus,
-    ...overrides,
-  };
-  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
 report({ title: await page.title().catch(() => "") });
@@ -436,7 +327,7 @@ if (joinStatus === "requested-status-unknown") {
 if (
   options.join &&
   (joinStatus === "joined" || joinStatus === "already-joined") &&
-  (devices.microphone !== "selected" || devices.speaker !== "selected")
+  !devicesVerified(devices)
 ) {
   // The meeting was joined but BlackHole devices could not be confirmed from
   // the UI; the operator must verify them before unmuting.

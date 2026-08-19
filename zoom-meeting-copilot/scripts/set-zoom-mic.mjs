@@ -2,12 +2,25 @@
 
 // Mutes or unmutes the dedicated Zoom Web Client participant. Mirrors
 // set-meet-mic.mjs from the upstream Google Meet version
-// (https://github.com/bb8ad8/meeting-copilot).
+// (https://github.com/bb8ad8/meeting-copilot). Refuses to unmute (exit 18)
+// until both BlackHole devices are confirmed, because a wrong device loops
+// the meeting audio back into the meeting.
 
 import { chromium } from "playwright-core";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  bodyText,
+  devicesVerified,
+  joinComputerAudioIfOffered,
+  microphoneOffControls,
+  microphoneOnControls,
+  readTrackedDevices,
+  REJECTED_TEXT,
+  selectAudioDevices,
+  writeTrackedDevices,
+} from "./zoom-ui.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const runtimeDir = resolve(repoRoot, ".meeting-copilot-runtime");
@@ -22,7 +35,7 @@ const options = {
 };
 
 function usage() {
-  process.stdout.write(`Usage: node scripts/set-zoom-mic.mjs [options]\n\nOptions:\n  --cdp URL             Chrome DevTools endpoint (default: ${options.cdp})\n  --state STATE         muted, unmuted, or toggle\n  --wait SEC            Wait for admission before changing the mic (default: 0)\n  --assume-before STATE Use muted or unmuted if the Zoom control is hidden\n  -h, --help            Show this help\n`);
+  process.stdout.write(`Usage: node scripts/set-zoom-mic.mjs [options]\n\nOptions:\n  --cdp URL             Chrome DevTools endpoint (default: ${options.cdp})\n  --state STATE         muted, unmuted, or toggle\n  --wait SEC            Wait for admission before changing the mic (default: 0)\n  --assume-before STATE Use muted or unmuted if the Zoom control is hidden\n  -h, --help            Show this help\n\nExit codes:\n  18  Unmute was requested, but the BlackHole devices are unverified.\n`);
 }
 
 for (let index = 0; index < args.length; index += 1) {
@@ -82,12 +95,6 @@ if (!page) {
 
 page.setDefaultTimeout(5_000);
 
-function candidateFrames() {
-  return page
-    .frames()
-    .filter((frame) => /zoom\.us/i.test(frame.url()) || frame === page.mainFrame());
-}
-
 function meetingKey(value) {
   try {
     const url = new URL(value);
@@ -129,36 +136,15 @@ function writeTrackedState(meetingUrl, state) {
   renameSync(temporaryPath, micStatePath);
 }
 
-// Zoom labels the footer button with the action it performs, so a visible
-// "Unmute" control means the microphone is currently muted.
-function unmuteControls(frame) {
-  return [
-    frame.getByRole("button", { name: /unmute my (microphone|audio)|unmute|ミュート(を)?解除/i }),
-    frame.locator('button[aria-label*="unmute" i], button[aria-label*="ミュート解除"], button[aria-label*="ミュートを解除"]'),
-  ];
-}
-
-function muteControls(frame) {
-  return [
-    frame.getByRole("button", { name: /^mute my (microphone|audio)|^(mute|ミュート)(\s|$)/i }).filter({ hasNotText: /un|解除/i }),
-    frame.locator('button[aria-label*="mute" i]:not([aria-label*="unmute" i])'),
-    frame.locator('button[aria-label*="ミュートする"], button[aria-label^="ミュート"]:not([aria-label*="解除"])'),
-  ];
-}
-
-async function locatorIsVisible(locator) {
-  try {
-    return (await locator.count()) > 0 && (await locator.first().isVisible());
-  } catch {
-    return false;
-  }
-}
-
 async function firstVisible(buildLocators) {
-  for (const frame of candidateFrames()) {
+  for (const frame of page.frames()) {
     for (const locator of buildLocators(frame)) {
-      if (await locatorIsVisible(locator)) {
-        return locator.first();
+      try {
+        if ((await locator.count()) > 0 && (await locator.first().isVisible())) {
+          return locator.first();
+        }
+      } catch {
+        // Zoom changes frequently; try the next representation of the control.
       }
     }
   }
@@ -166,54 +152,35 @@ async function firstVisible(buildLocators) {
 }
 
 async function currentState() {
-  if (await firstVisible(unmuteControls)) {
+  if (await firstVisible(microphoneOnControls)) {
     return "muted";
   }
-  if (await firstVisible(muteControls)) {
+  if (await firstVisible(microphoneOffControls)) {
     return "unmuted";
   }
   return "unavailable";
 }
 
-async function bodyText() {
-  const texts = await Promise.all(
-    candidateFrames().map((frame) =>
-      frame.locator("body").innerText({ timeout: 1_000 }).catch(() => ""),
-    ),
-  );
-  return texts.join("\n");
-}
-
-// Admission through a waiting room can land after prepare-zoom.mjs already
-// exited, leaving computer audio unjoined; the mic control only appears once
-// audio is connected.
-async function joinComputerAudioIfOffered() {
-  const button = await firstVisible((frame) => [
-    frame.getByRole("button", { name: /join audio by computer|コンピュータ(ー)?(で)?オーディオ(に|で)参加/i }),
-    frame.locator("button").filter({ hasText: /join audio by computer|コンピュータ(ー)?.*オーディオ/i }),
-  ]);
-  if (button) {
-    await button.click({ timeout: 2_000 }).catch(() => {});
-    await page.waitForTimeout(1_000);
+async function assertNotRejected() {
+  const text = await bodyText(page);
+  if (REJECTED_TEXT.test(text)) {
+    throw new Error("Zoom rejected this participant.");
   }
 }
 
 // The footer hides itself when the pointer is idle; hovering the page keeps
 // the controls queryable.
 await page.mouse.move(200, 200).catch(() => {});
-await joinComputerAudioIfOffered();
+await joinComputerAudioIfOffered(page);
 
 let before = await currentState();
 if (before === "unavailable" && options.wait > 0) {
   const deadline = Date.now() + options.wait * 1_000;
   while (before === "unavailable" && Date.now() < deadline) {
-    const text = await bodyText();
-    if (/been removed|できません|invalid meeting/i.test(text)) {
-      throw new Error("Zoom rejected this participant.");
-    }
+    await assertNotRejected();
     await page.waitForTimeout(1_000);
     await page.mouse.move(210, 210).catch(() => {});
-    await joinComputerAudioIfOffered();
+    await joinComputerAudioIfOffered(page);
     before = await currentState();
   }
 }
@@ -225,10 +192,7 @@ if (
   !trackedBefore &&
   options.state !== "toggle"
 ) {
-  const text = await bodyText();
-  if (/been removed|できません|invalid meeting/i.test(text)) {
-    throw new Error("Zoom rejected this participant.");
-  }
+  await assertNotRejected();
   throw new Error("The Zoom microphone is unavailable or admission timed out.");
 }
 
@@ -242,6 +206,35 @@ const desired =
         ? "muted"
         : "toggled"
     : options.state;
+
+// Muting is always safe; unmuting is only safe when both BlackHole devices
+// were confirmed, otherwise the participant loops meeting audio back into
+// the meeting or feeds the wrong stream to ChatGPT.
+let deviceStatus = "not-checked";
+if (desired === "unmuted" || desired === "toggled") {
+  let devices = readTrackedDevices(page.url());
+  if (!devicesVerified(devices)) {
+    devices = await selectAudioDevices(page);
+    writeTrackedDevices(page.url(), devices);
+  }
+  if (!devicesVerified(devices)) {
+    process.stdout.write(
+      `${JSON.stringify(
+        {
+          status: "devices-unverified",
+          url: page.url(),
+          microphoneDevice: devices?.microphone ?? "unknown",
+          speakerDevice: devices?.speaker ?? "unknown",
+          hint: "Select BlackHole 16ch (microphone) and BlackHole 2ch (speaker) in the Zoom audio menu, then rerun.",
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    process.exit(18);
+  }
+  deviceStatus = "verified";
+}
 
 async function pressShortcut() {
   // The Web Client documents Alt+A for mute/unmute; some macOS layouts use
@@ -264,7 +257,9 @@ if (before === "unavailable") {
     usedKeyboardShortcut = true;
   }
 } else if (before !== desired) {
-  const control = await firstVisible(desired === "unmuted" ? unmuteControls : muteControls);
+  const control = await firstVisible(
+    desired === "unmuted" ? microphoneOnControls : microphoneOffControls,
+  );
   if (control) {
     await control.click();
   } else {
@@ -297,6 +292,7 @@ process.stdout.write(
       after,
       detectedAfter,
       verified,
+      deviceStatus,
       usedKeyboardShortcut,
     },
     null,

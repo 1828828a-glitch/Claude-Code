@@ -306,6 +306,8 @@ The meeting microphone remains muted until this is verified.
 
 See docs/audio-routing.md for the full sequence.
 EOF
+      # Callers must not unmute this participant; see set-zoom-mic exit 18.
+      exit 18
     else
       cat <<EOF
 

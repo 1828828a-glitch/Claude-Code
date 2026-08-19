@@ -181,6 +181,12 @@ else
   pass 'Zoom microphone rejects invalid assumed state'
 fi
 
+if node "$repo_root/scripts/set-zoom-mic.mjs" --help | grep -F -- 'devices are unverified' >/dev/null; then
+  pass 'Zoom microphone documents the device-verification exit code'
+else
+  fail 'Zoom microphone documents the device-verification exit code'
+fi
+
 launcher_output="$(MEETING_COPILOT_CHROME_PATH="$fake_chrome" \
   MEETING_COPILOT_PROFILE_DIR="$temp_dir/profile" \
   "$repo_root/scripts/open-gpt-participant.sh" --dry-run 'https://zoom.us/j/123456789')"

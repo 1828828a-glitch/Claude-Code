@@ -42,9 +42,37 @@ audio_configured=1
 "$repo_root/scripts/configure-audio.sh"
 dedicated_launch_started=1
 "$repo_root/scripts/open-chatgpt-live.sh" --restart-profile
+set +e
 "$repo_root/scripts/open-gpt-participant.sh" --join "$meeting_url"
+join_status=$?
+set -e
+if [ "$join_status" -eq 18 ]; then
+  # Joined, but the BlackHole devices are unverified. Leave the participant
+  # muted and the session running so the operator can fix the devices by hand;
+  # unmuting now could loop meeting audio back into the meeting.
+  launch_completed=1
+  printf '\nThe Zoom participant stays muted until the BlackHole devices are selected manually.\n' >&2
+  printf 'After fixing them, run: ./scripts/set-zoom-mic.sh unmute\n' >&2
+  exit 18
+elif [ "$join_status" -ne 0 ]; then
+  exit "$join_status"
+fi
+
 # A waiting room can delay admission; keep polling for the in-meeting mic.
+# set-zoom-mic re-verifies the BlackHole devices before unmuting and exits 18
+# if they cannot be confirmed.
+set +e
 "$repo_root/scripts/set-zoom-mic.sh" --assume-before muted --wait 120 unmute
+mic_status=$?
+set -e
+if [ "$mic_status" -eq 18 ]; then
+  launch_completed=1
+  printf '\nThe Zoom participant stays muted until the BlackHole devices are selected manually.\n' >&2
+  printf 'After fixing them, run: ./scripts/set-zoom-mic.sh unmute\n' >&2
+  exit 18
+elif [ "$mic_status" -ne 0 ]; then
+  exit "$mic_status"
+fi
 
 launch_completed=1
 

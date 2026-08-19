@@ -69,9 +69,11 @@ npm install
 - マイクとカメラをオフにした参加前状態
 - `Join`のクリックと、入室後の`コンピューターでオーディオに参加`
 
-Zoom Web ClientのUIは頻繁に変わるため、オーディオデバイスの自動選択に失敗した場合は終了コード18で通知し、マイクをミュートのまま残します。その場合はマイクボタン横の矢印から`Select a Microphone: BlackHole 16ch`と`Select a Speaker: BlackHole 2ch`を手動で選んでください。
+Zoom Web ClientのUIは頻繁に変わるため、オーディオデバイスの自動選択に失敗した場合は終了コード18で通知し、マイクをミュートのまま残します。その場合はマイクボタン横の矢印から`Select a Microphone: BlackHole 16ch`と`Select a Speaker: BlackHole 2ch`を手動で選び、`./scripts/set-zoom-mic.sh unmute`を再実行してください。`set-zoom-mic.sh`は解除前にデバイス選択を再確認し、確認できない間は終了コード18で解除を拒否します。
 
-待機室が有効な会議では、ホストが入室を許可するまで待機画面のままです。`start-zoom-copilot.sh`は入室を最大120秒待ってから会議マイクを解除します。
+参加前画面でマイクのミュートを確認できない場合、`prepare-zoom.mjs`は参加をクリックせずエラーで停止します。
+
+待機室が有効な会議では、ホストが入室を許可するまで待機画面のままです。`start-zoom-copilot.sh`は入室を最大120秒待ち、デバイス確認を経てから会議マイクを解除します。
 
 会議中の緊急停止や再開には次を使います。
 
