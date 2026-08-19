@@ -175,6 +175,22 @@ BGM は `public/bgm/` に置いて `bgm` で指定する。生成はしない（
 ナレーション中は自動で音量が下がり、ループとフェードも自動なので、
 台本側は `bgm` `bgmVolume` `bgmDuckVolume` を書くだけでいい。
 
+## 効果音
+
+`npm run sfx` で6種類が public/sfx/ にできる（コード合成なのでライセンス問題なし）。
+whoosh(繋ぎ) impact(決め) pop(文字) tick(箇条書き) riser(溜め) chime(結論)。
+
+- カット指定: `"sfx": [{ "at": 0, "name": "impact" }]`（at はカット頭からの秒数）
+- `autoSfx: true` で繋ぎに自動で音が付く。tvOpening / fastCutShorts は既定で有効
+- 使いすぎない。全カットに impact を置くと安っぽくなる。
+  決め所に1つ、繋ぎは autoSfx に任せるくらいでいい
+
+## 番組ロゴ
+
+`logo` シーンに `logoPrompt` を書けば `npm run assets` が画像ロゴを生成して
+`logoImage` に書き戻す。筆文字などの装飾ロゴは文字組みでは出せないので画像で。
+動き（着地・光）は文字ロゴと共通。
+
 ## 参考動画から雰囲気を盗む
 
 真似したい動画があるなら、言葉で説明させるより**フレームを見せる**方が速い。

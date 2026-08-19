@@ -4,7 +4,9 @@
     {
       "type": "statement",
       "text": "その常識、/本当に/正しい？",
-      "emphasis": ["本当に"],
+      "emphasis": [
+        "本当に"
+      ],
       "mode": "pop",
       "background": "grid",
       "durationInSeconds": 1.8
@@ -12,14 +14,21 @@
     {
       "type": "credit",
       "role": "NAVIGATOR",
-      "names": ["里見 遼", "白石 ひばり"],
+      "names": [
+        "里見 遼",
+        "白石 ひばり"
+      ],
       "background": "radial",
       "durationInSeconds": 1.6
     },
     {
       "type": "credit",
       "role": "GUEST",
-      "names": ["九条 玲", "アンドウ・タケル", "MC 石動"],
+      "names": [
+        "九条 玲",
+        "アンドウ・タケル",
+        "MC 石動"
+      ],
       "background": "stripes",
       "durationInSeconds": 1.8
     },
@@ -36,7 +45,8 @@
       "tagline": "深夜解体新書",
       "background": "radial",
       "durationInSeconds": 3.6,
-      "transition": "cut"
+      "transition": "cut",
+      "logoPrompt": "ネオン管風の番組ロゴ。シアンとマゼンタの光、暗い都会の夜のトーン。英字は太いインパクト体、日本語サブタイトルは細い明朝。"
     }
   ]
 }

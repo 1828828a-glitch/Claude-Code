@@ -83,6 +83,20 @@ const SceneRouter: React.FC<{ scene: Scene; palette: Palette }> = ({
 const resolveSrc = (src: string) =>
   /^(https?:)?\/\//.test(src) ? src : staticFile(src);
 
+/**
+ * トランジションに対応する自動効果音。
+ * 音の無いカット替えは、どれだけ映像を詰めても軽く感じる。
+ */
+const AUTO_SFX: Partial<Record<TransitionKind, string>> = {
+  flash: "impact",
+  slide: "whoosh",
+  zoom: "riser",
+};
+
+/** 効果音の名前をファイルパスに解決する */
+const resolveSfx = (script: Script, name: string) =>
+  resolveSrc(script.sfx?.[name] ?? `sfx/${name}.wav`);
+
 /** 画像に付ける動きを、シーン番号から決定的に選ぶ（毎回同じ結果になる） */
 const KEN_BURNS_CYCLE: KenBurnsDirection[] = [
   "zoomIn",
@@ -136,6 +150,16 @@ const SceneFrame: React.FC<{
   const overlap = transitionOverlap(incoming, fps);
   const enterStyle = useEnterStyle(incoming, overlap);
 
+  // 台本で指定された効果音。autoSfx が有効なら、カット頭に繋ぎの音を足す。
+  // ただし台本がカット頭に自前の音を置いているなら、そちらを優先して重ねない
+  const explicit = scene.sfx ?? [];
+  const autoName = script.autoSfx ? AUTO_SFX[incoming] : undefined;
+  const hasCueAtHead = explicit.some((cue) => cue.at < 0.15);
+  const sfxCues =
+    autoName && !hasCueAtHead
+      ? [{ name: autoName, at: 0, volume: undefined }, ...explicit]
+      : explicit;
+
   // 画像の上に文字を載せるので幕を1枚入れる。
   // 文字色が明るいパレットなら黒幕、暗いパレットなら白幕でコントラストを作る
   const overlayColor = isLight(palette.bg)
@@ -173,6 +197,21 @@ const SceneFrame: React.FC<{
       ) : null}
 
       {incoming === "flash" ? <Flash at={0} durationInFrames={5} /> : null}
+
+      {/* このカットの効果音。at はカット頭からの秒数 */}
+      {sfxCues.map((cue, i) => (
+        <Sequence
+          key={`sfx-${i}`}
+          from={Math.round(cue.at * fps)}
+          layout="none"
+          name={`SE: ${cue.name}`}
+        >
+          <Audio
+            src={resolveSfx(script, cue.name)}
+            volume={cue.volume ?? script.sfxVolume}
+          />
+        </Sequence>
+      ))}
 
       {/* このカットのナレーション。Sequence の中なのでカット頭から鳴る */}
       {scene.voiceFile ? (

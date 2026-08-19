@@ -23,6 +23,7 @@ export const TEMPLATES = {
     background: "radial",
     transition: "flash",
     pace: 0.8,
+    autoSfx: true,
   },
   /** テンポの速い縦型ショート。海外編集風 */
   fastCutShorts: {
@@ -31,6 +32,7 @@ export const TEMPLATES = {
     background: "burst",
     transition: "flash",
     pace: 0.72,
+    autoSfx: true,
   },
 } as const satisfies Record<string, Partial<Script>>;
 

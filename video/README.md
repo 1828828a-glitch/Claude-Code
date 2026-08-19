@@ -261,6 +261,56 @@ npm run voice -- src/scripts/history-honnoji.json --dry-run   # 読み上げる�
 - 曲が動画より短ければループする
 - 冒頭と末尾はフェードする
 
+## 効果音を入れる
+
+テンポの良さは実はカットの音で作られている。無音のままだと
+どれだけ編集を詰めても軽く感じる。
+
+```bash
+npm run sfx    # 6種類の効果音を合成して public/sfx/ に書き出す
+```
+
+素材探しとライセンス確認が要らないよう、効果音はコードで合成している
+（固定シードなので何度実行しても同じ波形になる）。
+
+| 名前 | 音 | 使いどころ |
+|---|---|---|
+| `whoosh` | 風切り | カットの繋ぎ |
+| `impact` | 低い衝撃 | 決め台詞・フラッシュ |
+| `pop` | ポン | 文字の出現 |
+| `tick` | 粒 | 箇条書きの1項目ずつ |
+| `riser` | 上昇 | 次のカットへの溜め |
+| `chime` | 澄んだ余韻 | 結論・確定 |
+
+台本からはカット頭からの秒数で指定する:
+
+```json
+{ "type": "statement", "text": "結論から言う。",
+  "sfx": [{ "at": 0, "name": "impact" }, { "at": 0.8, "name": "pop" }] }
+```
+
+**`autoSfx: true`** にするとカットの繋ぎに自動で音が付く
+（flash→impact、slide→whoosh、zoom→riser）。`tvOpening` と
+`fastCutShorts` テンプレートでは既定で有効。カット頭に自前の音を
+置いたカットでは自動音は重ねない。
+
+手持ちの音源を使いたいときは `public/sfx/` に置いて
+`"sfx": { "impact": "sfx/my-hit.wav" }` で差し替える。
+
+## 番組ロゴを画像にする
+
+`logo` シーンは既定では文字で組むが、筆文字や装飾込みの
+「作り込まれたロゴ」は画像で出す方が強い。
+
+```json
+{ "type": "logo", "title": "MIDNIGHT\nANATOMY", "tagline": "深夜解体新書",
+  "logoPrompt": "ネオン管風の番組ロゴ。シアンとマゼンタの光。" }
+```
+
+`npm run assets` が `logoPrompt` からロゴ画像を生成して `logoImage` に
+書き戻す。着地や光の走りなどの動きは文字ロゴと共通。
+ロゴだけは例外的に文字を画像へ焼き込む（文字自体が装飾の一部のため）。
+
 ## 参考動画の雰囲気を真似する
 
 真似したい動画があるときは、フレームを抜き出して Claude に見せるのが一番速い。
@@ -309,11 +359,13 @@ public/
   photos/    画像（手持ち素材と生成物）
   voice/     ナレーション音声（生成物）
   bgm/       BGM（手で置く）
+  sfx/       効果音（npm run sfx で合成）
 tools/
   extract-frames.sh    参考動画からフレームを抽出
   generate-images.mjs  台本の imagePrompt から画像を生成
   generate-voice.mjs   台本の voiceText からナレーション音声を生成
   fetch-map.mjs        地図データを取得して簡略化
+  make-sfx.mjs         効果音を合成
 ```
 
 ## 演出を足すとき

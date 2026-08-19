@@ -1,5 +1,12 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
+import {
+  AbsoluteFill,
+  Img,
+  interpolate,
+  staticFile,
+  useCurrentFrame,
+  useVideoConfig,
+} from "remotion";
 import { KineticText } from "../components/KineticText";
 import { FrameBorder } from "../components/Accents";
 import { EASE, springIn, stagger } from "../lib/timing";
@@ -53,22 +60,35 @@ export const LogoScene: React.FC<
           opacity: land,
         }}
       >
-        <div
-          style={{
-            fontFamily: FONT_DISPLAY,
-            fontSize: fit(scene.title, 170, 0.92),
-            fontWeight: 900,
-            color: palette.fg,
-            letterSpacing: "0.04em",
-            lineHeight: 1.05,
-            textAlign: "center",
-            // 台本の "\n" をそのまま改行として扱う
-            whiteSpace: "pre-line",
-            textShadow: `0 0 ${s(60)}px ${palette.accent}66`,
-          }}
-        >
-          {scene.title}
-        </div>
+        {scene.logoImage ? (
+          // 画像ロゴ。文字ロゴと同じ動き（拡大からの着地 + 光の走り）を共有する
+          <Img
+            src={staticFile(scene.logoImage)}
+            style={{
+              maxWidth: s(1100),
+              maxHeight: s(560),
+              objectFit: "contain",
+              filter: `drop-shadow(0 0 ${s(50)}px ${palette.accent}55)`,
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              fontFamily: FONT_DISPLAY,
+              fontSize: fit(scene.title, 170, 0.92),
+              fontWeight: 900,
+              color: palette.fg,
+              letterSpacing: "0.04em",
+              lineHeight: 1.05,
+              textAlign: "center",
+              // 台本の "\n" をそのまま改行として扱う
+              whiteSpace: "pre-line",
+              textShadow: `0 0 ${s(60)}px ${palette.accent}66`,
+            }}
+          >
+            {scene.title}
+          </div>
+        )}
 
         {/* 光沢 */}
         <AbsoluteFill

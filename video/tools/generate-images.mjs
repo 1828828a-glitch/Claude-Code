@@ -110,6 +110,23 @@ const buildScenePrompt = (scenePrompt, imageStyle, characterNames) => {
   return [...lines.filter(Boolean), ...COMMON_RULES].join("\n");
 };
 
+/**
+ * ロゴだけは例外的に文字を画像へ焼き込む。
+ * 番組ロゴの文字は装飾の一部（筆文字・金の縁取り等）であり、
+ * Remotion のフォント描画では出せないため。
+ */
+const buildLogoPrompt = (logoPrompt, title, imageStyle) =>
+  [
+    logoPrompt,
+    // タイトルの改行は「/」区切りにして1行で伝える（プロンプトを崩さない）
+    `ロゴに含める文字は「${title.replace(/\n/g, " / ")}」。この文字列だけを正確に描き、他の文字を加えないこと。`,
+    imageStyle,
+    "背景は完全な透明(アルファ)にすること。",
+    "ロゴ全体が中央に収まり、四辺に余白を残すこと。",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
 const buildCharacterPrompt = (charPrompt, imageStyle) =>
   [
     charPrompt,
@@ -270,8 +287,34 @@ const main = async () => {
 
   const targets = [];
   for (const [index, scene] of (script.scenes ?? []).entries()) {
-    if (!scene.imagePrompt) continue;
+    const isLogo = scene.type === "logo" && scene.logoPrompt;
+    if (!scene.imagePrompt && !isLogo) continue;
     if (options.only && !options.only.has(index + 1)) continue;
+
+    if (isLogo) {
+      const prompt = buildLogoPrompt(scene.logoPrompt, scene.title, imageStyle);
+      const file = `${scriptName}-logo-${digest(prompt)}.png`;
+      const outPath = path.join(outDir, file);
+      if (!options.force && (await exists(outPath))) {
+        if (scene.logoImage !== path.posix.join("photos", file)) {
+          scene.logoImage = path.posix.join("photos", file);
+          changed = true;
+        }
+        console.log(`- ${index + 1}. ロゴ生成済み -> ${file}`);
+        continue;
+      }
+      targets.push({
+        index,
+        scene,
+        outPath,
+        file,
+        prompt,
+        references: [],
+        names: [],
+        kind: "logo",
+      });
+      continue;
+    }
 
     const names = (scene.characters ?? []).filter((n) => {
       if (sheets.has(n)) return true;
@@ -317,6 +360,7 @@ const main = async () => {
     prompt,
     references,
     names,
+    kind,
   } of targets) {
     if (options.dryRun) {
       const ref = names.length > 0 ? ` [参照: ${names.join(", ")}]` : "";
@@ -339,7 +383,12 @@ const main = async () => {
           : await generate({ prompt, size, quality: options.quality, apiKey });
 
       await writeFile(outPath, image);
-      setImage(scene, file);
+      if (kind === "logo") {
+        scene.logoImage = path.posix.join("photos", file);
+        changed = true;
+      } else {
+        setImage(scene, file);
+      }
       await saveScript();
       console.log(`${file} (${Math.round(image.length / 1024)}KB)`);
     } catch (error) {

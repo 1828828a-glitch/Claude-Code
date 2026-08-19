@@ -53,6 +53,19 @@ const baseScene = {
    * 複数カットに出しても同じ姿になる。
    */
   characters: z.array(z.string()).optional(),
+  /**
+   * このカットで鳴らす効果音。`at` はカット頭からの秒数。
+   * 例: [{ "at": 0, "name": "whoosh" }, { "at": 0.8, "name": "impact" }]
+   */
+  sfx: z
+    .array(
+      z.object({
+        name: z.string(),
+        at: z.number().min(0).default(0),
+        volume: z.number().min(0).max(1).optional(),
+      }),
+    )
+    .optional(),
   /** 画面下に出すナレーションテロップ */
   telop: z.string().optional(),
   /**
@@ -142,6 +155,10 @@ export const statSceneSchema = z.object({
 /** 番組OP用のロゴカード */
 export const logoSceneSchema = z.object({
   type: z.literal("logo"),
+  /** ロゴ画像（public/ からの相対パス）。あれば文字の代わりにこれが着地する */
+  logoImage: z.string().optional(),
+  /** ロゴ画像を生成するときのプロンプト。`npm run assets` が logoImage を埋める */
+  logoPrompt: z.string().optional(),
   title: z.string(),
   tagline: z.string().optional(),
   ...baseScene,
@@ -268,6 +285,22 @@ export const scriptSchema = z.object({
   voiceInstructions: z.string().optional(),
   /** 読み上げ速度。1 が標準 */
   voiceSpeed: z.number().min(0.25).max(4).default(1),
+
+  /**
+   * 効果音の名前からファイルへの対応。
+   * 既定では public/sfx/<名前>.wav を見にいくので、
+   * `npm run sfx` で作った音をそのまま名前で呼べる。
+   * 手持ちの音源に差し替えたいときだけここに書く。
+   */
+  sfx: z.record(z.string()).optional(),
+  /** 効果音の音量 0〜1 */
+  sfxVolume: z.number().min(0).max(1).default(0.5),
+  /**
+   * カットの繋ぎに自動で効果音を入れるか。
+   * テンポの良さは実はカットの音で作られているが、
+   * 全カットに付けると煩いので既定は off。
+   */
+  autoSfx: z.boolean().default(false),
 
   /** BGM（public/ からの相対パス）。無ければ無音。動画より短ければループする */
   bgm: z.string().optional(),
