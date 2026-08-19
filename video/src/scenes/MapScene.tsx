@@ -128,6 +128,10 @@ export const MapScene: React.FC<{
         // 寄ったときに画面外へ出た地域は切り落とす
         style={{ overflow: "hidden" }}
       >
+        {/* zoom < 1 で投影が小さくなった分は中央に寄せる */}
+        <g
+          transform={`translate(${(mapWidth * (1 - scene.zoom)) / 2}, ${(mapHeight * (1 - scene.zoom)) / 2})`}
+        >
         {projected.map((feature) => {
           const order = highlightOrder.get(feature.name);
           const isHighlighted = order !== undefined;
@@ -158,6 +162,7 @@ export const MapScene: React.FC<{
             />
           );
         })}
+        </g>
       </svg>
 
       {scene.progress ? (

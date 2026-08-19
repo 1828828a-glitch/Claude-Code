@@ -29,14 +29,40 @@ const mercatorY = (lat: number) =>
 
 type Bounds = { minX: number; maxX: number; minY: number; maxY: number };
 
-const boundsOf = (features: MapFeature[]): Bounds => {
+/** 外周リングの面積（度の二乗のまま。大小比較にしか使わない） */
+const polygonArea = (ring: [number, number][]): number => {
+  let sum = 0;
+  for (let i = 0; i < ring.length - 1; i += 1) {
+    sum += ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1];
+  }
+  return Math.abs(sum) / 2;
+};
+
+/**
+ * バウンディングボックスを取る。
+ *
+ * mainlandOnly を立てると、各地物の「最大のポリゴン＝本体」だけで測る。
+ * 東京都は伊豆・小笠原諸島を含むため、離島込みで測ると南へ大きく
+ * 引っ張られて、寄ったはずの地図が海だらけになる。
+ */
+const boundsOf = (features: MapFeature[], mainlandOnly = false): Bounds => {
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
   let maxY = -Infinity;
 
   for (const feature of features) {
-    for (const polygon of feature.polygons) {
+    let polygons = feature.polygons;
+    if (mainlandOnly && polygons.length > 1) {
+      polygons = [
+        polygons.reduce((largest, polygon) =>
+          polygonArea(polygon[0] ?? []) > polygonArea(largest[0] ?? [])
+            ? polygon
+            : largest,
+        ),
+      ];
+    }
+    for (const polygon of polygons) {
       for (const ring of polygon) {
         for (const [lon, lat] of ring) {
           const x = mercatorX(lon);
@@ -70,7 +96,8 @@ export const fitProjection = (
    */
   fitTo: MapFeature[] = features,
 ): { project: Projection; bounds: Bounds } => {
-  const bounds = boundsOf(fitTo.length > 0 ? fitTo : features);
+  const zoomed = fitTo !== features && fitTo.length > 0;
+  const bounds = boundsOf(zoomed ? fitTo : features, zoomed);
   const spanX = bounds.maxX - bounds.minX;
   const spanY = bounds.maxY - bounds.minY;
 
