@@ -292,6 +292,14 @@ const main = async () => {
     if (options.only && !options.only.has(index + 1)) continue;
 
     if (isLogo) {
+      if (
+        scene.logoImage &&
+        !scene.logoImage.startsWith(`photos/${scriptName}-logo-`) &&
+        (await exists(path.join("public", scene.logoImage)))
+      ) {
+        console.log(`- ${index + 1}. 手動ロゴを使用 -> ${scene.logoImage}（生成しません）`);
+        continue;
+      }
       const prompt = buildLogoPrompt(scene.logoPrompt, scene.title, imageStyle);
       const file = `${scriptName}-logo-${digest(prompt)}.png`;
       const outPath = path.join(outDir, file);
@@ -313,6 +321,18 @@ const main = async () => {
         names: [],
         kind: "logo",
       });
+      continue;
+    }
+
+    // 手動で用意した画像が割り当て済みのカットは尊重して生成しない。
+    // （ChatGPT の画面などで作った絵を public/ に置き、image に書いた場合）
+    // このツールが作ったファイル（台本名で始まる）は対象外＝作り直しの邪魔をしない
+    if (
+      scene.image &&
+      !scene.image.startsWith(`photos/${scriptName}-`) &&
+      (await exists(path.join("public", scene.image)))
+    ) {
+      console.log(`- ${index + 1}. 手動素材を使用 -> ${scene.image}（生成しません）`);
       continue;
     }
 
