@@ -90,6 +90,13 @@ elif [ "$join_status" -eq 18 ]; then
   printf 'After fixing them, run: ./scripts/set-zoom-mic.sh unmute\n' >&2
   exit 18
 elif [ "$join_status" -ne 0 ]; then
+  # Keep the browser open on unexpected join failures so the state can be
+  # inspected (node scripts/dump-zoom-ui.mjs), but hand the microphone back.
+  launch_completed=1
+  "$repo_root/scripts/restore-audio.sh" >/dev/null 2>&1 || true
+  printf '\nThe Zoom join step failed (exit %s). The dedicated browser stays open for diagnosis:\n' "$join_status" >&2
+  printf '  node scripts/dump-zoom-ui.mjs      # capture the Zoom page state\n' >&2
+  printf '  ./scripts/close-dedicated-chrome.sh  # close it when done\n' >&2
   exit "$join_status"
 fi
 

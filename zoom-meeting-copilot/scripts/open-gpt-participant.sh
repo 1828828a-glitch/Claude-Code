@@ -275,7 +275,8 @@ if [ "$auto_prepare" -eq 1 ]; then
       exit 15
       ;;
     16)
-      printf '\nZoom is showing a verification challenge (CAPTCHA). Solve it in the browser window, then rerun the same command.\n' >&2
+      printf '\nZoom needs manual action in the browser window (see joinStatus above):\n' >&2
+      printf 'solve the CAPTCHA or turn the camera off, then join manually or rerun.\n' >&2
       exit 16
       ;;
     17)

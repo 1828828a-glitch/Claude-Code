@@ -284,7 +284,13 @@ if (cameraState === "on") {
   });
 }
 if (cameraState === "on") {
-  throw new Error("The Zoom camera could not be disabled before joining.");
+  // A camera that errors out (missing device, denied permission) keeps the
+  // "stop video" label even though nothing would be broadcast. Treat that as
+  // unavailable rather than blocking the join.
+  const text = await bodyText(page);
+  if (/カメラ.*(エラー|失敗|見つかり|検出|使用できません|アクセスできません)|camera (error|failed|not (found|detected|available|working))|(cannot|can't|unable to) (access|start|detect) (your )?camera/i.test(text)) {
+    cameraState = "unavailable";
+  }
 }
 
 devices = await selectAudioDevices(page);
@@ -304,6 +310,10 @@ if (options.join) {
     } else {
       joinStatus = "requested-status-unknown";
     }
+  } else if (cameraState === "on") {
+    // The camera could not be verified as off; let the operator turn it off
+    // and join by hand instead of broadcasting video.
+    joinStatus = "camera-state-unknown";
   } else if (microphoneState !== "off") {
     // Never enter the meeting with an unverified microphone; the muted mic is
     // the last line of defense against unintended speech. Leave the pre-join
@@ -374,6 +384,9 @@ if (joinStatus === "rejected" || joinStatus === "passcode-rejected") {
 }
 if (joinStatus === "requested-status-unknown" || joinStatus === "microphone-state-unknown") {
   process.exit(15);
+}
+if (joinStatus === "camera-state-unknown") {
+  process.exit(16);
 }
 if (
   options.join &&
