@@ -73,6 +73,14 @@ if [ "$join_status" -eq 13 ]; then
   # the Zoom sign-in.
   pause_for_signin 'Zoom'
   exit 13
+elif [ "$join_status" -eq 15 ] || [ "$join_status" -eq 16 ]; then
+  # The join needs a human: an indeterminate page state or a CAPTCHA. Keep
+  # the browser and audio routing as they are so the operator can finish the
+  # join in the dedicated Chrome window.
+  launch_completed=1
+  printf '\nFinish the Zoom join manually in the dedicated Chrome window.\n' >&2
+  printf 'Once the participant is in the meeting, run: ./scripts/set-zoom-mic.sh --wait 60 unmute\n' >&2
+  exit "$join_status"
 elif [ "$join_status" -eq 18 ]; then
   # Joined, but the BlackHole devices are unverified. Leave the participant
   # muted and the session running so the operator can fix the devices by hand;

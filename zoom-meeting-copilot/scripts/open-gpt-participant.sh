@@ -271,8 +271,12 @@ if [ "$auto_prepare" -eq 1 ]; then
       exit 14
       ;;
     15)
-      printf '\nZoom accepted the click, but its resulting state could not be determined. Check the browser window.\n' >&2
+      printf '\nThe Zoom join state could not be determined. Check the browser window and continue manually.\n' >&2
       exit 15
+      ;;
+    16)
+      printf '\nZoom is showing a verification challenge (CAPTCHA). Solve it in the browser window, then rerun the same command.\n' >&2
+      exit 16
       ;;
     17)
       printf '\nThis meeting requires a passcode that is not embedded in the URL.\n' >&2

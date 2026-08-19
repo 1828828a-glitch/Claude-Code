@@ -93,11 +93,26 @@ if (contexts.length === 0) {
 
 const context = contexts[0];
 await context.grantPermissions(["microphone"], { origin: meetingOrigin });
+// Zoom redirects the join page to app.zoom.us regardless of the invited host.
+await context
+  .grantPermissions(["microphone"], { origin: "https://app.zoom.us" })
+  .catch(() => {});
+
+const meetingId = (options.url.match(/\/wc\/(\d+)/) || [])[1] || "";
+
+// The redirect rewrites host and query, so match pages by meeting ID rather
+// than by URL prefix.
+function isMeetingPage(candidate) {
+  return (
+    /https:\/\/([a-z0-9-]+\.)*zoom\.us\//i.test(candidate.url()) &&
+    (meetingId === "" || candidate.url().includes(`/wc/${meetingId}`))
+  );
+}
 
 const zoomPages = context
   .pages()
   .filter((candidate) => /https:\/\/([a-z0-9-]+\.)*zoom\.us\//i.test(candidate.url()));
-let page = zoomPages.find((candidate) => candidate.url().startsWith(options.url)) || zoomPages[0];
+let page = zoomPages.find(isMeetingPage) || zoomPages[0];
 await Promise.all(
   zoomPages
     .filter((candidate) => candidate !== page)
@@ -107,7 +122,7 @@ await Promise.all(
 if (!page) {
   page = await context.newPage();
   await page.goto(options.url, { waitUntil: "domcontentloaded" });
-} else if (!page.url().startsWith(options.url)) {
+} else if (!isMeetingPage(page)) {
   await page.goto(options.url, { waitUntil: "domcontentloaded" });
 }
 
@@ -139,26 +154,62 @@ function report(overrides = {}) {
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
-// Dismiss the cookie banner when the region shows one; it can cover the
-// pre-join controls.
-await clickVisible(page, (frame) => [
-  frame.locator("#onetrust-accept-btn-handler"),
-  frame.getByRole("button", { name: /accept cookies|すべて(の Cookie を)?受け入れる/i }),
-], 1_000);
+// The Web Client is a heavy single-page app: the pre-join controls appear
+// several seconds after DOMContentLoaded. Poll until something actionable
+// renders instead of querying once and giving up.
+const preJoinControls = (frame) => [
+  frame.locator("#input-for-name"),
+  frame.getByPlaceholder(/your name|名前を入力|お名前/i),
+  frame.getByRole("button", { name: /^(join|参加)$/i }),
+  frame.getByRole("button", { name: /unmute|ミュート/i }),
+];
 
-// A /j/ URL that slipped through redirects to the launcher page; move to the
-// browser client when Zoom offers the link.
-await clickVisible(page, (frame) => [
-  frame.getByRole("link", { name: /join from your browser|ブラウザから参加/i }),
-  frame.locator('a[web_client], a.mbTuHb, a[href*="/wc/"]').filter({ hasText: /browser|ブラウザ/i }),
-], 1_500);
-await page.waitForLoadState("domcontentloaded");
+const preJoinDeadline = Date.now() + 45_000;
+let preJoinReady = false;
+while (Date.now() < preJoinDeadline) {
+  // Dismiss the cookie banner when the region shows one; it can cover the
+  // pre-join controls.
+  await clickVisible(page, (frame) => [
+    frame.locator("#onetrust-accept-btn-handler"),
+    frame.getByRole("button", { name: /accept cookies|すべて(の Cookie を)?受け入れる/i }),
+  ], 500);
 
-const pageText = await bodyText(page);
-if (/sign in to join|この(ミーティング|会議)は認証|authorized attendees only|サインインしてください/i.test(pageText)) {
-  report({ joinStatus: "signin-required" });
-  process.exit(13);
+  // A /j/ URL that slipped through redirects to the launcher page; move to
+  // the browser client when Zoom offers the link.
+  await clickVisible(page, (frame) => [
+    frame.getByRole("link", { name: /join from your browser|ブラウザから参加/i }),
+    frame.locator('a[web_client], a.mbTuHb, a[href*="/wc/"]').filter({ hasText: /browser|ブラウザ/i }),
+  ], 500);
+
+  const pageText = await bodyText(page);
+  if (/sign in to join|この(ミーティング|会議)は認証|authorized attendees only|サインインしてください/i.test(pageText)) {
+    report({ joinStatus: "signin-required" });
+    process.exit(13);
+  }
+  const hasCaptcha =
+    (await page.locator('iframe[src*="recaptcha"], iframe[src*="hcaptcha"]').count().catch(() => 0)) > 0 ||
+    /verify (that )?you are|are you a robot|画像認証|ロボットではあり/i.test(pageText);
+  if (hasCaptcha) {
+    report({ joinStatus: "captcha-required" });
+    process.exit(16);
+  }
+  if (/leave|退出|join audio|オーディオに参加/i.test(pageText)) {
+    // Already inside the meeting from a previous attempt.
+    preJoinReady = true;
+    break;
+  }
+  if (await findVisible(page, preJoinControls)) {
+    preJoinReady = true;
+    break;
+  }
+  await page.waitForTimeout(1_000);
 }
+if (!preJoinReady) {
+  report({ joinStatus: "prejoin-timeout" });
+  process.exit(15);
+}
+// Give late controls (device menu, camera toggle) a moment to settle.
+await page.waitForTimeout(1_000);
 
 async function fillFirst(buildLocators, value) {
   const field = await findVisible(page, buildLocators);
@@ -253,12 +304,12 @@ if (options.join) {
     } else {
       joinStatus = "requested-status-unknown";
     }
-  } else {
+  } else if (microphoneState !== "off") {
     // Never enter the meeting with an unverified microphone; the muted mic is
-    // the last line of defense against unintended speech.
-    if (microphoneState !== "off") {
-      throw new Error("The Zoom microphone could not be verified as muted before joining.");
-    }
+    // the last line of defense against unintended speech. Leave the pre-join
+    // screen to the operator instead of failing outright.
+    joinStatus = "microphone-state-unknown";
+  } else {
     await page.waitForTimeout(options.joinDelay * 1_000);
     await joinButton.click({ timeout: 5_000 });
 
@@ -321,7 +372,7 @@ report({ title: await page.title().catch(() => "") });
 if (joinStatus === "rejected" || joinStatus === "passcode-rejected") {
   process.exit(14);
 }
-if (joinStatus === "requested-status-unknown") {
+if (joinStatus === "requested-status-unknown" || joinStatus === "microphone-state-unknown") {
   process.exit(15);
 }
 if (
