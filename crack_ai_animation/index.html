@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>crack AI事業アップデート</title>
+<!--
+  crack「AI事業アップデート計画」60秒モーションインフォグラフィック
+  - このHTMLを開くだけで 1920×1080 / 60秒 のアニメーションが自動再生されます。
+  - 操作：Space 再生/一時停止、R 最初から、H 操作UIの表示切替、← → 1秒移動
+  - URLパラメータ：?record=1 でUIを隠して再生（画面録画用）、?t=38 で38秒から再生
+  - 編集箇所は <script> 冒頭の「▼編集ポイント」にまとめています。
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===========================================================
+   0. カラーとトークン（▼編集ポイント：色を変えるならここ）
+   ① 発見=水色 / ② 価値化=ミント / ③ 更新=オレンジ / ④ 場=ネイビー
+   =========================================================== */
+:root{
+  --bg:#F5F7FA;          /* 背景：白〜薄いグレー */
+  --paper:#FFFFFF;
+  --ink:#1B2540;         /* 文字：濃紺寄りの黒 */
+  --ink2:#4A5875;
+  --ink3:#8C97AC;
+  --line:#D5DCE7;
+  --navy:#22397A;   --navy-t:#E7ECF6;
+  --sky:#2AA7DF;    --sky-ink:#1683B8;    --sky-t:#E2F3FB;
+  --mint:#23B592;   --mint-ink:#138C70;   --mint-t:#DDF4EC;
+  --orange:#F2842E; --orange-ink:#D8660F; --orange-t:#FDEBDC;
+  --shadow:0 12px 32px rgba(27,37,64,.08), 0 2px 6px rgba(27,37,64,.06);
+  --jp:"Noto Sans JP","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;
+  --en:"Poppins","Noto Sans JP",sans-serif;
+}
+.c-sky{--c:var(--sky);--ci:var(--sky-ink);--ct:var(--sky-t)}
+.c-mint{--c:var(--mint);--ci:var(--mint-ink);--ct:var(--mint-t)}
+.c-orange{--c:var(--orange);--ci:var(--orange-ink);--ct:var(--orange-t)}
+.c-navy{--c:var(--navy);--ci:var(--navy);--ct:var(--navy-t)}
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#DCE2EB}
+body{font-family:var(--jp);color:var(--ink);-webkit-font-smoothing:antialiased}
+
+/* ===========================================================
+   1. ステージ（1920×1080固定 → 画面サイズに合わせて縮小表示）
+   =========================================================== */
+#viewport{position:fixed;inset:0;overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;
+  transform-origin:50% 50%;transform:translate(-50%,-50%);
+  background:var(--bg);overflow:hidden}
+#bg-grid{position:absolute;inset:0;
+  background-image:radial-gradient(circle at 1.5px 1.5px,rgba(34,57,122,.08) 1.5px,transparent 0);
+  background-size:36px 36px}
+.scene{position:absolute;inset:0;visibility:hidden}
+.a{position:absolute;left:0;top:0;opacity:0;will-change:transform,opacity}
+.grp{position:absolute;left:0;top:0;width:1920px;height:1080px}
+.lines{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:visible;pointer-events:none}
+
+/* 線の描画：pathLength="1" と dasharray で「線が伸びる」表現にする */
+.ln{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 1;stroke-dashoffset:1}
+.ln-hair{stroke:#C3CCDA;stroke-width:3}
+.ln-navy{stroke:var(--navy);stroke-width:5}
+.ln-sky{stroke:var(--sky);stroke-width:6}
+.ln-soft{stroke:#AEBBD0;stroke-width:4}
+.head{fill:var(--navy);transform-box:fill-box;transform-origin:center}
+
+/* アイコン（線画） */
+.icon{width:56px;height:56px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+
+/* ===========================================================
+   2. 共通フレーム（章ラベル・ブランド・字幕）
+   =========================================================== */
+#hdr-chapter{display:flex;align-items:center;gap:18px;white-space:nowrap}
+#hdr-no{font-family:var(--en);font-weight:600;font-size:30px;color:var(--navy);letter-spacing:.02em}
+#hdr-bar{width:44px;height:3px;background:var(--navy);border-radius:2px}
+#hdr-title{font-size:28px;font-weight:700;color:var(--ink)}
+#hdr-brand{font-size:20px;font-weight:500;color:var(--ink3);white-space:nowrap}
+#hdr-brand b{font-family:var(--en);font-weight:600;color:var(--navy);font-size:22px}
+
+#caption{padding:18px 44px 20px;border-radius:999px;background:#fff;box-shadow:var(--shadow);
+  font-size:44px;font-weight:700;line-height:1.2;white-space:nowrap;letter-spacing:.02em}
+#caption:empty{display:none}
+em.c3{font-style:normal;color:var(--orange-ink)}
+em.c4{font-style:normal;color:var(--navy);background:linear-gradient(transparent 68%,rgba(34,57,122,.14) 68%)}
+.en{font-family:var(--en);font-weight:600}
+
+/* ===========================================================
+   3. 部品：人物・カード・ノード
+   =========================================================== */
+.person{width:150px;height:188px;transform-origin:50% 100%}
+.person .sq{width:100%;height:100%;transform-origin:50% 100%}
+.person svg{width:100%;height:100%;display:block;overflow:visible}
+.person.sm{width:120px;height:150px}
+.name-tag{font-size:20px;font-weight:500;color:var(--ink3);white-space:nowrap}
+
+/* 円形アイコンノード */
+.ic-node{width:128px;height:128px;border-radius:50%;background:#fff;box-shadow:var(--shadow);
+  display:grid;place-items:center;color:var(--navy)}
+.ic-node .node-lbl{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:14px;
+  font-size:24px;font-weight:700;white-space:nowrap;color:var(--ink)}
+.badge-check{position:absolute;right:-4px;top:-4px;width:42px;height:42px;border-radius:50%;
+  background:var(--mint);display:grid;place-items:center;box-shadow:0 4px 10px rgba(35,181,146,.35)}
+.badge-check svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+
+/* 案件カード */
+.case-card{width:196px;height:52px;border-radius:10px;background:#fff;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:10px;padding:0 16px;font-size:20px;font-weight:500;white-space:nowrap;
+  border-left:6px solid var(--navy)}
+.case-card small{font-size:15px;color:var(--ink3);font-weight:500}
+
+/* 四角いノード（商流など） */
+.box-node{width:220px;height:150px;border-radius:18px;background:#fff;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--navy)}
+.box-node .t{font-size:28px;font-weight:700;color:var(--ink);white-space:nowrap}
+.box-node.crack{border:3px solid var(--navy)}
+.box-node.crack .logo-s{font-family:var(--en);font-weight:600;font-size:44px;color:var(--navy);line-height:1}
+.box-node.crack .t{font-size:18px;font-weight:500;color:var(--ink3)}
+.flow-lbl{font-size:22px;font-weight:700;color:var(--ink2);white-space:nowrap;background:var(--bg);padding:2px 10px}
+.legend{display:flex;align-items:center;gap:10px;font-size:20px;color:var(--ink2);white-space:nowrap}
+.legend i{width:14px;height:14px;border-radius:50%;background:var(--sky);display:block}
+.sub-h{font-size:24px;font-weight:700;color:var(--ink2);white-space:nowrap}
+
+/* 分断されたサービス */
+.svc{width:200px;height:92px}
+.svc .bob{width:100%;height:100%;border-radius:14px;background:#fff;box-shadow:var(--shadow);
+  display:flex;align-items:center;justify-content:center;gap:12px;font-size:28px;font-weight:700;color:var(--ink)}
+.svc .icon{width:40px;height:40px;color:var(--navy)}
+
+/* 比較グラフ */
+.chart{width:420px;height:300px;border-radius:18px;background:#fff;box-shadow:var(--shadow);padding:26px 34px 22px}
+.chart .ttl{font-size:20px;font-weight:700;color:var(--ink2);white-space:nowrap}
+.chart .bars{position:absolute;left:34px;right:34px;bottom:66px;height:170px;border-bottom:2px solid var(--line);
+  display:flex;align-items:flex-end;justify-content:space-around}
+.chart .bar{width:96px;border-radius:8px 8px 0 0;height:0}
+.chart .bar.cases{background:var(--navy)}
+.chart .bar.assets{background:var(--orange-t);border:3px solid var(--orange);border-bottom:none}
+.chart .blbl{position:absolute;bottom:24px;font-size:20px;font-weight:700;white-space:nowrap;transform:translateX(-50%)}
+
+/* 中心コア */
+.core{width:196px;height:196px;border-radius:50%;background:var(--navy);color:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  box-shadow:0 18px 40px rgba(34,57,122,.28)}
+.core .logo-s{font-family:var(--en);font-weight:600;font-size:48px;line-height:1}
+.core .t{font-size:20px;font-weight:500;opacity:.85;margin-top:6px}
+.ring-node{width:132px;height:132px;border-radius:50%;background:#fff;border:3px solid var(--sky);
+  box-shadow:var(--shadow);display:grid;place-items:center;color:var(--navy)}
+.ring-node .node-lbl{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:12px;
+  font-size:26px;font-weight:700;white-space:nowrap;color:var(--ink);background:var(--bg);padding:0 8px;border-radius:8px}
+
+/* 行動規範の円 */
+.norm{width:260px;height:260px;border-radius:50%;background:var(--ct);border:4px solid var(--c);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--ci)}
+.norm .icon{width:72px;height:72px}
+.norm .num{position:absolute;top:-30px;left:50%;transform:translateX(-50%);width:60px;height:60px;border-radius:50%;
+  background:var(--c);color:#fff;display:grid;place-items:center;font-family:var(--en);font-weight:600;font-size:30px;
+  box-shadow:0 6px 14px rgba(27,37,64,.15)}
+.norm .ttl{font-size:40px;font-weight:900;color:var(--ink);white-space:nowrap}
+.norm-sub{font-size:24px;font-weight:500;color:var(--ink2);white-space:nowrap}
+.arrow-lbl{font-size:22px;font-weight:700;color:var(--ink3);white-space:nowrap}
+.tag{padding:6px 18px;border-radius:999px;font-size:22px;font-weight:700;color:#fff;white-space:nowrap;
+  background:var(--c);box-shadow:0 6px 14px rgba(27,37,64,.14)}
+
+/* ④の床（S4では大きな帯、S5〜S6では足元の床） */
+#floor{border-radius:999px;background:var(--navy-t);border:3px solid var(--navy);overflow:hidden}
+#floor-glow{position:absolute;inset:0;background:var(--navy)}
+#floor-big,#floor-small{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;white-space:nowrap}
+#floor-big{gap:22px}
+#floor-big .icon{width:64px;height:64px;color:var(--navy)}
+#floor-big .ttl{font-size:44px;font-weight:900;color:var(--navy)}
+#floor-big .sub{font-size:24px;font-weight:500;color:var(--ink2);margin-left:8px}
+#floor-small{gap:14px;font-size:22px;font-weight:700;color:var(--navy)}
+#floor-small .icon{width:30px;height:30px}
+#floor-small-w{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:14px;
+  font-size:22px;font-weight:700;color:#fff;white-space:nowrap}
+#floor-small-w .icon{width:30px;height:30px}
+
+/* 一本の線（S5） */
+.pipe-node{width:124px;height:124px;border-radius:50%;background:#fff;border:3px solid var(--sky);
+  box-shadow:var(--shadow);display:grid;place-items:center;color:var(--navy)}
+.pipe-node .icon{width:50px;height:50px}
+.pipe-node .node-lbl{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:14px;
+  font-size:26px;font-weight:700;white-space:nowrap;color:var(--ink)}
+.pipe-node .step{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-family:var(--en);font-weight:600;
+  font-size:16px;color:#fff;background:var(--sky);border-radius:999px;padding:1px 10px}
+.pipe-node.now{border-color:var(--navy)}
+.pipe-node.now .step{background:var(--navy)}
+.bracket{height:26px;border:3px solid var(--navy);border-bottom:none;border-radius:12px 12px 0 0}
+.br-lbl{font-size:26px;font-weight:700;color:var(--ink2);white-space:nowrap}
+.br-lbl.big{font-size:34px;font-weight:900;color:var(--navy)}
+.loop-lbl{font-size:22px;font-weight:700;color:var(--ink2);white-space:nowrap;background:var(--bg);padding:2px 14px}
+
+/* 役割移管（S6） */
+.cat-card{width:206px;height:62px;border-radius:12px;background:#fff;box-shadow:var(--shadow);
+  display:flex;align-items:center;justify-content:center;gap:12px;font-size:26px;font-weight:700;white-space:nowrap;
+  border:2px solid #CBD3E0;color:var(--ink)}
+.cat-card .icon{width:32px;height:32px;color:var(--ink2)}
+.role-card{width:208px;height:80px;border-radius:14px;background:#fff;box-shadow:var(--shadow);
+  border-top:8px solid var(--c);display:flex;flex-direction:column;align-items:center;justify-content:center;white-space:nowrap}
+.role-card .role{font-size:27px;font-weight:900;color:var(--ink);line-height:1.15}
+.role-card .who{font-size:16px;font-weight:500;color:var(--ink3);margin-top:2px}
+.gauge{width:230px}
+.gauge .g-lbl{font-size:19px;font-weight:700;color:var(--ink2);white-space:nowrap;display:flex;justify-content:space-between}
+.gauge .g-track{margin-top:8px;height:16px;border-radius:999px;background:#E3E8F0;overflow:hidden}
+.gauge .g-fill{height:100%;width:100%;border-radius:999px;background:var(--orange)}
+.sen{width:1680px;height:36px;border-radius:999px;border:1.5px dashed #C4CEDD;background:rgba(255,255,255,.6);
+  display:flex;align-items:center;gap:26px;padding:0 24px;white-space:nowrap}
+.sen .sen-name{display:flex;align-items:center;gap:8px;font-family:var(--en);font-weight:600;font-size:17px;color:var(--ink3)}
+.sen .sen-name svg{width:18px;height:18px;fill:var(--ink3)}
+.sen .sen-name span{font-family:var(--jp);font-weight:500;font-size:15px}
+.sen-chip{font-size:16px;font-weight:500;color:var(--ink3);padding:2px 12px;border-radius:999px}
+.sen-pulse{width:10px;height:10px;border-radius:50%;background:var(--sky)}
+.land-ring{width:150px;height:150px;border-radius:50%;border:4px solid var(--c)}
+
+/* 手段の合流（S7） */
+.src-node{width:156px;height:156px;border-radius:50%;background:#fff;border:4px solid var(--c);box-shadow:var(--shadow);
+  display:grid;place-items:center;color:var(--navy)}
+.src-node .icon{width:64px;height:64px}
+.src-node .node-lbl{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:14px;
+  font-size:28px;font-weight:700;white-space:nowrap;color:var(--ink)}
+.note-small{font-size:19px;font-weight:500;color:var(--ink3);white-space:nowrap;border:1.5px solid var(--line);
+  border-radius:999px;padding:3px 14px;background:#fff}
+.goal{width:236px;height:236px;border-radius:50%;background:#fff;border:5px solid var(--navy);
+  box-shadow:0 18px 40px rgba(34,57,122,.18);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--navy)}
+.goal .icon{width:72px;height:72px}
+.goal .t{font-size:30px;font-weight:900;color:var(--ink);white-space:nowrap}
+.token{width:64px;height:64px;border-radius:50%;background:var(--c);display:grid;place-items:center;color:#fff;
+  box-shadow:0 8px 18px rgba(27,37,64,.2)}
+.token .icon{width:34px;height:34px}
+.fwd-lbl{font-size:26px;font-weight:900;color:var(--navy);white-space:nowrap}
+
+/* 着地（S8） */
+.concl{display:flex;align-items:center;gap:22px;white-space:nowrap}
+.pill{display:flex;align-items:center;gap:14px;padding:14px 30px;border-radius:999px;font-size:40px;font-weight:900;color:#fff}
+.pill .n{font-family:var(--en);font-weight:600;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.22);
+  display:grid;place-items:center;font-size:26px}
+.pill.p3{background:var(--orange)}
+.pill.p4{background:var(--navy)}
+.times{font-family:var(--en);font-size:44px;font-weight:500;color:var(--ink3)}
+.logo{font-family:var(--en);font-weight:700;font-size:168px;color:var(--navy);letter-spacing:-.01em;line-height:1}
+.copy-line{font-size:46px;font-weight:700;color:var(--ink);white-space:nowrap;letter-spacing:.03em}
+
+/* ===========================================================
+   4. 操作UI（録画時は H キー or ?record=1 で非表示）
+   =========================================================== */
+#ui{position:fixed;left:16px;bottom:16px;display:flex;align-items:center;gap:10px;z-index:10;
+  padding:8px 12px;border-radius:14px;background:rgba(27,37,64,.82);color:#fff;
+  font:500 13px/1 var(--jp);box-shadow:0 6px 20px rgba(0,0,0,.18);transition:opacity .3s}
+#ui button{appearance:none;border:0;border-radius:9px;background:rgba(255,255,255,.14);color:#fff;
+  font:600 13px/1 var(--jp);padding:9px 12px;cursor:pointer;white-space:nowrap}
+#ui button:hover{background:rgba(255,255,255,.26)}
+#ui button:focus-visible{outline:2px solid #7FD0F5;outline-offset:2px}
+#tc{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;min-width:132px;opacity:.95}
+#tc small{display:block;font-family:var(--jp);font-size:11px;opacity:.7;margin-top:3px}
+#scrub{width:220px;accent-color:#7FD0F5}
+body.hide-ui #ui{opacity:0;pointer-events:none}
+body.idle #ui{opacity:0}
+@media (max-width:640px){
+  #scrub{width:110px}
+  #ui{left:8px;right:8px;bottom:8px;gap:6px;flex-wrap:wrap}
+  #btn-rec{display:none}
+}
+</style>
+</head>
+<body>
+<div id="viewport">
+<div id="stage" role="img" aria-label="crack AI事業アップデート計画を説明する60秒のアニメーション">
+  <div id="bg-grid"></div>
+
+  <!-- ============ 線画アイコン定義（48×48） ============ -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-search" viewBox="0 0 48 48"><circle cx="21" cy="21" r="12"/><path d="M30 30 L40 40"/></symbol>
+      <symbol id="i-pen" viewBox="0 0 48 48"><path d="M10 38 L12 30 L32 10 L38 16 L18 36 Z"/><path d="M28 14 L34 20"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 48 48"><path d="M38 20 A15 15 0 0 0 11 17"/><path d="M11 9 L11 17 L19 17"/><path d="M10 28 A15 15 0 0 0 37 31"/><path d="M37 39 L37 31 L29 31"/></symbol>
+      <symbol id="i-people" viewBox="0 0 48 48"><circle cx="24" cy="15" r="6"/><path d="M13 36 C13 28 18 24 24 24 C30 24 35 28 35 36"/><circle cx="11" cy="19" r="4.5"/><path d="M3 36 C3 30 6 27 10.5 27"/><circle cx="37" cy="19" r="4.5"/><path d="M45 36 C45 30 42 27 37.5 27"/></symbol>
+      <symbol id="i-screen" viewBox="0 0 48 48"><rect x="7" y="8" width="34" height="22" rx="2"/><path d="M24 30 L24 37 M16 42 L24 36 L32 42"/><path d="M13 24 L20 18 L25 22 L33 14"/></symbol>
+      <symbol id="i-doc" viewBox="0 0 48 48"><path d="M13 5 H29 L37 13 V43 H13 Z"/><path d="M29 5 V13 H37"/><path d="M18 22 H32 M18 28 H32 M18 34 H27"/></symbol>
+      <symbol id="i-teacher" viewBox="0 0 48 48"><circle cx="16" cy="13" r="5"/><path d="M8 40 V29 C8 23 11 20 16 20 C21 20 24 23 24 29 V40"/><rect x="27" y="8" width="16" height="12" rx="1.5"/><path d="M22 25 L29 19"/></symbol>
+      <symbol id="i-building" viewBox="0 0 48 48"><rect x="10" y="7" width="20" height="36" rx="1.5"/><path d="M30 18 H38 V43 H30"/><path d="M16 14 H18 M22 14 H24 M16 21 H18 M22 21 H24 M16 28 H18 M22 28 H24 M18 43 V36 H22 V43"/><path d="M6 43 H42"/></symbol>
+      <symbol id="i-case" viewBox="0 0 48 48"><rect x="6" y="14" width="36" height="26" rx="3"/><path d="M17 14 V10 C17 8.5 18 7.5 19.5 7.5 H28.5 C30 7.5 31 8.5 31 10 V14"/><path d="M6 25 H42"/><path d="M21 25 V29 H27 V25"/></symbol>
+      <symbol id="i-cap" viewBox="0 0 48 48"><path d="M4 18 L24 9 L44 18 L24 27 Z"/><path d="M12 22 V32 C12 35 17 38 24 38 C31 38 36 35 36 32 V22"/><path d="M44 18 V28"/></symbol>
+      <symbol id="i-sprout" viewBox="0 0 48 48"><path d="M24 42 V22"/><path d="M24 26 C24 16 17 11 8 11 C8 20 14 26 24 26 Z"/><path d="M24 22 C24 14 30 9 40 9 C40 17 34 22 24 22 Z"/><path d="M14 42 H34"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 48 48"><path d="M24 43 C24 43 37 30 37 19 A13 13 0 0 0 11 19 C11 30 24 43 24 43 Z"/><circle cx="24" cy="19" r="4.5"/></symbol>
+      <symbol id="i-puzzle" viewBox="0 0 48 48"><path d="M10 14 H19 C19 9 27 9 27 14 H36 V23 C41 23 41 31 36 31 V40 H10 V31 C15 31 15 23 10 23 Z"/></symbol>
+      <symbol id="i-code" viewBox="0 0 48 48"><path d="M17 14 L7 24 L17 34"/><path d="M31 14 L41 24 L31 34"/><path d="M27 10 L21 38"/></symbol>
+      <symbol id="i-phone" viewBox="0 0 48 48"><path d="M14 6 H21 L25 15 L20 19 C22 25 24 27 30 29 L34 24 L43 28 V35 C43 38 41 40 38 40 C21 39 9 27 8 11 C8 8 10 6 13 6 Z"/></symbol>
+      <symbol id="i-list" viewBox="0 0 48 48"><rect x="10" y="8" width="28" height="36" rx="3"/><path d="M18 8 V5 H30 V8"/><path d="M16 19 L18.5 21.5 L22 18 M26 20 H33 M16 29 L18.5 31.5 L22 28 M26 30 H33 M17 38 H33"/></symbol>
+      <symbol id="i-flask" viewBox="0 0 48 48"><path d="M19 6 H29 M20 6 V19 L9 38 C8 41 10 43 13 43 H35 C38 43 40 41 39 38 L28 19 V6"/><path d="M14 31 H34"/></symbol>
+      <symbol id="i-next" viewBox="0 0 48 48"><circle cx="24" cy="24" r="17"/><path d="M15 24 H32 M26 17 L33 24 L26 31"/></symbol>
+      <symbol id="i-task" viewBox="0 0 48 48"><path d="M8 12 L11 15 L16 9"/><path d="M21 12 H40"/><path d="M8 24 L11 27 L16 21"/><path d="M21 24 H40"/><path d="M8 36 L11 39 L16 33"/><path d="M21 36 H40"/></symbol>
+      <symbol id="i-sync" viewBox="0 0 48 48"><path d="M8 17 H38 M31 10 L38 17 L31 24"/><path d="M40 31 H10 M17 24 L10 31 L17 38"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 48 48"><circle cx="24" cy="24" r="17"/><path d="M7 24 H41"/><path d="M24 7 C17 13 17 35 24 41 C31 35 31 13 24 7 Z"/></symbol>
+      <symbol id="i-chip" viewBox="0 0 48 48"><rect x="13" y="13" width="22" height="22" rx="3"/><rect x="19" y="19" width="10" height="10" rx="1.5"/><path d="M19 6 V13 M29 6 V13 M19 35 V42 M29 35 V42 M6 19 H13 M6 29 H13 M35 19 H42 M35 29 H42"/></symbol>
+      <symbol id="i-gov" viewBox="0 0 48 48"><path d="M6 17 L24 7 L42 17 Z"/><path d="M11 21 V36 M19 21 V36 M29 21 V36 M37 21 V36"/><path d="M7 40 H41"/></symbol>
+      <symbol id="i-target" viewBox="0 0 48 48"><circle cx="24" cy="24" r="17"/><circle cx="24" cy="24" r="10"/><circle cx="24" cy="24" r="3"/></symbol>
+      <symbol id="i-spark" viewBox="0 0 48 48"><path d="M24 4 L28 20 L44 24 L28 28 L24 44 L20 28 L4 24 L20 20 Z"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5 L10 17 L19 7"/></symbol>
+    </defs>
+  </svg>
+
+  <!-- ============ 共通ヘッダー（章ラベル・タイトル） ============ -->
+  <div id="hdr-chapter" style="position:absolute;left:96px;top:54px"><span id="hdr-no">01</span><span id="hdr-bar"></span><span id="hdr-title">現状</span></div>
+  <div id="hdr-brand" style="position:absolute;right:96px;top:60px"><b>crack</b>　AI事業アップデート計画</div>
+
+  <!-- ============ ④の床（S4の帯 → S5・S6の足元 → S8の土台） ============ -->
+  <div class="a" id="floor" data-x="960" data-y="745" style="width:124px;height:124px">
+    <div id="floor-glow" data-mode="g"></div>
+    <div id="floor-big" data-mode="g"><svg class="icon"><use href="#i-people"/></svg><span class="ttl">④ 他者が前へ進める場</span><span class="sub">一人ひとりが自走できる土台</span></div>
+    <div id="floor-small" data-mode="g"><svg class="icon"><use href="#i-people"/></svg>④ 他者が前へ進める場</div>
+    <div id="floor-small-w" data-mode="g"><svg class="icon"><use href="#i-people"/></svg>④ 他者が前へ進める場</div>
+  </div>
+
+  <!-- =========================================================
+       SCENE 1（0–6秒）現状：研修は順調。でも工藤に案件が積み上がる
+       ========================================================= -->
+  <section class="scene" id="scene-1">
+    <svg class="lines" viewBox="0 0 1920 1080">
+      <path id="s1-ln-venue"   class="ln ln-hair" pathLength="1" d="M628 469 L862 604"/>
+      <path id="s1-ln-teacher" class="ln ln-hair" pathLength="1" d="M1292 469 L1058 604"/>
+      <path id="s1-ln-doc"     class="ln ln-hair" pathLength="1" d="M597 718 L858 677"/>
+      <path id="s1-ln-client"  class="ln ln-hair" pathLength="1" d="M1323 718 L1062 677"/>
+    </svg>
+    <div class="a ic-node" id="s1-venue" data-x="560" data-y="430"><svg class="icon"><use href="#i-screen"/></svg><div class="node-lbl">研修会場</div><div class="badge-check" data-mode="g" id="s1-ok-venue"><svg><use href="#i-check"/></svg></div></div>
+    <div class="a ic-node" id="s1-teacher" data-x="1360" data-y="430"><svg class="icon"><use href="#i-teacher"/></svg><div class="node-lbl">講師</div><div class="badge-check" data-mode="g" id="s1-ok-teacher"><svg><use href="#i-check"/></svg></div></div>
+    <div class="a ic-node" id="s1-doc" data-x="520" data-y="730"><svg class="icon"><use href="#i-doc"/></svg><div class="node-lbl">資料</div></div>
+    <div class="a ic-node" id="s1-client" data-x="1400" data-y="730"><svg class="icon"><use href="#i-building"/></svg><div class="node-lbl">顧客</div><div class="badge-check" data-mode="g" id="s1-ok-client"><svg><use href="#i-check"/></svg></div></div>
+    <!-- 工藤と案件カードの塊（S2へ移るとき、まとめて右上の「crack」へ縮む） -->
+    <div class="grp" id="s1-cluster" style="transform-origin:960px 660px">
+      <div class="a person" id="s1-kudo" data-x="960" data-y="660" data-person="kudo"></div>
+      <div class="a name-tag" id="s1-kudo-name" data-x="960" data-y="782">工藤</div>
+      <div class="grp" id="s1-pile"><!-- 案件カードはJSで生成（CASES） --></div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       SCENE 2（6–14秒）課題：商流が細くなる／サービスが分断
+       ========================================================= -->
+  <section class="scene" id="scene-2">
+    <div class="grp" id="s2-all" style="transform-origin:960px 540px">
+      <svg class="lines" viewBox="0 0 1920 1080">
+        <path id="s2-ar1" class="ln" style="stroke:var(--navy);stroke-width:16" pathLength="1" d="M422 400 L578 400"/>
+        <path id="s2-hd1" class="head" d="M576 378 L606 400 L576 422 Z"/>
+        <path id="s2-ar2" class="ln" style="stroke:var(--navy);stroke-width:9" pathLength="1" d="M842 400 L1004 400"/>
+        <path id="s2-hd2" class="head" d="M1002 386 L1026 400 L1002 414 Z"/>
+        <path id="s2-ar3" class="ln" style="stroke:var(--navy);stroke-width:3" pathLength="1" d="M1262 400 L1430 400"/>
+        <path id="s2-hd3" class="head" d="M1428 392 L1444 400 L1428 408 Z"/>
+        <g id="s2-particles"><!-- 顧客との関係・知見の粒（JSで生成） --></g>
+      </svg>
+      <div class="a box-node" id="s2-client" data-x="300" data-y="400"><svg class="icon"><use href="#i-building"/></svg><div class="t">顧客</div></div>
+      <div class="a box-node" id="s2-agency1" data-x="720" data-y="400"><svg class="icon"><use href="#i-case"/></svg><div class="t">代理店</div></div>
+      <div class="a box-node" id="s2-agency2" data-x="1140" data-y="400"><svg class="icon"><use href="#i-case"/></svg><div class="t">代理店</div></div>
+      <div class="a box-node crack" id="s2-crack" data-x="1560" data-y="400"><div class="logo-s">crack</div><div class="t">案件を受ける側</div></div>
+      <div class="a flow-lbl" id="s2-l1" data-x="500" data-y="352">紹介</div>
+      <div class="a flow-lbl" id="s2-l2" data-x="922" data-y="352">二次請け</div>
+      <div class="a flow-lbl" id="s2-l3" data-x="1346" data-y="352">三次請け</div>
+      <div class="a legend" id="s2-legend" data-x="300" data-y="508"><i></i>顧客との関係・知見</div>
+      <div class="a sub-h" id="s2-svc-h" data-x="620" data-y="606">サービスが、バラバラ</div>
+      <div class="a svc" id="s2-svc-train" data-x="330" data-y="740"><div class="bob"><svg class="icon"><use href="#i-cap"/></svg>研修</div></div>
+      <div class="a svc" id="s2-svc-intro" data-x="620" data-y="700"><div class="bob"><svg class="icon"><use href="#i-puzzle"/></svg>導入</div></div>
+      <div class="a svc" id="s2-svc-dev" data-x="910" data-y="760"><div class="bob"><svg class="icon"><use href="#i-code"/></svg>開発</div></div>
+      <div class="a chart" id="s2-chart" data-x="1480" data-y="728">
+        <div class="ttl">案件が増えても</div>
+        <div class="bars"><div class="bar cases" id="s2-bar-cases"></div><div class="bar assets" id="s2-bar-assets"></div></div>
+        <div class="blbl" style="left:122px">案件数</div>
+        <div class="blbl" style="left:298px;color:var(--orange-ink)">顧客資産</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       SCENE 3（14–21秒）転換：AI事業そのものを更新する
+       ========================================================= -->
+  <section class="scene" id="scene-3">
+    <div class="grp" id="s3-all" style="transform-origin:960px 530px">
+      <svg class="lines" viewBox="0 0 1920 1080">
+        <g id="s3-ripples" fill="none" stroke="#2AA7DF" stroke-width="2"><!-- 波紋（JSで生成） --></g>
+        <path id="s3-orbit" class="ln ln-sky" pathLength="1" d="M960 250 A280 280 0 0 1 960 810 A280 280 0 0 1 960 250"/>
+      </svg>
+      <div class="a core" id="s3-core" data-x="960" data-y="530"><div class="logo-s">crack</div><div class="t">AI事業</div></div>
+      <div class="a ring-node" id="s3-n1" data-x="960"  data-y="250"><svg class="icon"><use href="#i-cap"/></svg><div class="node-lbl">AI研修</div></div>
+      <div class="a ring-node" id="s3-n2" data-x="1226" data-y="443"><svg class="icon"><use href="#i-sprout"/></svg><div class="node-lbl">人材育成</div></div>
+      <div class="a ring-node" id="s3-n3" data-x="1125" data-y="757"><svg class="icon"><use href="#i-pin"/></svg><div class="node-lbl">定着支援</div></div>
+      <div class="a ring-node" id="s3-n4" data-x="795"  data-y="757"><svg class="icon"><use href="#i-puzzle"/></svg><div class="node-lbl">AI導入</div></div>
+      <div class="a ring-node" id="s3-n5" data-x="694"  data-y="443"><svg class="icon"><use href="#i-code"/></svg><div class="node-lbl">開発</div></div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       SCENE 4（21–29秒）構造：①発見→②価値化→③更新、④が土台
+       ========================================================= -->
+  <section class="scene" id="scene-4">
+    <svg class="lines" viewBox="0 0 1920 1080">
+      <path id="s4-ar12" class="ln ln-navy" pathLength="1" d="M650 410 L804 410"/>
+      <path id="s4-hd12" class="head" d="M802 398 L824 410 L802 422 Z"/>
+      <path id="s4-ar23" class="ln ln-navy" pathLength="1" d="M1110 410 L1264 410"/>
+      <path id="s4-hd23" class="head" d="M1262 398 L1284 410 L1262 422 Z"/>
+      <!-- ④から①②③を下支えする矢印 -->
+      <path id="s4-up1" class="ln" style="stroke:#9AA9C6;stroke-width:10" pathLength="1" d="M500 678 L500 640"/>
+      <path id="s4-uh1" class="head" style="fill:#9AA9C6" d="M484 642 L500 620 L516 642 Z"/>
+      <path id="s4-up2" class="ln" style="stroke:#9AA9C6;stroke-width:10" pathLength="1" d="M960 678 L960 640"/>
+      <path id="s4-uh2" class="head" style="fill:#9AA9C6" d="M944 642 L960 620 L976 642 Z"/>
+      <path id="s4-up3" class="ln" style="stroke:#9AA9C6;stroke-width:10" pathLength="1" d="M1420 678 L1420 640"/>
+      <path id="s4-uh3" class="head" style="fill:#9AA9C6" d="M1404 642 L1420 620 L1436 642 Z"/>
+    </svg>
+    <div class="a norm c-sky" id="s4-n1" data-x="500" data-y="410"><div class="num">1</div><svg class="icon"><use href="#i-search"/></svg><div class="ttl">発見</div></div>
+    <div class="a norm c-mint" id="s4-n2" data-x="960" data-y="410"><div class="num">2</div><svg class="icon"><use href="#i-pen"/></svg><div class="ttl">価値化</div></div>
+    <div class="a norm c-orange" id="s4-n3" data-x="1420" data-y="410"><div class="num">3</div><svg class="icon"><use href="#i-refresh"/></svg><div class="ttl">更新</div></div>
+    <div class="a norm-sub" id="s4-s1" data-x="500" data-y="590">研修の前後の課題を拾う</div>
+    <div class="a norm-sub" id="s4-s2" data-x="960" data-y="590">講師育成・デモに形にする</div>
+    <div class="a norm-sub" id="s4-s3" data-x="1420" data-y="590">商流・商品・役割を変える</div>
+    <div class="a arrow-lbl" id="s4-al12" data-x="737" data-y="372">具体化</div>
+    <div class="a arrow-lbl" id="s4-al23" data-x="1197" data-y="372">広げる</div>
+    <div class="a tag c-orange" id="s4-tag3" data-x="1420" data-y="214">今回の主軸</div>
+    <div class="a tag c-navy" id="s4-tag4" data-x="1548" data-y="683">今回の主軸</div>
+  </section>
+
+  <!-- =========================================================
+       SCENE 5（29–38秒）実装：直営業から内製化まで一本の線で
+       ========================================================= -->
+  <section class="scene" id="scene-5">
+    <div class="grp" id="s5-all" style="transform-origin:960px 470px">
+      <svg class="lines" viewBox="0 0 1920 1080">
+        <defs><linearGradient id="g-pipe" gradientUnits="userSpaceOnUse" x1="180" y1="470" x2="1740" y2="470"><stop offset="0" stop-color="#2AA7DF"/><stop offset="1" stop-color="#22397A"/></linearGradient></defs>
+        <path id="s5-line" class="ln" style="stroke:url(#g-pipe);stroke-width:8" pathLength="1" d="M180 470 L1740 470"/>
+        <path id="s5-loop" class="ln ln-soft" pathLength="1" d="M1670 600 C1670 690 1580 700 1460 700 L460 700 C340 700 250 690 250 616"/>
+        <path id="s5-loop-hd" class="head" style="fill:#AEBBD0" d="M238 620 L250 598 L262 620 Z"/>
+      </svg>
+      <div class="a pipe-node" id="s5-p1" data-x="250"  data-y="470"><span class="step">1</span><svg class="icon"><use href="#i-phone"/></svg><div class="node-lbl">直営業</div></div>
+      <div class="a pipe-node" id="s5-p2" data-x="534"  data-y="470"><span class="step">2</span><svg class="icon"><use href="#i-list"/></svg><div class="node-lbl">課題整理</div></div>
+      <div class="a pipe-node now" id="s5-p3" data-x="818"  data-y="470"><span class="step">3</span><svg class="icon"><use href="#i-cap"/></svg><div class="node-lbl">研修</div></div>
+      <div class="a pipe-node" id="s5-p4" data-x="1102" data-y="470"><span class="step">4</span><svg class="icon"><use href="#i-pin"/></svg><div class="node-lbl">定着支援</div></div>
+      <div class="a pipe-node" id="s5-p5" data-x="1386" data-y="470"><span class="step">5</span><svg class="icon"><use href="#i-flask"/></svg><div class="node-lbl">PoC・開発</div></div>
+      <div class="a pipe-node" id="s5-p6" data-x="1670" data-y="470"><span class="step">6</span><svg class="icon"><use href="#i-next"/></svg><div class="node-lbl">内製化・次の提案</div></div>
+      <div class="a bracket" id="s5-bracket" data-x="818" data-y="354" style="width:250px"></div>
+      <div class="a br-lbl" id="s5-br-now" data-x="818" data-y="314">これまでは、研修だけ</div>
+      <div class="a br-lbl big" id="s5-br-next" data-x="960" data-y="308">これからは、一気通貫のAI事業</div>
+      <div class="a loop-lbl" id="s5-loop-lbl" data-x="960" data-y="700">次の部署・次の企業へ</div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       SCENE 6（38–47秒）★ハイライト：工藤が全部やるのをやめる
+       ========================================================= -->
+  <section class="scene" id="scene-6">
+    <svg class="lines" viewBox="0 0 1920 1080">
+      <!-- チームのつながり（中央から左右へ伸びる） -->
+      <path id="s6-link-l" class="ln" style="stroke:#9AA9C6;stroke-width:4" pathLength="1" d="M960 702 L240 702"/>
+      <path id="s6-link-r" class="ln" style="stroke:#9AA9C6;stroke-width:4" pathLength="1" d="M960 702 L1680 702"/>
+    </svg>
+    <!-- sen：画面の裏側で支えるAIレイヤー（主役にしない） -->
+    <div class="a sen" id="s6-sen" data-x="960" data-y="874">
+      <div class="sen-name"><svg viewBox="0 0 48 48"><use href="#i-spark"/></svg>sen<span>AIアシスタント</span></div>
+      <span class="sen-chip" id="s6-sen-c1">整理</span>
+      <span class="sen-chip" id="s6-sen-c2">初稿</span>
+      <span class="sen-chip" id="s6-sen-c3">タスク化</span>
+      <span class="sen-chip" id="s6-sen-c4">ナレッジ検索</span>
+    </div>
+    <div class="a gauge" id="s6-gauge" data-x="1236" data-y="404">
+      <div class="g-lbl"><span>工藤の負荷</span><span id="s6-gauge-val">100%</span></div>
+      <div class="g-track"><div class="g-fill" id="s6-gauge-fill"></div></div>
+    </div>
+    <div class="grp" id="s6-kudo-grp" style="transform-origin:960px 494px">
+      <div class="a person" id="s6-kudo" data-x="960" data-y="400" data-person="kudo"></div>
+      <div class="a name-tag" id="s6-kudo-name" data-x="960" data-y="516">工藤</div>
+    </div>
+    <!-- 重なり順：工藤 → 役割カード → 仕事カード（役割カードは仕事カードの後ろから出て、工藤の前を通る） -->
+    <div id="s6-members"><!-- メンバー・名前・役割カード・senの粒（JSで生成：TEAM） --></div>
+    <div class="grp" id="s6-pile"><!-- 工藤が抱える仕事カード（JSで生成：BURDENS） --></div>
+  </section>
+
+  <!-- =========================================================
+       SCENE 7（47–54秒）手段：AI・仲間・公的支援制度が顧客課題へ合流
+       ========================================================= -->
+  <section class="scene" id="scene-7">
+    <svg class="lines" viewBox="0 0 1920 1080">
+      <path id="s7-l-ai"     class="ln ln-soft" pathLength="1" d="M520 318 C660 330 810 440 870 552"/>
+      <path id="s7-l-people" class="ln ln-soft" pathLength="1" d="M960 386 L960 516"/>
+      <path id="s7-l-gov"    class="ln ln-soft" pathLength="1" d="M1400 318 C1260 330 1110 440 1050 552"/>
+      <path id="s7-fwd" class="ln ln-navy" style="stroke-width:10" pathLength="1" d="M1096 640 L1540 640"/>
+      <path id="s7-fwd-hd" class="head" d="M1536 616 L1580 640 L1536 664 Z"/>
+    </svg>
+    <div class="a src-node c-sky" id="s7-ai" data-x="440" data-y="300"><svg class="icon"><use href="#i-chip"/></svg><div class="node-lbl">AI</div></div>
+    <div class="a src-node c-mint" id="s7-people" data-x="960" data-y="240"><svg class="icon"><use href="#i-people"/></svg><div class="node-lbl">仲間</div></div>
+    <div class="a src-node c-orange" id="s7-gov" data-x="1480" data-y="300"><svg class="icon"><use href="#i-gov"/></svg><div class="node-lbl">公的支援制度</div></div>
+    <div class="a note-small" id="s7-note" data-x="1480" data-y="470">補助金ありきではない</div>
+    <div class="a goal" id="s7-goal" data-x="960" data-y="640"><svg class="icon"><use href="#i-target"/></svg><div class="t">顧客の課題</div></div>
+    <div class="a token c-sky" id="s7-tk-ai" style="--c:var(--sky)"><svg class="icon"><use href="#i-chip"/></svg></div>
+    <div class="a token c-mint" id="s7-tk-people" style="--c:var(--mint)"><svg class="icon"><use href="#i-people"/></svg></div>
+    <div class="a token c-orange" id="s7-tk-gov" style="--c:var(--orange)"><svg class="icon"><use href="#i-gov"/></svg></div>
+    <div class="a fwd-lbl" id="s7-fwd-lbl" data-x="1320" data-y="590">顧客が前へ進む</div>
+  </section>
+
+  <!-- =========================================================
+       SCENE 8（54–60秒）未来：チームで前へ → ③×④ → ロゴとラストコピー
+       ========================================================= -->
+  <section class="scene" id="scene-8">
+    <div class="a concl" id="s8-concl" data-x="960" data-y="356">
+      <div class="pill p3" id="s8-pill3" data-mode="g"><span class="n">3</span>会社を更新する</div>
+      <span class="times" id="s8-times" data-mode="g">×</span>
+      <div class="pill p4" id="s8-pill4" data-mode="g"><span class="n">4</span>他者が前へ進める場をつくる</div>
+    </div>
+    <div class="grp" id="s8-team"><!-- 工藤＋メンバー（JSで生成） --></div>
+    <div class="a logo" id="s8-logo" data-x="960" data-y="430">crack</div>
+    <!-- ▼編集ポイント：ラストコピー -->
+    <div class="a copy-line" id="s8-copy1" data-x="960" data-y="616"><span id="s8-c1a" data-mode="g" style="display:inline-block">自分が動く。</span><span id="s8-c1b" data-mode="g" style="display:inline-block">人が動けるようにする。</span></div>
+    <div class="a copy-line" id="s8-copy2" data-x="960" data-y="700">その積み重ねで、<em class="c3">会社を更新する</em>。</div>
+  </section>
+
+  <!-- ============ 字幕（1カット1メッセージ） ============ -->
+  <div class="a" id="caption"></div>
+</div>
+</div>
+
+<!-- ============ 操作UI（画面左下）：録画時は H キーで非表示 ============ -->
+<div id="ui" role="toolbar" aria-label="再生コントロール">
+  <button id="btn-restart" title="最初から（R）">⟲ 最初から</button>
+  <button id="btn-play" title="再生／一時停止（Space）">❚❚ 一時停止</button>
+  <div id="tc">00:00.0 / 01:00.0<small id="tc-scene">01 現状</small></div>
+  <input id="scrub" type="range" min="0" max="60000" step="10" value="0" aria-label="再生位置">
+  <button id="btn-hide" title="UIを隠す（H）">UIを隠す</button>
+  <button id="btn-rec" title="このタブを録画してWebMで保存">● 録画</button>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* =============================================================
+   ▼編集ポイント① 尺とシーン（台本の秒数と一致させる）
+   ============================================================= */
+const DURATION = 60;
+const SCENES = [
+  { id:'scene-1', no:'01', title:'現状',       start: 0, end: 6 },
+  { id:'scene-2', no:'02', title:'課題',       start: 6, end:14 },
+  { id:'scene-3', no:'03', title:'転換',       start:14, end:21 },
+  { id:'scene-4', no:'04', title:'行動規範',   start:21, end:29 },
+  { id:'scene-5', no:'05', title:'一気通貫',   start:29, end:38 },
+  { id:'scene-6', no:'06', title:'役割移管',   start:38, end:47 },
+  { id:'scene-7', no:'07', title:'手段と目的', start:47, end:54 },
+  { id:'scene-8', no:'08', title:'これから',   start:54, end:60 },
+];
+
+/* =============================================================
+   ▼編集ポイント② 字幕（ナレーション全文は出さない。18字前後まで）
+   <em class="c3"> は③の色、<em class="c4"> は④の色
+   ============================================================= */
+const CAPTIONS = [
+  { start: 0.4, end: 3.2, html:'AI研修は、うまくいっている。' },
+  { start: 3.2, end: 5.9, html:'でも、このままでいいのか。' },
+  { start: 6.4, end: 9.8, html:'紹介、二次請け、三次請け。' },
+  { start: 9.8, end:13.6, html:'案件は増える。でも、積み上がらない。' },
+  { start:14.3, end:17.2, html:'研修を良くする、だけじゃない。' },
+  { start:17.2, end:20.8, html:'AI事業そのものを、<em class="c3">更新する</em>。' },
+  { start:21.4, end:28.8, html:'見つけて、価値にして、仕組みにする。' },
+  { start:29.4, end:37.8, html:'直営業から、開発まで一本の線で。' },
+  { start:38.3, end:42.0, html:'工藤が全部やるのを、やめる。' },
+  { start:42.2, end:46.8, html:'<em class="c4">他者が前へ進める場</em>を、つくる。' },
+  { start:47.3, end:53.8, html:'AIも、仲間も、制度も、手段として。' },
+  { start:54.3, end:56.3, html:'持ち場から、<em class="c3"><span class="en">crack</span>を更新する</em>。' },
+];
+
+/* =============================================================
+   ▼編集ポイント③ メンバーと役割（名前は小さく、役割を大きく）
+   from：工藤が手放す仕事のどれから受け取るか（BURDENS の id）
+   ============================================================= */
+const KUDO = { id:'kudo', color:'#22397A', hair:'a' };
+const TEAM = [
+  { id:'taichi', name:'太一',       role:'営業・教育', from:'adjust', color:'#F2842E', hair:'b' },
+  { id:'tomoko', name:'朋子',       role:'タスク管理', from:'task',   color:'#23B592', hair:'c' },
+  { id:'yutaka', name:'豊',         role:'収支管理',   from:'task',   color:'#5FCDB0', hair:'a' },
+  { id:'nanami', name:'七実',       role:'営業資料',   from:'doc',    color:'#2AA7DF', hair:'d' },
+  { id:'seto',   name:'瀬戸',       role:'実績発信',   from:'doc',    color:'#6EC3EA', hair:'b' },
+  { id:'jin',    name:'陣',         role:'技術・改善', from:'info',   color:'#4B64A8', hair:'a' },
+  { id:'expert', name:'外部専門家', role:'制度確認',   from:'info',   color:'#7A869C', hair:'e' },
+];
+/* 工藤が抱えている仕事（S6で手放すカード）。x,y は手放した後に並ぶ位置 */
+const BURDENS = [
+  { id:'adjust', label:'調整',     icon:'i-sync',  x: 600, y:190 },
+  { id:'task',   label:'タスク',   icon:'i-task',  x: 840, y:190 },
+  { id:'doc',    label:'資料',     icon:'i-doc',   x:1080, y:190 },
+  { id:'info',   label:'情報収集', icon:'i-globe', x:1320, y:190 },
+];
+/* S1で積み上がる案件カード */
+const CASES = ['A社','B社','紹介','C校','D社','紹介','E社','F社'];
+
+/* =============================================================
+   1. 補助関数（イージング・補間）
+   ============================================================= */
+const $ = s => document.querySelector(s);
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, p) => a + (b - a) * p;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const bell = (t, a, b) => { const p = prog(t, a, b); return Math.sin(p * Math.PI); };
+const E = {
+  lin:  p => p,
+  in:   p => p * p * p,
+  out:  p => 1 - Math.pow(1 - p, 3),
+  io:   p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2,
+  sine: p => -(Math.cos(Math.PI * p) - 1) / 2,
+  back: p => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); },
+};
+const hex2rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mixColor = (h1, h2, p) => { const a = hex2rgb(h1), b = hex2rgb(h2); return `rgb(${a.map((v, i) => Math.round(lerp(v, b[i], p))).join(',')})`; };
+
+/* =============================================================
+   2. 人物（少しデフォルメした2D人物）
+   ============================================================= */
+const HAIR = {
+  a: { front:'<path d="M33 52 C31 32 44 21 60 21 C77 21 90 32 87 52 C84 43 76 37 66 36 C56 35 44 38 33 52 Z"/>' },
+  b: { front:'<path d="M33 54 C30 31 44 20 61 20 C79 20 91 33 87 54 C85 44 79 38 72 36 C64 44 48 45 36 44 C35 47 34 50 33 54 Z"/>' },
+  c: { back:'<path d="M31 90 C24 62 28 26 60 23 C92 26 96 62 89 90 Z"/>',
+       front:'<path d="M34 49 C36 31 48 23 60 23 C74 23 85 31 86 49 C79 41 69 37 60 38 C50 37 41 41 34 49 Z"/>' },
+  d: { front:'<circle cx="60" cy="19" r="10"/><path d="M33 52 C31 32 44 23 60 23 C77 23 90 32 87 52 C82 42 72 37 60 37 C48 37 38 42 33 52 Z"/>' },
+  e: { front:'<path d="M33 50 C33 33 45 24 60 24 C75 24 87 33 87 50 C84 44 80 41 76 40 C66 41 54 41 44 40 C40 41 36 44 33 50 Z"/>',
+       extra:'<path d="M44 55 H56 M64 55 H76 M56 55 C58 53 62 53 64 55" fill="none" stroke="#2E3442" stroke-width="2.4" stroke-linecap="round"/>' },
+};
+function personSVG(color, hair = 'a') {
+  const h = HAIR[hair] || HAIR.a;
+  return `<div class="sq"><svg viewBox="0 0 120 150" aria-hidden="true">
+    <g fill="#2E3442">${h.back || ''}</g>
+    <rect x="53" y="70" width="14" height="22" rx="6" fill="#E8C3AC"/>
+    <path d="M14 150 C14 106 34 88 60 88 C86 88 106 106 106 150 Z" fill="${color}"/>
+    <path d="M49 89 L60 101 L71 89" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity=".75"/>
+    <circle cx="60" cy="52" r="27" fill="#F2D2BD"/>
+    <g fill="#2E3442">${h.front}</g>${h.extra || ''}
+  </svg></div>`;
+}
+
+/* =============================================================
+   3. タイムラインエンジン
+   T(要素, [[シーン内の秒, {x,y,s,sx,sy,r,o,d,w,h}, イージング], ...])
+   ・x,y：ステージ上の中心座標(px)。省略時は data-x / data-y
+   ・s：拡大率 / r：回転(deg) / o：不透明度 / d：線の描画率(0〜1)
+   ・同じ要素に複数シーンからキーを足してもOK（時刻順に合成）
+   U(関数)：毎フレーム呼ばれる特殊処理（粒子・軌道・ゲージなど）
+   ============================================================= */
+const TRACKS = new Map();
+const UPDATERS = [];
+let OFFSET = 0;              // 登録中シーンの開始秒
+function modeOf(el) {
+  if (el.dataset.mode) return el.dataset.mode;
+  if (el instanceof SVGElement) return el.classList.contains('ln') ? 'line' : 'g';
+  return el.classList.contains('grp') ? 'g' : 'c';
+}
+function T(el, keys) {
+  if (typeof el === 'string') el = $(el);
+  if (!el) { console.warn('[timeline] 要素が見つかりません', keys); return; }
+  let tr = TRACKS.get(el);
+  if (!tr) { tr = { el, mode: modeOf(el), keys: [] }; TRACKS.set(el, tr); }
+  for (const k of keys) tr.keys.push({ t: k[0] + OFFSET, p: k[1], e: E[k[2] || 'io'] });
+}
+function U(fn) { UPDATERS.push(fn); }
+
+function prepareTracks() {
+  for (const tr of TRACKS.values()) {
+    const el = tr.el;
+    tr.keys.sort((a, b) => a.t - b.t);
+    const base = { x: 0, y: 0, s: 1, sx: 1, sy: 1, r: 0, o: 1, d: 0 };
+    if (tr.mode === 'c') { base.x = +el.dataset.x || 0; base.y = +el.dataset.y || 0; }
+    const usesW = tr.keys.some(k => 'w' in k.p), usesH = tr.keys.some(k => 'h' in k.p);
+    if (usesW) base.w = parseFloat(el.style.width) || el.offsetWidth;
+    if (usesH) base.h = parseFloat(el.style.height) || el.offsetHeight;
+    let prev = base;
+    for (const k of tr.keys) { k.v = Object.assign({}, prev, k.p); prev = k.v; }
+  }
+}
+function evalTrack(tr, t) {
+  const ks = tr.keys, n = ks.length;
+  if (t <= ks[0].t) return ks[0].v;
+  if (t >= ks[n - 1].t) return ks[n - 1].v;
+  let i = 0;
+  while (t >= ks[i + 1].t) i++;
+  const a = ks[i], b = ks[i + 1];
+  const p = b.e((t - a.t) / (b.t - a.t));
+  const out = {};
+  for (const k in b.v) out[k] = lerp(a.v[k], b.v[k], p);
+  return out;
+}
+function applyTrack(tr, v) {
+  const st = tr.el.style;
+  if (tr.mode === 'line') {
+    st.strokeDashoffset = (1 - v.d).toFixed(4);
+    st.opacity = v.d <= 0.002 ? 0 : v.o;
+    return;
+  }
+  const sc = `scale(${(v.s * v.sx).toFixed(4)},${(v.s * v.sy).toFixed(4)})`;
+  st.transform = tr.mode === 'c'
+    ? `translate(${v.x.toFixed(2)}px,${v.y.toFixed(2)}px) translate(-50%,-50%) rotate(${v.r.toFixed(2)}deg) ${sc}`
+    : `translate(${v.x.toFixed(2)}px,${v.y.toFixed(2)}px) rotate(${v.r.toFixed(2)}deg) ${sc}`;
+  st.opacity = v.o.toFixed(3);
+  st.visibility = v.o <= 0.002 ? 'hidden' : '';
+  if (v.w !== undefined) st.width = v.w.toFixed(1) + 'px';
+  if (v.h !== undefined) st.height = v.h.toFixed(1) + 'px';
+}
+/* 中心座標で直接配置する（U() の中で使う） */
+function place(el, x, y, s = 1, o = 1, r = 0) {
+  el.style.transform = `translate(${x.toFixed(2)}px,${y.toFixed(2)}px) translate(-50%,-50%) rotate(${r.toFixed(2)}deg) scale(${s.toFixed(4)})`;
+  el.style.opacity = o.toFixed(3);
+  el.style.visibility = o <= 0.002 ? 'hidden' : '';
+}
+
+/* =============================================================
+   4. DOM生成（人物・カードなど繰り返し要素）
+   ============================================================= */
+function buildDOM() {
+  document.querySelectorAll('[data-person="kudo"]').forEach(el => { el.innerHTML = personSVG(KUDO.color, KUDO.hair); });
+
+  // S1：案件カード
+  const pile = $('#s1-pile');
+  CASES.forEach((c, i) => pile.insertAdjacentHTML('beforeend',
+    `<div class="a case-card" id="s1-case-${i}"><small>${c}</small>研修案件</div>`));
+
+  // S2：関係・知見の粒
+  const pg = $('#s2-particles');
+  for (let i = 0; i < 18; i++) pg.insertAdjacentHTML('beforeend', `<circle class="s2-dot" r="8" cx="0" cy="400" fill="#2AA7DF"/>`);
+
+  // S3：波紋
+  const rg = $('#s3-ripples');
+  for (let i = 0; i < 3; i++) rg.insertAdjacentHTML('beforeend', `<circle class="s3-ripple" cx="960" cy="530" r="100" opacity="0"/>`);
+
+  // S6：工藤が抱える仕事カード
+  const s6pile = $('#s6-pile');
+  BURDENS.forEach(b => s6pile.insertAdjacentHTML('beforeend',
+    `<div class="a cat-card" id="s6-cat-${b.id}"><svg class="icon"><use href="#${b.icon}"/></svg>${b.label}</div>`));
+
+  // S6：メンバー・名前・役割カード・senから上がる粒
+  const mw = $('#s6-members');
+  TEAM.forEach((m, i) => {
+    m.x = 240 + i * 240;
+    mw.insertAdjacentHTML('beforeend', `
+      <div class="a land-ring" id="s6-ring-${m.id}" style="--c:${m.color}"></div>
+      <div class="a person sm member" id="s6-m-${m.id}">${personSVG(m.color, m.hair)}</div>
+      <div class="a name-tag" id="s6-n-${m.id}">${m.name}</div>
+      <div class="a role-card" id="s6-r-${m.id}" style="--c:${m.color}"><div class="role">${m.role}</div></div>
+      <div class="a sen-pulse" id="s6-p-${m.id}"></div>`);
+  });
+
+  // S8：チーム（工藤は一歩うしろ）
+  const tg = $('#s8-team');
+  [KUDO, ...TEAM].forEach((m, i) => tg.insertAdjacentHTML('beforeend',
+    `<div class="a person sm s8-p" id="s8-p-${m.id}">${personSVG(m.color, m.hair)}</div>`));
+}
+
+/* =============================================================
+   5. シーンごとの動き（秒はシーン内の秒）
+   ============================================================= */
+const BUILD = {};
+
+/* ---------- SCENE 1（0–6秒）現状 ---------- */
+BUILD['scene-1'] = () => {
+  T('#s1-kudo', [[0, { o:0, s:.86 }], [.6, { o:1, s:1 }, 'back']]);
+  T('#s1-kudo-name', [[.3, { o:0 }], [.7, { o:1 }]]);
+  // 研修会場・講師・資料・顧客のアイコン
+  [['#s1-venue', .35], ['#s1-teacher', .5], ['#s1-doc', .65], ['#s1-client', .8]].forEach(([id, t]) => {
+    T(id, [[t, { o:0, s:.6 }], [t + .45, { o:1, s:1 }, 'back'], [5.4, { o:1, s:1 }], [5.9, { o:0, s:.85 }, 'in']]);
+  });
+  [['#s1-ln-venue', .6], ['#s1-ln-teacher', .75], ['#s1-ln-doc', .9], ['#s1-ln-client', 1.05]].forEach(([id, t]) => {
+    T(id, [[t, { d:0 }], [t + .5, { d:1 }], [5.4, { d:1, o:1 }], [5.8, { o:0 }]]);
+  });
+  // 順調のチェック（研修会場・講師・顧客）
+  [['#s1-ok-venue', 1.1], ['#s1-ok-teacher', 1.25], ['#s1-ok-client', 1.4]].forEach(([id, t]) => {
+    T(id, [[t, { o:0, s:.3 }], [t + .35, { o:1, s:1 }, 'back']]);
+  });
+  // 案件カードが次々と工藤の上に積み上がる（SE：カッ）
+  const from = [[-160, 300], [2080, 360], [-160, 520], [2080, 250], [-160, 420], [2080, 560], [-160, 230], [2080, 460]];
+  const jx = [0, -10, 8, -6, 12, -4, 6, -12], jr = [-2, 3, -3, 2, -4, 3, -2, 4];
+  CASES.forEach((c, i) => {
+    const tl = 1.7 + .46 * i;
+    T(`#s1-case-${i}`, [
+      [tl - .55, { x: from[i][0], y: from[i][1], o:0, r: from[i][0] < 0 ? -24 : 24 }],
+      [tl - .45, { o:1 }, 'lin'],
+      [tl, { x: 960 + jx[i], y: 564 - 40 * i, r: jr[i] }, 'out'],
+    ]);
+  });
+  // 積み上がるほど工藤が沈む（重さの表現）
+  const kudoSq = $('#s1-kudo .sq'), pileEl = $('#s1-pile');
+  U(t => {
+    if (t > 7.2) return;
+    let n = 0, last = -9;
+    CASES.forEach((c, i) => { const tl = 1.7 + .46 * i; if (t >= tl) { n++; last = tl; } });
+    const bounce = Math.exp(-(t - last) * 9) * .045 * (n > 0);
+    const sy = 1 - n * .011 - bounce;
+    kudoSq.style.transform = `scale(${(1 + (1 - sy) * .5).toFixed(4)},${sy.toFixed(4)})`;
+    pileEl.style.transform = `translateY(${(157 * (1 - sy)).toFixed(2)}px)`;
+  });
+  // 塊ごと右上の「crack」へ縮んでS2へ
+  T('#s1-cluster', [[5.5, { x:0, y:0, s:1, o:1 }], [6.35, { x:600, y:-260, s:.34, o:0 }, 'io']]);
+};
+
+/* ---------- SCENE 2（6–14秒）課題 ---------- */
+BUILD['scene-2'] = () => {
+  T('#s2-client',  [[.05, { o:0, s:.8 }], [.5, { o:1, s:1 }, 'back']]);
+  T('#s2-agency1', [[.2,  { o:0, s:.8 }], [.65, { o:1, s:1 }, 'back']]);
+  T('#s2-agency2', [[.35, { o:0, s:.8 }], [.8, { o:1, s:1 }, 'back']]);
+  T('#s2-crack',   [[.2,  { o:0, s:.6 }], [.65, { o:1, s:1 }, 'back']]);
+  // 矢印が進むほど細くなる（SE：短いクリック）
+  [['1', .75], ['2', 1.45], ['3', 2.15]].forEach(([n, t]) => {
+    T(`#s2-ar${n}`, [[t, { d:0 }], [t + .6, { d:1 }]]);
+    T(`#s2-hd${n}`, [[t + .5, { o:0, s:.3 }], [t + .75, { o:1, s:1 }, 'back']]);
+    T(`#s2-l${n}`,  [[t + .15, { o:0, y:370 }], [t + .55, { o:1, y:352 }, 'out']]);
+  });
+  T('#s2-legend', [[3.0, { o:0 }], [3.4, { o:1 }]]);
+  // バラバラに浮くサービス
+  T('#s2-svc-h', [[3.4, { o:0, y:620 }], [3.8, { o:1, y:606 }, 'out']]);
+  [['#s2-svc-train', 3.45], ['#s2-svc-intro', 3.6], ['#s2-svc-dev', 3.75]].forEach(([id, t]) => {
+    T(id, [[t, { o:0, s:.7 }], [t + .45, { o:1, s:1 }, 'back']]);
+  });
+  T('#s2-chart', [[3.9, { o:0, y:760 }], [4.4, { o:1, y:728 }, 'out']]);
+  // シーン末：画面をリセット（中心へ吸い込まれる）
+  T('#s2-all', [[7.35, { s:1, o:1 }], [8.1, { s:.12, o:0 }, 'in']]);
+
+  const S = 6;
+  const dots = [...document.querySelectorAll('.s2-dot')];
+  const life = [1, .3, .7, .3, .3, .7, 1, .3, .7, .3, .3, .7, 1, .3, .7, .3, .7, .3];
+  const bobs = [['#s2-svc-train', 0], ['#s2-svc-intro', 2.1], ['#s2-svc-dev', 4.2]].map(([id, ph]) => [$(id + ' .bob'), ph]);
+  const barC = $('#s2-bar-cases'), barA = $('#s2-bar-assets');
+  U(t => {
+    if (t < S - 1.2 || t > 15.2) return;
+    // 関係・知見の粒：代理店を通るたびに減り、crackに届く頃には薄い
+    const on = prog(t, S + 2.9, S + 3.4);
+    dots.forEach((c, i) => {
+      const u = ((t - S) * .19 + i / dots.length) % 1;
+      const alive = u < life[i];
+      c.setAttribute('cx', (lerp(412, 1450, u)).toFixed(1));
+      c.setAttribute('r', lerp(9, 3.5, u).toFixed(2));
+      c.setAttribute('opacity', alive ? (on * lerp(.95, .3, u)).toFixed(3) : 0);
+    });
+    // サービスは同期せず、ばらばらに揺れる
+    bobs.forEach(([el, ph]) => {
+      el.style.transform = `translateY(${(Math.sin(t * 1.7 + ph) * 10).toFixed(2)}px) rotate(${(Math.sin(t * 1.3 + ph) * 3).toFixed(2)}deg)`;
+    });
+    // 案件数は伸びる、顧客資産はほぼ伸びない
+    const g = E.io(prog(t, S + 4.4, S + 7));
+    barC.style.height = lerp(24, 170, g).toFixed(1) + 'px';
+    barA.style.height = lerp(16, 34, g).toFixed(1) + 'px';
+  });
+};
+
+/* ---------- SCENE 3（14–21秒）転換 ---------- */
+BUILD['scene-3'] = () => {
+  T('#s3-core', [[.1, { o:0, s:.2 }], [.65, { o:1, s:1 }, 'back'], [4.4, { s:1 }], [4.8, { s:1.06 }], [5.3, { s:1 }]]);
+  T('#s3-orbit', [[.9, { d:0 }], [4.1, { d:1 }, 'lin']]);
+  // 円が広がる順：AI研修→人材育成→定着支援→AI導入→開発（SE：シュッ）
+  for (let k = 0; k < 5; k++) {
+    const t = .9 + 3.2 * k / 5;
+    T(`#s3-n${k + 1}`, [[t - .05, { o:0, s:.4 }], [t + .45, { o:1, s:1 }, 'back']]);
+  }
+  // シーン末：ズームしながら次へ
+  T('#s3-all', [[6.45, { s:1, o:1 }], [7.2, { s:1.28, o:0 }, 'in']]);
+
+  const S = 14, rings = [...document.querySelectorAll('.s3-ripple')];
+  U(t => {
+    if (t < S - 1.2 || t > 22.2) return;
+    rings.forEach((c, k) => {
+      const lt = t - (S + .3) - k;
+      if (lt < 0) { c.setAttribute('opacity', 0); return; }
+      const tt = lt % 3, p = tt / 2.4;
+      c.setAttribute('r', (110 + 440 * E.out(clamp(p))).toFixed(1));
+      c.setAttribute('opacity', p < 1 ? (.5 * (1 - p)).toFixed(3) : 0);
+    });
+  });
+};
+
+/* ---------- SCENE 4（21–29秒）行動規範 ---------- */
+BUILD['scene-4'] = () => {
+  const out = (id, t) => T(id, [[t, { o:1 }], [t + .6, { o:0 }, 'in']]);
+  T('#s4-n1', [[.2, { o:0, s:.5 }], [.7, { o:1, s:1 }, 'back'], [6.3, { o:1 }], [6.8, { o:.4 }], [7.5, { o:.4, y:410 }], [8.2, { o:0, y:340 }, 'in']]);
+  T('#s4-s1', [[.5, { o:0, y:604 }], [.9, { o:1, y:590 }, 'out'], [6.3, { o:1 }], [6.8, { o:.4 }], [7.5, { o:.4 }], [8, { o:0 }]]);
+  T('#s4-ar12', [[.9, { d:0 }], [1.45, { d:1 }], [7.5, { o:1 }], [8, { o:0 }]]);
+  T('#s4-hd12', [[1.35, { o:0, s:.3 }], [1.6, { o:1, s:1 }, 'back'], [7.5, { o:1 }], [8, { o:0 }]]);
+  T('#s4-al12', [[1.0, { o:0 }], [1.4, { o:1 }]]); out('#s4-al12', 7.5);
+  T('#s4-n2', [[1.5, { o:0, s:.5 }], [2.0, { o:1, s:1 }, 'back'], [6.3, { o:1 }], [6.8, { o:.4 }], [7.55, { o:.4, y:410 }], [8.25, { o:0, y:340 }, 'in']]);
+  T('#s4-s2', [[1.8, { o:0, y:604 }], [2.2, { o:1, y:590 }, 'out'], [6.3, { o:1 }], [6.8, { o:.4 }], [7.5, { o:.4 }], [8, { o:0 }]]);
+  T('#s4-ar23', [[2.2, { d:0 }], [2.75, { d:1 }], [7.5, { o:1 }], [8, { o:0 }]]);
+  T('#s4-hd23', [[2.65, { o:0, s:.3 }], [2.9, { o:1, s:1 }, 'back'], [7.5, { o:1 }], [8, { o:0 }]]);
+  T('#s4-al23', [[2.3, { o:0 }], [2.7, { o:1 }]]); out('#s4-al23', 7.5);
+  // ③は今回の主軸：ひと呼吸おいて強調
+  T('#s4-n3', [[2.8, { o:0, s:.5 }], [3.3, { o:1, s:1 }, 'back'], [6.5, { s:1 }], [6.85, { s:1.07 }], [7.2, { s:1 }], [7.6, { o:1, y:410 }], [8.3, { o:0, y:340 }, 'in']]);
+  T('#s4-s3', [[3.1, { o:0, y:604 }], [3.5, { o:1, y:590 }, 'out']]); out('#s4-s3', 7.5);
+  // ④は土台として下に伸びる（#floor はグローバル要素。下の BUILD['floor'] 参照）
+  [['1', 5.3], ['2', 5.45], ['3', 5.6]].forEach(([n, t]) => {
+    T(`#s4-up${n}`, [[t, { d:0 }], [t + .4, { d:1 }], [7.4, { o:1 }], [7.9, { o:0 }]]);
+    T(`#s4-uh${n}`, [[t + .3, { o:0, s:.3 }], [t + .55, { o:1, s:1 }, 'back'], [7.4, { o:1 }], [7.9, { o:0 }]]);
+  });
+  T('#s4-tag3', [[6.3, { o:0, s:.5 }], [6.7, { o:1, s:1 }, 'back']]); out('#s4-tag3', 7.5);
+  T('#s4-tag4', [[6.45, { o:0, s:.5 }], [6.85, { o:1, s:1 }, 'back']]); out('#s4-tag4', 7.4);
+};
+
+/* ---------- SCENE 5（29–38秒）一気通貫 ---------- */
+BUILD['scene-5'] = () => {
+  // まず「これまでの事業＝研修」だけが出る
+  T('#s5-p3', [[.2, { o:0, s:.5 }], [.7, { o:1, s:1 }, 'back'], [2.6, { s:1 }], [2.85, { s:1.12 }], [3.25, { s:1 }]]);
+  T('#s5-bracket', [[.4, { o:0, w:0 }], [.95, { o:1, w:250 }, 'out'], [6.3, { x:818, w:250 }], [7.2, { x:960, w:1560 }, 'io']]);
+  T('#s5-br-now', [[.5, { o:0, y:328 }], [.95, { o:1, y:314 }, 'out'], [6.2, { o:1 }], [6.5, { o:0 }]]);
+  T('#s5-br-next', [[6.8, { o:0, s:.9 }], [7.3, { o:1, s:1 }, 'back']]);
+  // 一本の線：ノードごとにためを作りながら伸びる（SE：シュッ）
+  const xs = [250, 534, 818, 1102, 1386, 1670], tx = [1.1, 1.9, 2.7, 3.5, 4.3, 5.1];
+  T('#s5-line', [[.85, { d:0 }], ...xs.map((x, k) => [tx[k], { d:(x - 180) / 1560 }, k ? 'io' : 'out']), [5.35, { d:1 }, 'out']]);
+  [1, 2, 4, 5, 6].forEach(n => {
+    const t = tx[n - 1];
+    T(`#s5-p${n}`, [[t - .1, { o:0, s:.4 }], [t + .35, { o:1, s:1 }, 'back']]);
+  });
+  // 内製化から次の部署・次の企業へ戻るループ
+  T('#s5-loop', [[5.4, { d:0 }], [6.4, { d:1 }]]);
+  T('#s5-loop-hd', [[6.3, { o:0, s:.3 }], [6.55, { o:1, s:1 }, 'back']]);
+  T('#s5-loop-lbl', [[5.9, { o:0 }], [6.3, { o:1 }]]);
+  // シーン末：線ごと畳んで次へ
+  T('#s5-all', [[8.4, { sy:1, o:1 }], [9.15, { sy:.04, o:0 }, 'in']]);
+};
+
+/* ---------- SCENE 6（38–47秒）★役割移管（最も印象に残すシーン） ---------- */
+BUILD['scene-6'] = () => {
+  const S = 38;
+  TEAM.forEach((m, i) => { m.t0 = S + 2.5 + i * .42; m.t1 = m.t0 + .95; });
+
+  T('#s6-kudo', [[0, { o:0, y:430 }], [.5, { o:1, y:400 }, 'out'], [6.2, { s:1, y:400 }], [7.0, { s:.92, y:392 }], [8.4, { o:1 }], [9.0, { o:0, y:372 }]]);
+  T('#s6-kudo-name', [[.3, { o:0 }], [.7, { o:1 }], [2.2, { o:1 }], [2.5, { o:0 }]]);
+
+  // 仕事カードが工藤の頭上に落ちてくる → 1.8秒から手放して上段に並ぶ（SE：カッ）
+  const pileY = [304, 258, 212, 166], tilt = [-2, 2, -1, 3];
+  BURDENS.forEach((b, i) => {
+    const t = .35 + .15 * i;
+    const kids = TEAM.filter(m => m.from === b.id);
+    const lastT0 = Math.max(...kids.map(m => m.t0 - S));
+    const keys = [
+      [t - .3, { x:960, y:pileY[i] - 240, o:0, r:i % 2 ? 8 : -8 }],
+      [t, { y:pileY[i], o:1, r:tilt[i] }, 'in'],
+      [1.8 + i * .06, { x:960, y:pileY[i], r:tilt[i] }],
+      [2.4 + i * .06, { x:b.x, y:b.y, r:0 }, 'io'],
+    ];
+    kids.forEach(m => { const t0 = m.t0 - S; keys.push([t0, { s:1 }], [t0 + .12, { s:1.1 }, 'out'], [t0 + .35, { s:1 }]); });
+    keys.push([lastT0 + .4, { o:1, s:1 }], [lastT0 + .7, { o:0, s:.8 }, 'in']);
+    T(`#s6-cat-${b.id}`, keys);
+  });
+
+  T('#s6-gauge', [[.9, { o:0, x:1262 }], [1.3, { o:1, x:1236 }, 'out'], [8.4, { o:1 }], [9.0, { o:0 }]]);
+  T('#s6-sen', [[1.9, { o:0 }], [2.5, { o:1 }], [8.4, { o:1 }], [9.0, { o:0 }]]);
+  T('#s6-link-l', [[6.1, { d:0 }], [7.1, { d:1 }], [8.4, { o:1 }], [9.0, { o:0 }]]);
+  T('#s6-link-r', [[6.1, { d:0 }], [7.1, { d:1 }], [8.4, { o:1 }], [9.0, { o:0 }]]);
+
+  const kudoSq = $('#s6-kudo .sq'), pileEl = $('#s6-pile');
+  const gFill = $('#s6-gauge-fill'), gVal = $('#s6-gauge-val');
+  const chips = [['#s6-sen-c1', 'adjust'], ['#s6-sen-c3', 'task'], ['#s6-sen-c2', 'doc'], ['#s6-sen-c4', 'info']]
+    .map(([id, from]) => ({ el:$(id), t:TEAM.find(m => m.from === from).t0 }));
+  const members = TEAM.map(m => ({
+    m, el:$(`#s6-m-${m.id}`), sq:$(`#s6-m-${m.id} .sq`), nm:$(`#s6-n-${m.id}`),
+    card:$(`#s6-r-${m.id}`), pulse:$(`#s6-p-${m.id}`), ring:$(`#s6-ring-${m.id}`), src:BURDENS.find(b => b.id === m.from),
+  }));
+
+  U(t => {
+    if (t < S - 1.2 || t > S + 10.2) return;
+    // 工藤：抱えるほど沈み、手放すと跳ね上がる（重い→軽くなる）
+    const landed = [.35, .5, .65, .8].filter(x => t - S >= x).length;
+    const lastLand = S + [.35, .5, .65, .8][Math.max(0, landed - 1)];
+    let sy = 1 - landed * .03 - (landed ? Math.exp(-(t - lastLand) * 9) * .04 : 0);
+    const rel = prog(t, S + 1.9, S + 2.55);
+    if (rel > 0) sy = lerp(sy, 1, E.back(rel));
+    kudoSq.style.transform = `scale(${(1 + (1 - sy) * .5).toFixed(4)},${sy.toFixed(4)})`;
+    pileEl.style.transform = `translateY(${(157 * (1 - sy)).toFixed(2)}px)`;
+
+    // 工藤の負荷ゲージ
+    let v = 100;
+    TEAM.forEach(m => { v -= 10 * E.out(prog(t, m.t1 - .15, m.t1 + .25)); });
+    gFill.style.width = v.toFixed(1) + '%';
+    const lastT1 = TEAM[TEAM.length - 1].t1;
+    gFill.style.background = mixColor('#F2842E', '#23B592', E.io(prog(t, lastT1 - .1, lastT1 + .35)));
+    gVal.textContent = Math.round(v) + '%';
+
+    // sen：裏側で「整理・初稿・タスク化・ナレッジ検索」がそっと光る
+    chips.forEach(c => {
+      const a = bell(t, c.t - .1, c.t + 1.1);
+      c.el.style.background = `rgba(42,167,223,${(.16 * a).toFixed(3)})`;
+      c.el.style.color = a > .35 ? 'var(--sky-ink)' : '';
+    });
+
+    const fadeAll = 1 - prog(t, S + 8.4, S + 9.0);
+    const fwd = E.io(prog(t, S + 6.6, S + 7.6));          // 最後にチームが一歩前へ
+    members.forEach(({ m, el, sq, nm, card, pulse, ring, src }, i) => {
+      const pin = E.out(prog(t, S + .3 + i * .05, S + .9 + i * .05));
+      const lit = E.out(prog(t, m.t1 - .05, m.t1 + .35));  // 役割を受け取ると色がつく
+      place(el, m.x, 680 + (1 - pin) * 24 - fwd * 10, 1 + fwd * .04, pin * lerp(.42, 1, lit) * fadeAll);
+      el.style.filter = `grayscale(${(1 - lit).toFixed(3)})`;
+      sq.style.transform = `translateY(${(-20 * bell(t, m.t1, m.t1 + .42)).toFixed(2)}px)`;
+      place(nm, m.x, 772 - fwd * 10, 1, pin * lerp(.55, 1, lit) * fadeAll);
+
+      // 役割カード：工藤の仕事カードから弧を描いて本人へ（SE：ポン）
+      if (t < m.t0) { place(card, src.x, src.y, .7, 0); }
+      else {
+        const p = prog(t, m.t0, m.t1), e = E.io(p);
+        const cx = m.x, cy = src.y - 20, dx = m.x, dy = 556;
+        const x = (1 - e) * (1 - e) * src.x + 2 * (1 - e) * e * cx + e * e * dx;
+        const y = (1 - e) * (1 - e) * src.y + 2 * (1 - e) * e * cy + e * e * dy;
+        const land = t >= m.t1 ? .12 * Math.exp(-(t - m.t1) * 8) : 0;
+        const r = Math.sin(p * Math.PI) * (dx < src.x ? -9 : 9);
+        place(card, x, y - fwd * 10, lerp(.7, 1, e) + land, clamp((t - m.t0) / .12) * fadeAll, r);
+      }
+      // 受け取った瞬間のリング
+      const rp = prog(t, m.t1 - .05, m.t1 + .6);
+      place(ring, m.x, 690, lerp(.4, 1.4, E.out(rp)), rp > 0 && rp < 1 ? (1 - rp) * .75 * fadeAll : 0);
+      // senから本人の足元へ上がる小さな粒
+      const pp = prog(t, m.t1 - .45, m.t1 + .05);
+      place(pulse, m.x, lerp(856, 770, E.out(pp)), 1, (pp > 0 && pp < 1 ? Math.sin(pp * Math.PI) * .9 : 0) * fadeAll);
+    });
+  });
+};
+
+/* ---------- SCENE 7（47–54秒）手段と目的 ---------- */
+const S7_CURVES = {
+  ai:     [[520, 318], [660, 330], [810, 440], [870, 552]],
+  people: [[960, 386], [960, 430], [960, 472], [960, 516]],
+  gov:    [[1400, 318], [1260, 330], [1110, 440], [1050, 552]],
+};
+const bez = (c, t) => {
+  const u = 1 - t, a = u * u * u, b = 3 * u * u * t, d = 3 * u * t * t, e = t * t * t;
+  return [a * c[0][0] + b * c[1][0] + d * c[2][0] + e * c[3][0], a * c[0][1] + b * c[1][1] + d * c[2][1] + e * c[3][1]];
+};
+BUILD['scene-7'] = () => {
+  const dimTo = (o, extra = []) => [[4.0, { o:1 }], [4.5, { o }], [6.4, { o }], [7.0, { o:0 }], ...extra];
+  T('#s7-goal', [[.1, { o:0, s:.6 }], [.6, { o:1, s:1 }, 'back'],
+    [3.35, { s:1 }], [3.55, { s:1.08 }], [3.8, { s:1.04 }], [4.05, { s:1.1 }], [4.45, { s:1 }],
+    [6.4, { o:1, s:1 }], [7.0, { o:0, s:.9 }]]);
+  T('#s7-ai',     [[.4, { o:0, s:.5 }], [.85, { o:1, s:1 }, 'back'], ...dimTo(.45)]);
+  T('#s7-people', [[.6, { o:0, s:.5 }], [1.05, { o:1, s:1 }, 'back'], ...dimTo(.45)]);
+  T('#s7-gov',    [[.8, { o:0, s:.5 }], [1.25, { o:1, s:1 }, 'back'], ...dimTo(.45)]);
+  T('#s7-note',   [[2.0, { o:0, y:484 }], [2.4, { o:1, y:470 }, 'out'], ...dimTo(.6)]);
+  T('#s7-l-ai',     [[1.0, { d:0 }], [1.9, { d:1 }], ...dimTo(.4)]);
+  T('#s7-l-people', [[1.2, { d:0 }], [2.0, { d:1 }], ...dimTo(.4)]);
+  T('#s7-l-gov',    [[1.4, { d:0 }], [2.3, { d:1 }], ...dimTo(.4)]);
+  T('#s7-fwd',    [[4.1, { d:0 }], [4.9, { d:1 }, 'out'], [6.4, { o:1 }], [7.0, { o:0 }]]);
+  T('#s7-fwd-hd', [[4.75, { o:0, s:.3 }], [5.0, { o:1, s:1 }, 'back'], [6.4, { o:1 }], [7.0, { o:0 }]]);
+  T('#s7-fwd-lbl', [[4.4, { o:0, x:1290 }], [4.9, { o:1, x:1320 }, 'out'], [6.4, { o:1 }], [7.0, { o:0 }]]);
+
+  // AI・仲間・制度のトークンが線に沿って顧客課題へ合流する
+  const S = 47;
+  const tk = [['ai', 2.4, 3.4], ['people', 2.6, 3.5], ['gov', 2.8, 3.8]].map(([k, a, b]) => ({ el:$(`#s7-tk-${k}`), c:S7_CURVES[k], t0:S + a, t1:S + b }));
+  U(t => {
+    if (t < S - 1.2 || t > S + 8.2) return;
+    tk.forEach(k => {
+      if (t < k.t0) { place(k.el, k.c[0][0], k.c[0][1], .6, 0); return; }
+      let [x, y] = bez(k.c, E.io(prog(t, k.t0, k.t1)));
+      const sink = E.in(prog(t, k.t1, k.t1 + .3));          // 顧客課題の中心へ吸い込まれる
+      x = lerp(x, 960, sink); y = lerp(y, 640, sink);
+      place(k.el, x, y, lerp(1, .25, sink) * lerp(.6, 1, E.out(prog(t, k.t0, k.t0 + .25))), (1 - sink) * clamp((t - k.t0) / .15));
+    });
+  });
+};
+
+/* ---------- SCENE 8（54–60秒）これから ---------- */
+BUILD['scene-8'] = () => {
+  const S = 54;
+  const ppl = [KUDO, ...TEAM].map((m, i) => ({
+    el:$(`#s8-p-${m.id}`), sq:$(`#s8-p-${m.id} .sq`), i,
+    x: i === 0 ? 540 : 680 + (i - 1) * 118,          // 工藤は少し引いて、うしろから一緒に進む
+    y: i === 0 ? 654 : (i % 2 ? 640 : 652),
+  }));
+  U(t => {
+    if (t < S - 1.2 || t > S + 7.2) return;
+    const lt = t - S;
+    const walk = lerp(-50, 50, E.sine(prog(lt, 0, 2.7)));   // チーム全体が前へ進む
+    const fade = 1 - prog(lt, 2.3, 2.8);
+    ppl.forEach(({ el, sq, x, y, i }) => {
+      const pin = E.out(prog(lt, .05 + i * .06, .55 + i * .06));
+      const kudo = i === 0;
+      place(el, x + walk, y + (1 - pin) * 30, kudo ? .9 : 1, pin * fade * (kudo ? .85 : 1));
+      const step = Math.abs(Math.sin((lt * 2.4 + i * .37) * Math.PI));
+      sq.style.transform = `translateY(${(-step * 7).toFixed(2)}px)`;
+    });
+  });
+  T('#s8-concl', [[.4, { o:0 }], [.5, { o:1 }], [2.3, { o:1 }], [2.8, { o:0, y:334 }]]);
+  T('#s8-pill3', [[.5, { o:0, x:-40 }], [.95, { o:1, x:0 }, 'out']]);
+  T('#s8-times', [[.8, { o:0, s:.4 }], [1.1, { o:1, s:1 }, 'back']]);
+  T('#s8-pill4', [[1.0, { o:0, x:40 }], [1.45, { o:1, x:0 }, 'out']]);
+  // ロゴ＋ラストコピー（余白を残して終える）
+  T('#s8-logo', [[2.6, { o:0, s:.85 }], [3.2, { o:1, s:1 }, 'back']]);
+  T('#s8-copy1', [[0, { o:1 }]]);
+  T('#s8-c1a', [[3.1, { o:0, y:14 }], [3.5, { o:1, y:0 }, 'out']]);
+  T('#s8-c1b', [[3.6, { o:0, y:14 }], [4.0, { o:1, y:0 }, 'out']]);
+  T('#s8-copy2', [[4.2, { o:0, y:714 }], [4.7, { o:1, y:700 }, 'out']]);
+};
+
+/* ---------- 共通：④の床（秒は動画全体の秒） ---------- */
+BUILD['floor'] = () => {
+  T('#floor', [
+    [25.1, { x:960, y:745, w:124, h:124, o:0 }], [25.4, { o:1 }], [26.3, { w:1320 }, 'out'],   // S4：土台として伸びる
+    [28.6, { y:745, w:1320, h:124 }], [29.4, { y:842, w:1600, h:52 }, 'io'],                   // S5：足元の床へ
+    [37.9, { y:842, w:1600, h:52 }], [38.6, { y:820, w:1680, h:48 }, 'io'],                    // S6：チームが立つ床
+    [46.6, { o:1 }], [47.2, { o:0 }],
+    [53.9, { o:0, y:742, w:1500, h:44 }, 'lin'], [54.5, { o:1 }], [56.2, { o:1 }], [56.8, { o:0 }], // S8
+  ]);
+  T('#floor-big', [[25.6, { o:0 }], [26.2, { o:1 }], [28.6, { o:1 }], [28.95, { o:0 }]]);
+  T('#floor-small', [[29.0, { o:0 }], [29.4, { o:1 }]]);
+  // S6後半：④の場が灯る
+  T('#floor-glow', [[44.0, { o:0 }], [44.8, { o:1 }]]);
+  T('#floor-small-w', [[44.0, { o:0 }], [44.8, { o:1 }]]);
+};
+
+/* =============================================================
+   6. 共通フレーム（章ラベル・字幕）
+   ============================================================= */
+const cap = $('#caption'), hdrNo = $('#hdr-no'), hdrTitle = $('#hdr-title');
+const hdrChapter = $('#hdr-chapter'), hdrBrand = $('#hdr-brand');
+let capIdx = -2, hdrIdx = -1;
+function sceneIndexAt(t) {
+  const i = SCENES.findIndex(s => t >= s.start && t < s.end);
+  return i < 0 ? SCENES.length - 1 : i;
+}
+function updateCaption(t) {
+  const i = CAPTIONS.findIndex(c => t >= c.start && t < c.end);
+  if (i !== capIdx) { cap.innerHTML = i >= 0 ? CAPTIONS[i].html : ''; capIdx = i; }
+  if (i < 0) { cap.style.opacity = 0; return; }
+  const c = CAPTIONS[i];
+  const pin = E.out(prog(t, c.start, c.start + .35));
+  const o = Math.min(pin, 1 - prog(t, c.end - .25, c.end));
+  cap.style.opacity = o.toFixed(3);
+  cap.style.transform = `translate(960px,${(985 + (1 - pin) * 18).toFixed(2)}px) translate(-50%,-50%)`;
+}
+function updateHeader(t) {
+  const i = sceneIndexAt(t), sc = SCENES[i];
+  if (i !== hdrIdx) { hdrNo.textContent = sc.no; hdrTitle.textContent = sc.title; hdrIdx = i; }
+  const pin = E.out(prog(t, sc.start + .05, sc.start + .55));
+  const pout = i < SCENES.length - 1 ? prog(t, sc.end - .25, sc.end) : 0;
+  const whole = prog(t, 0, .4) * (1 - prog(t, 56.2, 56.7));
+  hdrChapter.style.opacity = (Math.min(pin, 1 - pout) * whole).toFixed(3);
+  hdrChapter.style.transform = `translateX(${((1 - pin) * -24).toFixed(2)}px)`;
+  hdrBrand.style.opacity = whole.toFixed(3);
+}
+
+/* =============================================================
+   7. 再生制御（requestAnimationFrame で時刻 → 画面を決める）
+   ============================================================= */
+let cur = 0, playing = false, t0 = 0, dirty = true;
+const params = new URLSearchParams(location.search);
+const EXPORT = params.has('export');
+
+function render(t) {
+  for (const sc of SCENES) {
+    const vis = t >= sc.start - 1.2 && t <= sc.end + 1.2;
+    if (sc.vis !== vis) { sc.el.style.visibility = vis ? 'visible' : 'hidden'; sc.vis = vis; }
+  }
+  for (const tr of TRACKS.values()) applyTrack(tr, evalTrack(tr, t));
+  for (const fn of UPDATERS) fn(t);
+  updateCaption(t);
+  updateHeader(t);
+  updateUI(t);
+}
+function frame(now) {
+  if (playing) {
+    cur = (now - t0) / 1000;
+    if (cur >= DURATION) { cur = DURATION; playing = false; onEnd(); }
+    dirty = true;
+  }
+  if (dirty) { render(cur); dirty = false; }
+  requestAnimationFrame(frame);
+}
+function play() { if (cur >= DURATION) cur = 0; t0 = performance.now() - cur * 1000; playing = true; dirty = true; }
+function pause() { playing = false; dirty = true; }
+function restart() { cur = 0; t0 = performance.now(); playing = true; dirty = true; }
+function seek(s) { cur = clamp(s, 0, DURATION); t0 = performance.now() - cur * 1000; dirty = true; }
+let endHook = null;
+function onEnd() { if (endHook) { const f = endHook; endHook = null; f(); } }
+
+/* 16:9を保ったまま画面に収める */
+const stage = $('#stage');
+function fit() {
+  const k = Math.min(innerWidth / 1920, innerHeight / 1080);
+  stage.style.transform = `translate(-50%,-50%) scale(${k})`;
+}
+
+/* =============================================================
+   8. 操作UI（再生／一時停止／最初から／タイムコード／録画）
+   ============================================================= */
+const btnPlay = $('#btn-play'), tc = $('#tc'), scrub = $('#scrub');
+const fmt = s => { const m = Math.floor(s / 60), r = s - m * 60; return `${String(m).padStart(2, '0')}:${r.toFixed(1).padStart(4, '0')}`; };
+let uiPlaying = null, uiScene = -1;
+function updateUI(t) {
+  tc.firstChild.nodeValue = `${fmt(t)} / ${fmt(DURATION)}`;
+  const i = sceneIndexAt(t);
+  if (i !== uiScene) { $('#tc-scene').textContent = `${SCENES[i].no} ${SCENES[i].title}`; uiScene = i; }
+  if (document.activeElement !== scrub) scrub.value = Math.round(t * 1000);
+  if (uiPlaying !== playing) { btnPlay.textContent = playing ? '❚❚ 一時停止' : '▶ 再生'; uiPlaying = playing; }
+}
+function toggleUI(force) { document.body.classList.toggle('hide-ui', force); }
+$('#btn-restart').onclick = restart;
+btnPlay.onclick = () => (playing ? pause() : play());
+$('#btn-hide').onclick = () => toggleUI(true);
+scrub.oninput = () => { const was = playing; seek(scrub.value / 1000); if (!was) pause(); };
+addEventListener('keydown', e => {
+  if (e.target === scrub && e.key.startsWith('Arrow')) return;
+  if (e.code === 'Space') { e.preventDefault(); playing ? pause() : play(); }
+  else if (e.key === 'r' || e.key === 'R') restart();
+  else if (e.key === 'h' || e.key === 'H') toggleUI();
+  else if (e.key === 'ArrowRight') seek(cur + (e.shiftKey ? 5 : 1));
+  else if (e.key === 'ArrowLeft') seek(cur - (e.shiftKey ? 5 : 1));
+});
+/* マウスを動かさないと2.5秒でUIが薄く消える（画面録画の邪魔をしない） */
+let idleTimer = 0;
+addEventListener('pointermove', () => {
+  document.body.classList.remove('idle');
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => { if (playing) document.body.classList.add('idle'); }, 2500);
+});
+
+/* このタブを録画して WebM で保存（Chrome / Edge。MediaRecorder＋タブ共有） */
+$('#btn-rec').onclick = async () => {
+  if (!navigator.mediaDevices?.getDisplayMedia || !window.MediaRecorder) {
+    alert('このブラウザでは録画できません。README の Playwright 書き出しを使ってください。'); return;
+  }
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getDisplayMedia({
+      video:{ frameRate:60 }, audio:false, preferCurrentTab:true, selfBrowserSurface:'include',
+    });
+  } catch (err) { return; }                                 // 共有をキャンセルした
+  const [track] = stream.getVideoTracks();
+  try {                                                     // 対応ブラウザではステージ部分だけに切り抜く
+    if (window.CropTarget && track.cropTo) await track.cropTo(await CropTarget.fromElement(stage));
+  } catch (err) { /* 切り抜き非対応ならタブ全体を録画 */ }
+  const mime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m));
+  const rec = new MediaRecorder(stream, { mimeType:mime, videoBitsPerSecond:16e6 });
+  const chunks = [];
+  rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  rec.onstop = () => {
+    stream.getTracks().forEach(tr => tr.stop());
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(chunks, { type:'video/webm' }));
+    a.download = 'crack_ai_update.webm';
+    a.click();
+    toggleUI(false);
+  };
+  toggleUI(true);
+  pause(); seek(0);
+  await new Promise(r => setTimeout(r, 800));               // 共有バーが落ち着くのを待つ
+  rec.start(250);
+  restart();
+  endHook = () => setTimeout(() => rec.stop(), 500);
+};
+
+/* =============================================================
+   9. 起動（フォント読み込み → 自動再生）
+   ============================================================= */
+async function loadFonts() {
+  if (!document.fonts?.load) return;
+  const text = stage.textContent + CAPTIONS.map(c => c.html.replace(/<[^>]+>/g, '')).join('') + TEAM.map(m => m.name + m.role).join('') + '0123456789%';
+  const jobs = ['400', '500', '700', '900'].map(w => document.fonts.load(`${w} 40px "Noto Sans JP"`, text));
+  jobs.push(document.fonts.load('600 40px Poppins', 'crack0123456789'), document.fonts.load('700 40px Poppins', 'crack'),
+            document.fonts.load('500 40px Poppins', '×'));
+  await Promise.race([Promise.all(jobs).then(() => document.fonts.ready), new Promise(r => setTimeout(r, 5000))]);
+}
+
+function init() {
+  buildDOM();
+  Object.entries(S7_CURVES).forEach(([k, c]) => {
+    $(`#s7-l-${k}`).setAttribute('d', `M${c[0]} C${c[1]} ${c[2]} ${c[3]}`);
+  });
+  for (const sc of SCENES) {
+    sc.el = document.getElementById(sc.id);
+    OFFSET = sc.start;
+    BUILD[sc.id]();
+  }
+  OFFSET = 0;
+  BUILD.floor();
+  prepareTracks();
+  fit();
+  addEventListener('resize', fit);
+  if (params.has('record') || EXPORT) toggleUI(true);
+  const start = parseFloat(params.get('t'));
+  cur = Number.isFinite(start) ? clamp(start, 0, DURATION) : 0;
+  render(cur);
+  requestAnimationFrame(frame);
+
+  // 外部（Playwright書き出しなど）から操作するための入口
+  window.__ANIM__ = {
+    DURATION, SCENES, CAPTIONS, ready:false,
+    renderAt(t) { playing = false; cur = t; render(t); dirty = false; },
+    play, pause, restart, seek,
+  };
+  loadFonts().then(() => {
+    window.__ANIM__.ready = true;
+    render(cur);
+    if (!EXPORT) play();
+  });
+}
+init();
+})();
+</script>
+</body>
+</html>

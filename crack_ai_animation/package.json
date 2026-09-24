@@ -1,0 +1,14 @@
+{
+  "name": "crack-ai-animation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "crack AI事業アップデート計画｜60秒モーションインフォグラフィック（HTML/CSS/JS/SVG）",
+  "scripts": {
+    "export": "node export/render.js",
+    "export:60fps": "node export/render.js --fps 60 --out crack_ai_update_60fps.mp4",
+    "export:highlight": "node export/render.js --from 38 --to 47 --out highlight_38-47.mp4"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.0"
+  }
+}
