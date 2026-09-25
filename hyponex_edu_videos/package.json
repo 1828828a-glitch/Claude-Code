@@ -1,0 +1,26 @@
+{
+  "name": "hyponex-edu-videos",
+  "version": "1.0.0",
+  "private": true,
+  "description": "園芸の基本編 縦型解説動画をCanvasとJavaScriptで描画し、MP4に書き出すプロジェクト",
+  "type": "module",
+  "scripts": {
+    "cutout": "node tools/cutout.mjs",
+    "render": "node tools/render.mjs",
+    "stills": "node tools/stills.mjs",
+    "preview": "node tools/server.mjs"
+  },
+  "dependencies": {
+    "@fontsource/dela-gothic-one": "^5.3.0",
+    "@fontsource/m-plus-rounded-1c": "^5.3.0",
+    "@fontsource/mochiy-pop-one": "^5.3.0",
+    "playwright-core": "1.56.1"
+  },
+  "optionalDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@huggingface/transformers": "^4.3.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

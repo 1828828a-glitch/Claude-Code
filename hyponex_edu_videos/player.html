@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>園芸の基本 動画プレビュー</title>
+<link rel="stylesheet" href="src/fonts.css">
+<style>
+  :root { --bg: #16261c; --panel: #203528; --text: #EAF5EC; --accent: #00A04A; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: "M PLUS Rounded 1c", sans-serif; }
+  #wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px; min-height: 100vh; }
+  canvas { height: calc(100vh - 120px); aspect-ratio: 9 / 16; background: #000; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,.4); }
+  #controls { display: flex; gap: 10px; align-items: center; background: var(--panel); padding: 10px 14px; border-radius: 12px; width: min(720px, 100%); flex-wrap: wrap; }
+  select, button { font: inherit; font-weight: 800; border: 0; border-radius: 8px; padding: 8px 12px; background: #2E4A38; color: var(--text); cursor: pointer; }
+  button#play { background: var(--accent); min-width: 64px; }
+  input[type=range] { flex: 1; accent-color: var(--accent); min-width: 160px; }
+  #time { font-variant-numeric: tabular-nums; min-width: 110px; text-align: right; }
+  body.render #controls { display: none; }
+  body.render canvas { height: auto; width: 1080px; border-radius: 0; box-shadow: none; }
+  body.render #wrap { padding: 0; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="stage" width="1080" height="1920"></canvas>
+  <div id="controls">
+    <select id="video"></select>
+    <button id="play">再生</button>
+    <input id="seek" type="range" min="0" max="1000" value="0" step="1">
+    <span id="time">0.0 / 0.0</span>
+  </div>
+</div>
+<script type="module" src="src/player.js"></script>
+</body>
+</html>
