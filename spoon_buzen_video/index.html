@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SPOON豊前 紹介動画</title>
+<meta name="description" content="企業・職場向け日替わり弁当 SPOON豊前 の60秒サービス紹介動画。JavaScript（Canvas と Web Audio）で描いたモーショングラフィックス。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700&family=Zen+Maru+Gothic:wght@700;900&display=swap">
+<style>
+  :root {
+    --bg: #EEEAE0;
+    --surface: #FFFFFF;
+    --ink: #2B2522;
+    --muted: #6B625A;
+    --line: #DCD3C0;
+    --chip: #F8F6E9;
+    --accent: #F59423;
+    --accent-ink: #2B2522;
+    --focus: #C96E0A;
+    --shadow: 0 1px 2px rgba(43, 37, 34, .08), 0 14px 36px rgba(43, 37, 34, .12);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1A1714;
+      --surface: #24201C;
+      --ink: #F1EBE2;
+      --muted: #B0A597;
+      --line: #3A332C;
+      --chip: #2E2924;
+      --accent-ink: #1A1714;
+      --focus: #FFB45C;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 36px rgba(0, 0, 0, .35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1A1714;
+    --surface: #24201C;
+    --ink: #F1EBE2;
+    --muted: #B0A597;
+    --line: #3A332C;
+    --chip: #2E2924;
+    --accent-ink: #1A1714;
+    --focus: #FFB45C;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 36px rgba(0, 0, 0, .35);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 500 15px/1.75 "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", "Meiryo", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding-inline: clamp(16px, 3vw, 32px);
+    padding-block: 28px 56px;
+    display: grid;
+    gap: 22px;
+  }
+
+  .head { display: grid; gap: 6px; }
+  .eyebrow {
+    margin: 0;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: .14em;
+    color: var(--muted);
+  }
+  h1 {
+    margin: 0;
+    font: 900 clamp(26px, 3.4vw, 36px)/1.25 "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+    text-wrap: balance;
+  }
+  h1 .brand { font-family: "Fredoka", "Zen Maru Gothic", sans-serif; font-weight: 700; color: var(--accent); letter-spacing: .01em; }
+  .meta { margin: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span {
+    font-size: 13px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--chip);
+    border: 1px solid var(--line);
+    color: var(--muted);
+  }
+
+  .player {
+    background: var(--surface);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: clamp(10px, 1.6vw, 18px);
+    display: grid;
+    gap: 12px;
+  }
+  .stage { position: relative; border-radius: 10px; overflow: hidden; background: #F8F6E9; }
+  .stage:fullscreen { display: grid; place-items: center; background: #000; border-radius: 0; }
+  .stage:fullscreen canvas { width: min(100vw, 177.78vh); height: auto; }
+  canvas {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    cursor: pointer;
+  }
+  .bigplay {
+    position: absolute;
+    left: clamp(10px, 1.6vw, 20px);
+    bottom: clamp(10px, 1.6vw, 20px);
+    border: 0;
+    border-radius: 999px;
+    padding: 10px 18px 10px 12px;
+    background: var(--accent);
+    color: #2B2522;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font: 700 15px/1 "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(43, 37, 34, .25);
+    transition: transform .15s ease;
+  }
+  .bigplay:hover { transform: translateY(-1px); }
+  .bigplay svg { width: 22px; height: 22px; fill: currentColor; }
+  .bigplay .len { font-family: "Fredoka", sans-serif; font-weight: 600; opacity: .7; }
+
+  .controls { display: flex; align-items: center; gap: 12px; }
+  .ctl {
+    flex: none;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+  }
+  .ctl svg { width: 20px; height: 20px; fill: currentColor; }
+  .ctl.primary { background: var(--accent); border-color: var(--accent); color: #2B2522; }
+  .ctl:disabled, .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .tc {
+    font-family: "Fredoka", "Zen Kaku Gothic New", sans-serif;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    min-width: 3.6em;
+  }
+  .muted { color: var(--muted); }
+  input[type="range"] {
+    flex: 1;
+    min-width: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    height: 28px;
+    background: transparent;
+    cursor: pointer;
+    --p: 0%;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--accent) var(--p), var(--line) var(--p));
+  }
+  input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--line); }
+  input[type="range"]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--accent); }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -5px;
+    border-radius: 50%;
+    background: var(--ink);
+    border: 2px solid var(--surface);
+  }
+  input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--ink); border: 2px solid var(--surface); }
+  .status { margin: 0; min-height: 1.75em; font-size: 13px; color: var(--muted); }
+
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  .cols { display: grid; grid-template-columns: 1.35fr 1fr; gap: 22px; align-items: start; }
+  .panel {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 20px clamp(16px, 2vw, 24px);
+    display: grid;
+    gap: 12px;
+  }
+  h2 { margin: 0; font: 900 18px/1.4 "Zen Maru Gothic", sans-serif; }
+  h3 { margin: 6px 0 0; font: 700 14px/1.4 "Zen Maru Gothic", sans-serif; }
+
+  .chapters { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .chapters button {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 3.4em 1fr;
+    gap: 10px;
+    align-items: baseline;
+    text-align: left;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    cursor: pointer;
+  }
+  .chapters button:hover { background: var(--chip); }
+  .chapters button.is-current { background: var(--chip); }
+  .chapters button.is-current .tc { color: var(--accent); font-weight: 600; }
+  .chapters .tc { color: var(--muted); min-width: 0; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .btn {
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font: 700 14px/1 "Zen Kaku Gothic New", sans-serif;
+    padding: 12px 18px;
+    cursor: pointer;
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #2B2522; }
+  .note { margin: 0; font-size: 13.5px; color: var(--muted); max-width: 60ch; }
+  code {
+    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    background: var(--chip);
+    border: 1px solid var(--line);
+    padding: 1px 6px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .keys { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 13.5px; }
+  .keys dt { font-weight: 700; }
+  .keys dd { margin: 0; color: var(--muted); }
+  kbd {
+    font-family: "Fredoka", "Zen Kaku Gothic New", sans-serif;
+    font-size: 12px;
+    padding: 0 6px;
+    border-radius: 5px;
+    border: 1px solid var(--line);
+    background: var(--chip);
+  }
+
+  .foot { font-size: 12.5px; color: var(--muted); max-width: 72ch; }
+  body.is-recording .player { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+  @media (max-width: 860px) {
+    .cols { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 520px) {
+    .controls { gap: 8px; }
+    .ctl { width: 38px; height: 38px; }
+    .controls .muted { display: none; }
+  }
+  @media (max-width: 520px) {
+    .bigplay { padding: 7px 12px 7px 8px; font-size: 13px; }
+    .bigplay svg { width: 18px; height: 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bigplay { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="head">
+    <p class="eyebrow">企業・職場向け 日替わり弁当</p>
+    <h1><span class="brand">SPOON</span>豊前 紹介動画</h1>
+    <p class="meta"><span>60秒</span><span>1920×1080</span><span>JavaScript（Canvas・Web Audio）</span></p>
+  </header>
+
+  <section class="player" aria-label="動画プレイヤー">
+    <div class="stage" id="stageWrap">
+      <canvas id="stage" width="1920" height="1080" role="img" aria-label="SPOON豊前の紹介動画。社員食堂がなくても、ちゃんと昼休みはつくれる。"></canvas>
+      <button class="bigplay" id="bigPlay" type="button" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg>
+        最初から再生 <span class="len">1:00</span>
+      </button>
+    </div>
+    <div class="controls">
+      <button id="btnPlay" class="ctl primary" type="button" aria-label="再生" disabled></button>
+      <output id="timeNow" class="tc" aria-live="off">0:00.0</output>
+      <input id="seek" type="range" min="0" max="60" step="0.01" value="0" aria-label="再生位置">
+      <span class="tc muted">1:00.0</span>
+      <button id="btnMute" class="ctl" type="button" aria-pressed="false" aria-label="音を消す"></button>
+      <button id="btnFull" class="ctl" type="button" aria-label="全画面で見る">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5v2H6v3zM15 4h5v5h-2V6h-3zM20 15v5h-5v-2h3v-3zM9 20H4v-5h2v3h3z"/></svg>
+      </button>
+    </div>
+    <p class="status" id="status" role="status">フォントを読み込んでいます…</p>
+  </section>
+
+  <div class="cols">
+    <section class="panel" aria-labelledby="h-chapters">
+      <h2 id="h-chapters">構成</h2>
+      <ol class="chapters" id="chapters"></ol>
+    </section>
+    <section class="panel" aria-labelledby="h-export">
+      <h2 id="h-export">書き出し</h2>
+      <div class="actions">
+        <button id="btnRec" class="btn primary" type="button">WebMで書き出す</button>
+        <button id="btnPng" class="btn" type="button">この画面をPNGで保存</button>
+      </div>
+      <p class="note">WebMは再生しながら記録するため、書き出しに約60秒かかります。</p>
+      <p class="note">入稿用のMP4（H.264・AAC）は、このフォルダで <code>npm install</code> のあと <code>npm run render</code> を実行すると <code>dist/</code> に出力されます。</p>
+      <h3>キー操作</h3>
+      <dl class="keys">
+        <dt><kbd>Space</kbd></dt><dd>再生と一時停止</dd>
+        <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>1秒戻る・進む（Shiftで5秒）</dd>
+        <dt><kbd>,</kbd> <kbd>.</kbd></dt><dd>1コマ戻る・進む</dd>
+        <dt><kbd>M</kbd> <kbd>F</kbd></dt><dd>消音、全画面</dd>
+      </dl>
+    </section>
+  </div>
+
+  <footer class="foot">
+    40品目以上・7種類のおかず・管理栄養士監修・日替わり1000種類以上・当日9:30締切・9:30〜12:00頃配達・電話番号は SPOON公式LP の記載にもとづいています。
+    ストーリーとコピーは広報戦略資料（2026年9月26日版）のブランド仮説と漫画パンフ案から組み立て、価格は資料の方針どおり載せていません。
+    文言は <code>js/copy.js</code> で直せます。
+  </footer>
+</main>
+
+<script src="js/copy.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/art.js"></script>
+<script src="js/scenes.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/player.js"></script>
+</body>
+</html>
