@@ -6,7 +6,8 @@
   "scripts": {
     "render": "node render.js",
     "render:60fps": "node render.js --fps 60 --out dist/spoon-buzen-60s-60fps.mp4",
-    "stills": "node render.js --stills 1.8,8.5,11.6,16.9,19.6,24.9,30.6,40.2,47.2,50.3,53.3,58.6 --out dist/stills/frame.mp4"
+    "stills": "node render.js --stills 1.8,8.5,11.6,16.9,19.6,24.9,30.6,40.2,47.2,50.3,53.3,58.6 --out dist/stills/frame.mp4",
+    "narration": "node tools/narration.js"
   },
   "devDependencies": {
     "ffmpeg-static": "^5.2.0",

@@ -15,13 +15,17 @@
   const btnPlay = $('btnPlay'), bigPlay = $('bigPlay'), seekEl = $('seek'), timeNow = $('timeNow');
   const btnMute = $('btnMute'), btnFull = $('btnFull'), btnRec = $('btnRec'), btnPng = $('btnPng');
   const statusEl = $('status'), chaptersEl = $('chapters'), stageWrap = $('stageWrap');
+  const btnNar = $('btnNar'), prompter = $('prompter'), prNow = $('prNow'), prBar = $('prBar');
+  const prNextAt = $('prNextAt'), prNextIn = $('prNextIn'), prNextText = $('prNextText');
+  const NAR = SV.NARRATION || [];
 
   let t = 0, playing = false, ready = false, recording = false;
   let clockStart = 0, tStart = 0;
   let actx = null, monitor = null, recDest = null, src = null, buffer = null, audioT0 = 0;
   let endWaiters = [];
-  let muted = false;
+  let muted = false, showNar = false;
   try { muted = localStorage.getItem('spoon-video-muted') === '1'; } catch (e) { /* 保存できない環境では毎回音あり */ }
+  try { showNar = localStorage.getItem('spoon-video-narration') === '1'; } catch (e) { /* 保存できない環境では毎回非表示から */ }
 
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const fmt = s => {
@@ -31,6 +35,12 @@
     return m + ':' + r.toFixed(1).padStart(4, '0');
   };
   const fmtShort = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+  // 台本の表と同じ書き方（4.3 → 0:04.3、26.55 → 0:26.55）
+  const fmtCue = s => {
+    const m = Math.floor(s / 60);
+    const [a, b] = (s - m * 60).toFixed(2).replace(/0$/, '').split('.');
+    return `${m}:${a.padStart(2, '0')}.${b}`;
+  };
 
   function draw(tt) { SV.render(ctx, tt); }
   function setStatus(msg) { statusEl.textContent = msg; }
@@ -145,6 +155,49 @@
       chaptersEl.querySelectorAll('button').forEach((b, i) => b.classList.toggle('is-current', i === ci));
       lastChapter = ci;
     }
+    updatePrompter();
+  }
+
+  /* ---------- ナレーション台本の表示（録音のタイミング合わせ用） ---------- */
+  let lastCue = null, lastNextKey = null;
+  function updatePrompter() {
+    if (!showNar || !NAR.length) return;
+    let cur = -1;
+    for (let i = 0; i < NAR.length; i++) {
+      if (t >= NAR[i].start && t < NAR[i].end + 0.15) { cur = i; break; }
+    }
+    if (cur !== lastCue) {
+      prNow.textContent = cur >= 0 ? NAR[cur].text : '声なし';
+      prNow.classList.toggle('is-idle', cur < 0);
+      lastCue = cur;
+    }
+    const p = cur >= 0 ? Math.min(1, (t - NAR[cur].start) / (NAR[cur].end - NAR[cur].start)) : 0;
+    prBar.style.transform = `scaleX(${p.toFixed(3)})`;
+    const nx = NAR.findIndex(c => c.start > t + 0.001);
+    const wait = nx >= 0 ? NAR[nx].start - t : 0;
+    const key = nx + ':' + (wait < 3 ? Math.ceil(wait * 10) : 'far');
+    if (key !== lastNextKey) {
+      if (nx >= 0) {
+        prNextAt.textContent = fmtCue(NAR[nx].start);
+        prNextIn.textContent = wait < 3 ? `あと${wait.toFixed(1)}秒` : '';
+        prNextText.textContent = NAR[nx].text;
+      } else {
+        prNextAt.textContent = '';
+        prNextIn.textContent = '';
+        prNextText.textContent = 'ナレーションはここまで';
+      }
+      lastNextKey = key;
+    }
+  }
+  function setNar(on) {
+    showNar = on;
+    prompter.hidden = !on;
+    btnNar.setAttribute('aria-pressed', String(on));
+    btnNar.setAttribute('aria-label', on ? 'ナレーション台本を隠す' : 'ナレーション台本を表示');
+    try { localStorage.setItem('spoon-video-narration', on ? '1' : '0'); } catch (e) { /* 保存できなくても表示は切り替える */ }
+    lastCue = null;
+    lastNextKey = null;
+    updatePrompter();
   }
   function updateMute() {
     btnMute.innerHTML = muted ? ICON_MUTED : ICON_SOUND;
@@ -252,6 +305,7 @@
   btnFull.addEventListener('click', toggleFull);
   btnRec.addEventListener('click', recordWebM);
   btnPng.addEventListener('click', savePng);
+  btnNar.addEventListener('click', () => setNar(!showNar));
   document.addEventListener('keydown', e => {
     if (recording || !ready || e.metaKey || e.ctrlKey || e.altKey) return;
     const tag = (e.target && e.target.tagName) || '';
@@ -266,6 +320,7 @@
     else if (e.key === '.') seek(t + 1 / 30);
     else if (e.key === 'm' || e.key === 'M') toggleMute();
     else if (e.key === 'f' || e.key === 'F') toggleFull();
+    else if (e.key === 'n' || e.key === 'N') setNar(!showNar);
     else if (e.key === 'Home') seek(0);
   });
 
@@ -285,6 +340,8 @@
   async function init() {
     buildChapters();
     updateMute();
+    if (!NAR.length) btnNar.hidden = true;
+    setNar(showNar && NAR.length > 0);
     updateUI();
     try {
       if (document.fonts && document.fonts.load) {

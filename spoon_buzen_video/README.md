@@ -30,6 +30,12 @@ npm run render                    # → dist/spoon-buzen-60s.mp4
 
 ヘッドレスの Chromium で1コマずつ描画し、ffmpeg で H.264 に圧縮しています。`npm run render:60fps` で60fps版、`npm run stills` で確認用の静止画を出せます。ffmpeg は `ffmpeg-static` が入れば自動で使い、入らない環境では `FFMPEG_PATH` に ffmpeg の場所を指定してください。
 
+## ナレーション
+
+台本は `NARRATION.md` にあります。20カットに分け、画面のテロップが出る秒数に合わせて時間を割り振りました。プレイヤーの吹き出しボタン（キーボードなら N）を押すと、再生に合わせて今読む一文と次の一文が動画の下に出るので、録音のときはそれを見ながら読めます。編集ソフトに読み込める字幕ファイルは `dist/narration.srt` です。
+
+台本の中身は `js/narration.js` にまとめてあり、直したあと `npm run narration` を実行すると、各カットの読む速さ（1秒あたりの拍数）を確かめたうえで `NARRATION.md` の表と SRT を作り直します。
+
 ## 構成
 
 | 時間 | 場面 | 画面の言葉 |

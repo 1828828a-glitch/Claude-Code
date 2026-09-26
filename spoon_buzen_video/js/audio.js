@@ -59,18 +59,21 @@
     revOut.connect(comp);
     comp.connect(master);
     master.connect(ctx.destination);
-    return { ctx, bus, revIn, noise, rnd };
+    return { ctx, bus, revIn, noise, rnd, queue: [], done: [] };
   }
 
   /* ---------- 楽器 ---------- */
-  function out(A, node, send) {
+  // until: この時刻を過ぎたら鳴り終わっているので、グラフから外してよい
+  function out(A, node, send, until) {
     node.connect(A.bus);
+    let g = null;
     if (send > 0) {
-      const g = A.ctx.createGain();
+      g = A.ctx.createGain();
       g.gain.value = send;
       node.connect(g);
       g.connect(A.revIn);
     }
+    A.done.push([until, node, g]);
   }
   function envExp(g, t, peak, attack, decay) {
     g.gain.setValueAtTime(0.0001, t);
@@ -85,7 +88,7 @@
     const g = c.createGain();
     envExp(g, t, amp, attack, decay);
     o.connect(g);
-    out(A, g, send);
+    out(A, g, send, t + attack + decay + 0.1);
     o.start(t);
     o.stop(t + attack + decay + 0.05);
   }
@@ -134,7 +137,7 @@
     o2.connect(half);
     half.connect(lp);
     lp.connect(g);
-    out(A, g, 0);
+    out(A, g, 0, t + dur + 0.15);
     o1.start(t); o2.start(t);
     o1.stop(t + dur + 0.1); o2.stop(t + dur + 0.1);
   }
@@ -152,7 +155,7 @@
     g.gain.setValueAtTime(per, t + Math.max(at, dur - 0.05));
     g.gain.linearRampToValueAtTime(0, t + dur + 0.6);
     lp.connect(g);
-    out(A, g, send == null ? 0.4 : send);
+    out(A, g, send == null ? 0.4 : send, t + dur + 0.8);
     for (const f of freqs) {
       for (const det of [-6, 6]) {
         const o = c.createOscillator();
@@ -178,7 +181,7 @@
     envExp(g, t, v, attack, dur);
     s.connect(f);
     f.connect(g);
-    out(A, g, send);
+    out(A, g, send, t + attack + dur + 0.1);
     s.start(t, A.rnd() * Math.max(0, 4 - dur - 0.3), dur + attack + 0.05);
   }
   function kick(A, t, v) {
@@ -191,7 +194,7 @@
     g.gain.setValueAtTime(v, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
     o.connect(g);
-    out(A, g, 0);
+    out(A, g, 0, t + 0.5);
     o.start(t);
     o.stop(t + 0.45);
     noiseHit(A, t, 0.012, v * 0.2, 'highpass', 2500, 0.7, 0);
@@ -220,7 +223,7 @@
     const g = c.createGain();
     envExp(g, t, v, 0.004, 0.16);
     o.connect(g);
-    out(A, g, 0.25);
+    out(A, g, 0.25, t + 0.3);
     o.start(t);
     o.stop(t + 0.22);
     partial(A, t + 0.004, f * 2, v * 0.15, 0.002, 0.08, 0.2);
@@ -240,7 +243,7 @@
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     s.connect(bp);
     bp.connect(g);
-    out(A, g, 0.25);
+    out(A, g, 0.25, t + dur + 0.1);
     s.start(t, A.rnd() * Math.max(0, 4 - dur - 0.3), dur + 0.05);
   }
   function riser(A, t, dur, v) {
@@ -255,7 +258,7 @@
     g.gain.exponentialRampToValueAtTime(v * 0.35, t + dur * 0.95);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.02);
     o.connect(g);
-    out(A, g, 0.3);
+    out(A, g, 0.3, t + dur + 0.1);
     o.start(t);
     o.stop(t + dur + 0.05);
   }
@@ -269,13 +272,48 @@
     bell(A, t + 0.09, nf('E6'), v * 0.8, 1.4, 0.45);
   }
 
+  /* ---------- 予約 ----------
+   * score() では音をすぐには作らず、時刻つきで予約だけしておく。
+   * 書き出し中に0.5秒ごとに一時停止して、1秒先までの音だけを作り、
+   * 鳴り終わった音はつなぎを外す。全部を最初に作ると、まだ鳴らない音まで
+   * 毎回処理されて、60秒の生成に何倍も時間がかかるため。 */
+  const INSTR = { bell, marimba, glock, bass, pad, kick, clap, hat, shaker, snare, tick, pop, whoosh, riser, impact, ding };
+  const S = {};
+  Object.keys(INSTR).forEach(k => {
+    S[k] = (A, t, ...rest) => { A.queue.push({ t, run: () => INSTR[k](A, t, ...rest) }); };
+  });
+  function renderScheduled(ctx, A, dur) {
+    const q = A.queue.map((e, i) => Object.assign(e, { i })).sort((a, b) => a.t - b.t || a.i - b.i);
+    let qi = 0;
+    const STEP = 0.5, AHEAD = 1.0;
+    const createUntil = until => { while (qi < q.length && q[qi].t < until) q[qi++].run(); };
+    const prune = now => {
+      A.done = A.done.filter(([until, node, send]) => {
+        if (until > now) return true;
+        node.disconnect();
+        if (send) send.disconnect();
+        return false;
+      });
+    };
+    createUntil(AHEAD);
+    for (let T = STEP; T < dur - 1e-6; T += STEP) {
+      const at = T;
+      ctx.suspend(at).then(() => {
+        prune(at);
+        createUntil(at + AHEAD);
+        ctx.resume();
+      });
+    }
+    return ctx.startRendering();
+  }
+
   /* ---------- 譜面 ---------- */
   function score(A) {
     const TL = SV.TL;
 
     // 0–4 秒：昼のチャイム
-    ['E5', 'C5', 'D5', 'G4', 'G4', 'D5', 'E5', 'C5'].forEach((n, i) => bell(A, TL.chime[i], nf(n), i === 7 ? 0.3 : 0.26, 3.2, 0.55));
-    pad(A, 0, [nf('C3'), nf('G3'), nf('E4')], 3.6, 0.05, 900, 0.4, 1.2);
+    ['E5', 'C5', 'D5', 'G4', 'G4', 'D5', 'E5', 'C5'].forEach((n, i) => S.bell(A, TL.chime[i], nf(n), i === 7 ? 0.3 : 0.26, 3.2, 0.55));
+    S.pad(A, 0, [nf('C3'), nf('G3'), nf('E4')], 3.6, 0.05, 900, 0.4, 1.2);
 
     // 4–18 秒：イ短調
     const PROB = [
@@ -284,62 +322,62 @@
       [16, ['E3', 'A3', 'B3'], 'E2']
     ];
     for (const [bt, notes, root] of PROB) {
-      pad(A, bt, notes.map(nf), bt === 16 ? 1.0 : 2.0, 0.06, 850, 0.4, 0.3);
-      for (let b = 0; b < 4; b++) bass(A, bt + b * 0.5, nf(root), 0.24, b === 0 ? 0.3 : 0.2);
+      S.pad(A, bt, notes.map(nf), bt === 16 ? 1.0 : 2.0, 0.06, 850, 0.4, 0.3);
+      for (let b = 0; b < 4; b++) S.bass(A, bt + b * 0.5, nf(root), 0.24, b === 0 ? 0.3 : 0.2);
     }
-    pad(A, 17, [nf('E3'), nf('G#3'), nf('B3')], 1.0, 0.06, 1200, 0.4, 0.2);
+    S.pad(A, 17, [nf('E3'), nf('G#3'), nf('B3')], 1.0, 0.06, 1200, 0.4, 0.2);
 
     const s2 = TL.s2;
-    for (let k = 1; k <= s2.total; k++) tick(A, s2.start + k / s2.rate, k % 2 === 0, 0.06);
-    for (let tt = 10.5; tt < 17.95; tt += 0.5) tick(A, tt, Math.round(tt * 2) % 2 === 0, 0.045);
-    s2.segs.forEach(([a], i) => pop(A, s2.start + a / s2.rate + 0.02, nf(['A5', 'C6', 'D6', 'E6'][i]), 0.09));
-    impact(A, s2.hit, 0.42);
+    for (let k = 1; k <= s2.total; k++) S.tick(A, s2.start + k / s2.rate, k % 2 === 0, 0.06);
+    for (let tt = 10.5; tt < 17.95; tt += 0.5) S.tick(A, tt, Math.round(tt * 2) % 2 === 0, 0.045);
+    s2.segs.forEach(([a], i) => S.pop(A, s2.start + a / s2.rate + 0.02, nf(['A5', 'C6', 'D6', 'E6'][i]), 0.09));
+    S.impact(A, s2.hit, 0.42);
 
     const s3 = TL.s3;
-    kick(A, s3.factory, 0.22);
-    pop(A, s3.eyebrow, nf('G5'), 0.07);
-    whoosh(A, s3.cross - 0.05, 0.3, 0.08, 1500, 400);
-    s3.tags.forEach((tt, i) => pop(A, tt, nf(['E5', 'G5', 'A5', 'C6', 'D6'][i]), 0.1));
-    riser(A, 16.4, 1.6, 0.16);
+    S.kick(A, s3.factory, 0.22);
+    S.pop(A, s3.eyebrow, nf('G5'), 0.07);
+    S.whoosh(A, s3.cross - 0.05, 0.3, 0.08, 1500, 400);
+    s3.tags.forEach((tt, i) => S.pop(A, tt, nf(['E5', 'G5', 'A5', 'C6', 'D6'][i]), 0.1));
+    S.riser(A, 16.4, 1.6, 0.16);
 
     // 18 秒：SPOON
     const s4 = TL.s4;
-    impact(A, s4.hit, 0.75);
-    ['F5', 'A5', 'C6', 'F6'].forEach((n, i) => bell(A, s4.hit + i * 0.035, nf(n), 0.1, 2.4, 0.5));
-    whoosh(A, s4.wipe - 0.05, 0.6, 0.12, 300, 2600);
-    whoosh(A, s4.van[0], s4.van[1] - s4.van[0], 0.05, 160, 600);
-    ding(A, s4.stack, 0.16);
-    for (let i = 0; i < 5; i++) pop(A, s4.stack + i * 0.1 + 0.12, nf(['C6', 'D6', 'E6', 'G6', 'A6'][i]), 0.06);
-    whoosh(A, s4.band, 0.8, 0.13, 250, 3000);
+    S.impact(A, s4.hit, 0.75);
+    ['F5', 'A5', 'C6', 'F6'].forEach((n, i) => S.bell(A, s4.hit + i * 0.035, nf(n), 0.1, 2.4, 0.5));
+    S.whoosh(A, s4.wipe - 0.05, 0.6, 0.12, 300, 2600);
+    S.whoosh(A, s4.van[0], s4.van[1] - s4.van[0], 0.05, 160, 600);
+    S.ding(A, s4.stack, 0.16);
+    for (let i = 0; i < 5; i++) S.pop(A, s4.stack + i * 0.1 + 0.12, nf(['C6', 'D6', 'E6', 'G6', 'A6'][i]), 0.06);
+    S.whoosh(A, s4.band, 0.8, 0.13, 250, 3000);
 
     const s5 = TL.s5;
-    s5.nodes.forEach((tt, i) => pop(A, tt, nf(['C6', 'E6', 'G6'][i]), 0.1));
+    s5.nodes.forEach((tt, i) => S.pop(A, tt, nf(['C6', 'E6', 'G6'][i]), 0.1));
 
     const s6 = TL.s6;
     const penta = ['C5', 'D5', 'E5', 'G5', 'A5', 'C6', 'D6', 'E6'];
-    pop(A, s6.rice, nf(penta[0]), 0.1);
-    for (let i = 0; i < 7; i++) pop(A, s6.okazu0 + i * s6.step, nf(penta[i + 1]), 0.1);
+    S.pop(A, s6.rice, nf(penta[0]), 0.1);
+    for (let i = 0; i < 7; i++) S.pop(A, s6.okazu0 + i * s6.step, nf(penta[i + 1]), 0.1);
     for (const ci of [1, 3]) {
       const [c0, c1] = s6.counts[ci];
       const n = 12;
-      for (let k = 0; k < n; k++) tick(A, c0 + (c1 - c0) * (1 - Math.pow(1 - k / n, 2)), true, 0.025);
+      for (let k = 0; k < n; k++) S.tick(A, c0 + (c1 - c0) * (1 - Math.pow(1 - k / n, 2)), true, 0.025);
     }
-    bell(A, s6.stats[2], nf('G6'), 0.08, 1.2, 0.5);
-    whoosh(A, s6.morph[0] - 0.1, 0.55, 0.08, 2800, 400);
+    S.bell(A, s6.stats[2], nf('G6'), 0.08, 1.2, 0.5);
+    S.whoosh(A, s6.morph[0] - 0.1, 0.55, 0.08, 2800, 400);
 
     const s7 = TL.s7;
-    s7.segs.forEach(([, , t0], i) => pop(A, t0, nf(['C6', 'E6', 'G6'][i]), 0.08));
-    ['C6', 'E6', 'G6', 'C7'].forEach((n, i) => glock(A, 44.8 + i * 0.12, nf(n), 0.05));
-    whoosh(A, s7.band, 0.8, 0.13, 250, 3000);
+    s7.segs.forEach(([, , t0], i) => S.pop(A, t0, nf(['C6', 'E6', 'G6'][i]), 0.08));
+    ['C6', 'E6', 'G6', 'C7'].forEach((n, i) => S.glock(A, 44.8 + i * 0.12, nf(n), 0.05));
+    S.whoosh(A, s7.band, 0.8, 0.13, 250, 3000);
 
     const s8 = TL.s8;
-    s8.steps.forEach((tt, i) => pop(A, tt, nf(['E6', 'G6', 'A6'][i]), 0.1));
-    pop(A, s8.hub, nf('C6'), 0.09);
-    s8.spokes.forEach((tt, i) => pop(A, tt + 0.3, nf(['C6', 'D6', 'E6', 'G6'][i]), 0.06));
-    riser(A, 52.6, 1.1, 0.1);
-    whoosh(A, s8.iris - 0.05, 0.45, 0.1, 400, 3500);
+    s8.steps.forEach((tt, i) => S.pop(A, tt, nf(['E6', 'G6', 'A6'][i]), 0.1));
+    S.pop(A, s8.hub, nf('C6'), 0.09);
+    s8.spokes.forEach((tt, i) => S.pop(A, tt + 0.3, nf(['C6', 'D6', 'E6', 'G6'][i]), 0.06));
+    S.riser(A, 52.6, 1.1, 0.1);
+    S.whoosh(A, s8.iris - 0.05, 0.45, 0.1, 400, 3500);
 
-    pop(A, TL.s9.cta, nf('G6'), 0.1);
+    S.pop(A, TL.s9.cta, nf('G6'), 0.1);
 
     // 18–54 秒：王道進行
     const PROG = [
@@ -353,42 +391,42 @@
       const bt = 18 + bar * 2;
       const ch = PROG[bar % 4];
       const rest = bt >= 42 && bt < 48;
-      pad(A, bt, ch.pad.map(nf), 2.0, rest ? 0.042 : 0.055, rest ? 1300 : 1500, rest ? 0.5 : 0.4, rest ? 0.45 : 0.25);
+      S.pad(A, bt, ch.pad.map(nf), 2.0, rest ? 0.042 : 0.055, rest ? 1300 : 1500, rest ? 0.5 : 0.4, rest ? 0.45 : 0.25);
       if (rest) {
-        bass(A, bt, nf(ch.root), 1.5, 0.17);
-        kick(A, bt, 0.42);
-        shaker(A, bt + 1.0, 0.03);
+        S.bass(A, bt, nf(ch.root), 1.5, 0.17);
+        S.kick(A, bt, 0.42);
+        S.shaker(A, bt + 1.0, 0.03);
       } else {
         const up = ch.root.replace(/\d/, d => String(+d + 1));
         [[0, ch.root, 0.4], [0.75, ch.root, 0.2], [1.0, ch.root, 0.4], [1.5, up, 0.2], [1.75, ch.five, 0.2]]
-          .forEach(([o, n, d]) => bass(A, bt + o, nf(n), d, 0.26));
-        kick(A, bt, 0.75);
-        kick(A, bt + 1.0, 0.7);
-        if (bar % 2 === 1 && bt !== 52) kick(A, bt + 1.75, 0.45);
-        clap(A, bt + 0.5, 0.2);
-        clap(A, bt + 1.5, 0.2);
-        for (let k = 0; k < 4; k++) hat(A, bt + 0.25 + k * 0.5, 0.05);
-        if (bt >= 26) for (let k = 0; k < 16; k++) shaker(A, bt + k * 0.125, k % 2 ? 0.02 : 0.032);
+          .forEach(([o, n, d]) => S.bass(A, bt + o, nf(n), d, 0.26));
+        S.kick(A, bt, 0.75);
+        S.kick(A, bt + 1.0, 0.7);
+        if (bar % 2 === 1 && bt !== 52) S.kick(A, bt + 1.75, 0.45);
+        S.clap(A, bt + 0.5, 0.2);
+        S.clap(A, bt + 1.5, 0.2);
+        for (let k = 0; k < 4; k++) S.hat(A, bt + 0.25 + k * 0.5, 0.05);
+        if (bt >= 26) for (let k = 0; k < 16; k++) S.shaker(A, bt + k * 0.125, k % 2 ? 0.02 : 0.032);
       }
       const hv = bt < 26 ? 0.15 : 0.19;
       for (const [pos, n] of ch.hook) {
         if (rest && pos !== 0 && pos !== 3) continue;
         if (bt === 52 && pos > 3) continue;
-        marimba(A, bt + pos * E8, nf(n), rest ? 0.12 : hv);
-        if (bt >= 26 && bt < 42 && (bar % 4 >= 2 || bt >= 34)) glock(A, bt + pos * E8, nf(n) * 2, 0.04);
+        S.marimba(A, bt + pos * E8, nf(n), rest ? 0.12 : hv);
+        if (bt >= 26 && bt < 42 && (bar % 4 >= 2 || bt >= 34)) S.glock(A, bt + pos * E8, nf(n) * 2, 0.04);
       }
     }
     // 53–54 秒：駆け上がり
-    ['G4', 'A4', 'B4', 'C5', 'D5', 'E5', 'F5', 'G5'].forEach((n, i) => marimba(A, 53 + i * 0.125, nf(n), 0.14 + i * 0.01));
-    for (let k = 0; k < 8; k++) snare(A, 53 + k * 0.125, 0.05 + k * 0.018);
+    ['G4', 'A4', 'B4', 'C5', 'D5', 'E5', 'F5', 'G5'].forEach((n, i) => S.marimba(A, 53 + i * 0.125, nf(n), 0.14 + i * 0.01));
+    for (let k = 0; k < 8; k++) S.snare(A, 53 + k * 0.125, 0.05 + k * 0.018);
 
     // 54–60 秒：着地
-    impact(A, 54, 0.7);
-    pad(A, 54, ['C3', 'G3', 'D4', 'E4', 'G4'].map(nf), 5.2, 0.075, 1800, 0.5, 0.08);
-    bass(A, 54, nf('C2'), 3.5, 0.3);
-    ['C5', 'E5', 'G5', 'C6'].forEach((n, i) => marimba(A, 54 + i * 0.25, nf(n), 0.17));
-    ['G4', 'D5', 'E5', 'C5'].forEach((n, i) => bell(A, 56 + i * 0.5, nf(n), 0.2, 3.0, 0.55));
-    for (let k = 0; k < 16; k++) shaker(A, 54 + k * 0.25, 0.022 * (1 - k / 16));
+    S.impact(A, 54, 0.7);
+    S.pad(A, 54, ['C3', 'G3', 'D4', 'E4', 'G4'].map(nf), 5.2, 0.075, 1800, 0.5, 0.08);
+    S.bass(A, 54, nf('C2'), 3.5, 0.3);
+    ['C5', 'E5', 'G5', 'C6'].forEach((n, i) => S.marimba(A, 54 + i * 0.25, nf(n), 0.17));
+    ['G4', 'D5', 'E5', 'C5'].forEach((n, i) => S.bell(A, 56 + i * 0.5, nf(n), 0.2, 3.0, 0.55));
+    for (let k = 0; k < 16; k++) S.shaker(A, 54 + k * 0.25, 0.022 * (1 - k / 16));
   }
 
   /* ---------- 書き出し ---------- */
@@ -402,7 +440,7 @@
       const ctx = new OAC(2, SR * dur, SR);
       const A = setup(ctx, dur);
       score(A);
-      const buf = await ctx.startRendering();
+      const buf = await renderScheduled(ctx, A, dur);
       let peak = 0;
       for (let ch = 0; ch < buf.numberOfChannels; ch++) {
         const d = buf.getChannelData(ch);
