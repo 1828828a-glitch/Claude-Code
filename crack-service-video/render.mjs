@@ -6,6 +6,7 @@
 //   node render.mjs --subs          # 字幕を焼き込む
 //   node render.mjs --no-bgm        # 無音で書き出す
 //   node render.mjs --audio-only    # BGM（crack_bgm.mp3）だけを書き出す。--wav で WAV も残す
+//   node render.mjs --srt-only      # 台本を直したあと、narration.srt だけを作り直す
 //   node render.mjs --stills 0.5,11.8,24   # 指定秒の静止画だけを PNG で保存
 //
 // ffmpeg は PATH 上のもの、または環境変数 FFMPEG で指定したものを使う。
@@ -30,6 +31,7 @@ const subs = Boolean(opt('subs', false));
 const noBgm = Boolean(opt('no-bgm', false));
 const audioOnly = Boolean(opt('audio-only', false));
 const keepWav = Boolean(opt('wav', false));
+const srtOnly = Boolean(opt('srt-only', false));
 const out = path.resolve(here, String(opt('out', subs ? 'crack_service_video_subtitled.mp4' : 'crack_service_video.mp4')));
 const crf = String(opt('crf', 20));
 const stills = opt('stills', null);
@@ -82,6 +84,14 @@ if (stills) {
   process.exit(0);
 }
 
+const srt = info.cues.map((c, i) => `${i + 1}\n${srtTime(c.s)} --> ${srtTime(c.e)}\n${c.text}\n`).join('\n');
+writeFileSync(path.join(here, 'narration.srt'), srt, 'utf8');
+if (srtOnly) {
+  console.log(path.join(here, 'narration.srt'));
+  await browser.close();
+  process.exit(0);
+}
+
 // BGM：ページ内の Web Audio で合成した WAV を受け取り、MP3 にも変換しておく
 let wavPath = null;
 if (!noBgm) {
@@ -97,9 +107,6 @@ if (audioOnly) {
   await browser.close();
   process.exit(0);
 }
-
-const srt = info.cues.map((c, i) => `${i + 1}\n${srtTime(c.s)} --> ${srtTime(c.e)}\n${c.text}\n`).join('\n');
-writeFileSync(path.join(here, 'narration.srt'), srt, 'utf8');
 
 const frames = Math.round(info.duration * fps);
 const ffArgs = ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'mjpeg', '-i', '-'];

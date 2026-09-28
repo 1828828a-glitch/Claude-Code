@@ -45,6 +45,7 @@ Node.js 18 以降と ffmpeg が必要。
   node render.mjs --subs          字幕を焼き込んだ crack_service_video_subtitled.mp4
   node render.mjs --no-bgm        音なしで書き出す
   node render.mjs --audio-only    crack_bgm.mp3 だけを作り直す（--wav を付けると WAV も残す）
+  node render.mjs --srt-only      narration.srt だけを作り直す（台本の文や秒数を直したとき）
   node render.mjs --stills 11.8   11.8秒の静止画を stills/ に PNG で保存（サムネイル用）
 
 ffmpeg が PATH に無い場合は、環境変数 FFMPEG にパスを入れて実行する。
