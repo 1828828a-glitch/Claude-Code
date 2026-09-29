@@ -1,0 +1,4 @@
+/* Zen Maru Gothic (SIL Open Font License 1.1) を動画で使う文字だけにサブセット化したもの */
+@font-face { font-family: "Zen Maru Gothic"; font-weight: 500; src: url("ZenMaruGothic-Medium.woff2") format("woff2"); }
+@font-face { font-family: "Zen Maru Gothic"; font-weight: 700; src: url("ZenMaruGothic-Bold.woff2") format("woff2"); }
+@font-face { font-family: "Zen Maru Gothic"; font-weight: 900; src: url("ZenMaruGothic-Black.woff2") format("woff2"); }

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10月に咲く花10選 動画</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<style>
+  body { margin: 0; background: #1d2a22; color: #eef3ea; font-family: "Zen Maru Gothic", sans-serif; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 16px; }
+  canvas { width: 100%; aspect-ratio: 16 / 9; display: block; border-radius: 10px; background: #fbf6ea; }
+  .bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+  button { font: inherit; font-weight: 700; padding: 10px 18px; border: 0; border-radius: 999px; background: #009a44; color: #fff; cursor: pointer; }
+  button.sub { background: #3b4a40; }
+  button:disabled { opacity: .5; cursor: default; }
+  input[type=range] { flex: 1; min-width: 160px; accent-color: #a9d13b; }
+  label { display: flex; gap: 6px; align-items: center; }
+  #time { font-variant-numeric: tabular-nums; min-width: 110px; }
+  #status { margin-top: 8px; color: #a9d13b; min-height: 1.4em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="1920" height="1080"></canvas>
+  <div class="bar">
+    <button id="play">▶ 再生</button>
+    <input id="seek" type="range" min="0" step="0.01" value="0">
+    <span id="time">0:00 / 0:00</span>
+    <label><input id="subs" type="checkbox"> 字幕</label>
+    <button id="rec" class="sub">● WebM録画</button>
+  </div>
+  <div id="status"></div>
+</div>
+<script src="video.js"></script>
+<script>
+const V = window.OctoberVideo;
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const playBtn = document.getElementById('play'), seek = document.getElementById('seek');
+const timeEl = document.getElementById('time'), subs = document.getElementById('subs');
+const recBtn = document.getElementById('rec'), statusEl = document.getElementById('status');
+seek.max = V.DURATION;
+
+const logo = new Image();
+logo.src = 'logo.png';
+V.setLogo(logo);
+
+let ac = null, startAt = 0, pos = 0, playing = false, recorder = null;
+const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
+function draw(t) {
+  V.render(ctx, t, { subtitles: subs.checked });
+  seek.value = t;
+  timeEl.textContent = `${fmt(t)} / ${fmt(V.DURATION)}`;
+}
+
+function start(from) {
+  ac = new AudioContext();
+  const dest = recorder ? recorder.audioDest(ac) : ac.destination;
+  // BGMは曲頭から組み立て、途中再生時は曲の該当位置が鳴るよう時間をずらす
+  startAt = ac.currentTime + 0.1 - from;
+  V.buildBGM(ac, dest, V.DURATION, startAt);
+  playing = true; playBtn.textContent = '❚❚ 停止';
+  requestAnimationFrame(loop);
+}
+function stop() {
+  playing = false; playBtn.textContent = '▶ 再生';
+  if (ac) { ac.close(); ac = null; }
+}
+function loop() {
+  if (!playing) return;
+  pos = Math.max(0, ac.currentTime - startAt);
+  if (pos >= V.DURATION) { pos = V.DURATION; draw(pos); stop(); if (recorder) recorder.finish(); return; }
+  draw(pos);
+  requestAnimationFrame(loop);
+}
+
+playBtn.onclick = () => { if (playing) stop(); else start(pos >= V.DURATION ? 0 : pos); };
+seek.oninput = () => { const was = playing; if (was) stop(); pos = +seek.value; draw(pos); if (was) start(pos); };
+subs.onchange = () => draw(pos);
+
+recBtn.onclick = () => {
+  if (playing) stop();
+  const chunks = [];
+  let mr = null;
+  recorder = {
+    audioDest(ctx) {
+      const d = ctx.createMediaStreamDestination();
+      const stream = new MediaStream([...cv.captureStream(30).getVideoTracks(), ...d.stream.getAudioTracks()]);
+      mr = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 12e6 });
+      mr.ondataavailable = e => e.data.size && chunks.push(e.data);
+      mr.onstop = () => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob(chunks, { type: 'video/webm' }));
+        a.download = 'october_flowers.webm'; a.click();
+        statusEl.textContent = '録画を保存しました。';
+      };
+      mr.start();
+      // 録画中もスピーカーで聴けるように
+      const g = ctx.createGain(); g.connect(d); g.connect(ctx.destination);
+      return g;
+    },
+    finish() { mr && mr.stop(); recorder = null; recBtn.disabled = false; }
+  };
+  recBtn.disabled = true;
+  statusEl.textContent = '録画中…最後まで再生すると自動でダウンロードされます。';
+  pos = 0; start(0);
+};
+
+document.fonts.load('900 100px "Zen Maru Gothic"').finally(() => {
+  logo.decode ? logo.decode().catch(() => {}).finally(() => draw(0)) : (logo.onload = () => draw(0));
+});
+draw(0);
+</script>
+</body>
+</html>
