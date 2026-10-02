@@ -576,11 +576,12 @@ function s3Veg(lt, t) {
   bar(v.sow, rowY[0], C.orange);
   bar(v.pl, rowY[0], C.mustard);
   bar(v.hv, rowY[1], C.leaf);
-  // いまの位置 (10月上旬)
-  const nx = mx(10.06);
+  // いまの位置 (10月初旬)
+  const nx = mx(10.25);
   ctx.strokeStyle = C.cream; ctx.lineWidth = 3; ctx.setLineDash([8, 8]);
   ctx.beginPath(); ctx.moveTo(nx, 784); ctx.lineTo(nx, 930); ctx.stroke(); ctx.setLineDash([]);
-  text('▲いま', nx, 966, { size: 26, color: C.cream, align: 'center' });
+  text('▲', nx, 966, { size: 26, color: C.cream, align: 'center' });
+  text('いま（10月初旬）', nx + 16, 966, { size: 26, color: C.cream });
   // 凡例
   const lg = [['種まき', C.orange], ['植え付け', C.mustard], ['収穫', C.leaf]];
   let lx = 1340;
