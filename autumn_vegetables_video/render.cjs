@@ -1,6 +1,6 @@
 // index.html をフレーム単位で描画し、ffmpeg で MP4 (1920x1080 / 30fps / H.264) に書き出す。
 // 使い方:
-//   node render.cjs                 -> autumn_vegetables.mp4
+//   node render.cjs                 -> autumn_vegetables.mp4 (bgm.cjs の BGM 付き)
 //   node render.cjs --stills 2,8,20 -> 指定秒の PNG を stills/ に出力
 const path = require('path');
 const fs = require('fs');
@@ -49,8 +49,9 @@ async function ensureFonts() {
   }
 
   const out = path.join(__dirname, 'autumn_vegetables.mp4');
+  const silent = path.join(__dirname, 'video_only.mp4');
   const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
-    '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-movflags', '+faststart', out],
+    '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-movflags', '+faststart', silent],
   { stdio: ['pipe', 'inherit', 'inherit'] });
   const total = Math.round(DURATION * FPS);
   for (let f = 0; f < total; f++) {
@@ -61,5 +62,11 @@ async function ensureFonts() {
   ff.stdin.end();
   await new Promise(r => ff.on('close', r));
   await browser.close();
+
+  require('./bgm.cjs');
+  await new Promise((res, rej) => spawn('ffmpeg', ['-y', '-loglevel', 'error', '-i', silent, '-i', path.join(__dirname, 'bgm.wav'),
+    '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', out],
+  { stdio: 'inherit' }).on('close', code => (code ? rej(new Error('mux failed')) : res())));
+  fs.unlinkSync(silent);
   console.log('done:', out);
 })();
