@@ -7,9 +7,10 @@ from multiprocessing import Pool
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-W, H, FPS = 1920, 1080, 30
+VERTICAL = bool(os.environ.get("VERTICAL"))
+W, H, FPS = (1080, 1920, 30) if VERTICAL else (1920, 1080, 30)
 DUR = 64.0
-BAR = 140  # 2.39:1 のシネマスコープ
+BAR = 0 if VERTICAL else 140  # 横長は 2.39:1 のシネマスコープ
 HERE = os.path.dirname(os.path.abspath(__file__))
 FONT_DIR = sys.argv[1] if len(sys.argv) > 1 else "fonts"
 POSTER = Image.open(os.path.join(HERE, "poster.jpg")).convert("RGB")
@@ -53,23 +54,42 @@ GLOW = {"silver": (.55, .65, .85), "gold": (1, .70, .30), "red": (1, .15, .08)}
 _metal = {}
 
 
-def metal(s, f, style="silver", track=0):
-    k = (s, id(f), style, track)
+PUNCT = set("、。，．")
+SMALL = set("ぁぃぅぇぉっゃゅょァィゥェォッャュョ")
+
+
+def metal(s, f, style="silver", track=0, vertical=False):
+    k = (s, id(f), style, track, vertical)
     if k in _metal: return _metal[k]
-    widths = [f.getlength(ch) for ch in s]
     asc, desc = f.getmetrics()
     pad = max(60, int(f.size * 0.7))
-    tw = int(sum(widths) + track * (len(s) - 1))
-    m = Image.new("L", (tw + 2 * pad, asc + desc + 2 * pad))
-    d = ImageDraw.Draw(m)
-    x = pad
-    for ch, w in zip(s, widths):
-        d.text((x, pad), ch, font=f, fill=255)
-        x += w + track
+    if vertical:  # 縦書き: 句読点は右上へ、小書き仮名は少し右上へ、長音は回転
+        cell = f.size * 1.08 + track
+        m = Image.new("L", (f.size + 2 * pad, int(cell * len(s)) + 2 * pad))
+        for i, ch in enumerate(s):
+            x, y = pad, pad + i * cell
+            if ch in PUNCT: x, y = x + f.size * 0.6, y - f.size * 0.6
+            elif ch in SMALL: x, y = x + f.size * 0.1, y - f.size * 0.1
+            g = Image.new("L", (f.size * 2, f.size * 2))
+            ImageDraw.Draw(g).text((f.size * 0.5, f.size * 0.5 - (asc + desc - f.size) / 2), ch, font=f, fill=255)
+            if ch in "ー―−～": g = g.rotate(-90)
+            m.paste(255, (int(x - f.size * 0.5), int(y - f.size * 0.5)), g)
+    else:
+        widths = [f.getlength(ch) for ch in s]
+        tw = int(sum(widths) + track * (len(s) - 1))
+        m = Image.new("L", (tw + 2 * pad, asc + desc + 2 * pad))
+        d = ImageDraw.Draw(m)
+        x = pad
+        for ch, w in zip(s, widths):
+            d.text((x, pad), ch, font=f, fill=255)
+            x += w + track
     a = np.asarray(m, np.float32) / 255
-    rows = np.where(a.max(1) > 0.1)[0]
-    top, bot = (rows[0], rows[-1]) if len(rows) else (0, a.shape[0])
-    y = np.clip((np.arange(a.shape[0]) - top) / max(1, bot - top), 0, 1)
+    if vertical:  # 金属のグラデーションは一文字ごとに
+        y = np.clip(((np.arange(a.shape[0]) - pad + f.size * 0.45) % cell) / f.size, 0, 1)
+    else:
+        rows = np.where(a.max(1) > 0.1)[0]
+        top, bot = (rows[0], rows[-1]) if len(rows) else (0, a.shape[0])
+        y = np.clip((np.arange(a.shape[0]) - top) / max(1, bot - top), 0, 1)
     stops = PALETTES[style]
     grad = np.stack([np.interp(y, [p for p, _ in stops], [c[i] for _, c in stops]) for i in range(3)], 1)
     rgb = np.repeat(grad[:, None, :], a.shape[1], 1)
@@ -80,7 +100,7 @@ def metal(s, f, style="silver", track=0):
     shadow = np.asarray(m.filter(ImageFilter.GaussianBlur(max(4, f.size * 0.12))), np.float32) / 255
     shadow = np.clip(shadow * 1.8, 0, 1)
     out = {"rgb": (rgb * a[..., None]).astype(np.float32), "a": a, "sh": shadow, "glow": glow[..., None] * np.array(GLOW[style]) * 0.9,
-           "size": (a.shape[1], a.shape[0])}
+           "size": (a.shape[1], a.shape[0]), "pad": pad}
     _metal[k] = out
     return out
 
@@ -115,7 +135,9 @@ def blit(buf, mt, cx, cy, alpha=1.0, scale=1.0, sweep=None, glow=0.8):
     region += rgb[ys0:ys1, xs0:xs1] * alpha + g[ys0:ys1, xs0:xs1] * alpha * glow
 
 
-def card(buf, s, f, style, cx, cy, t, t0, t1, fi=0.8, fo=0.6, track=0, slam=False, sweep=False, glow=0.8):
+def card(buf, s, f, style, x, y, t, t0, t1, fi=0.8, fo=0.6, track=0, slam=False, sweep=False, glow=0.8,
+         anchor="", vertical=False):
+    """anchor: l/r で x を左端/右端、t/b で y を上端/下端として扱う（無指定は中心）。"""
     if t < t0 or t > t1: return
     a = env(t, t0, t1, 0.08 if slam else fi, fo)
     p = (t - t0) / (t1 - t0)
@@ -124,7 +146,21 @@ def card(buf, s, f, style, cx, cy, t, t0, t1, fi=0.8, fo=0.6, track=0, slam=Fals
     else:
         sc = 1.07 - 0.07 * ease_out((t - t0) / (t1 - t0 + 1.5))
     sw = (-0.3 + 1.6 * ((t - t0) / 2.2)) if sweep else None
-    blit(buf, metal(s, f, style, track), cx, cy, a, sc, sw, glow)
+    mt = metal(s, f, style, track, vertical)
+    hw, hh = (mt["size"][0] / 2 - mt["pad"]) * sc, (mt["size"][1] / 2 - mt["pad"]) * sc
+    x += hw if "l" in anchor else -hw if "r" in anchor else 0
+    y += hh if "t" in anchor else -hh if "b" in anchor else 0
+    blit(buf, mt, x, y, a, sc, sw, glow)
+
+
+def ink_width(s, f, track=0):
+    mt = metal(s, f, "silver", track)
+    return mt["size"][0] - 2 * mt["pad"]
+
+
+def hline(buf, x0, x1, y, alpha, color=(.9, .2, .15), thick=2):
+    if alpha > 0.01 and x1 > x0:
+        buf[int(y) : int(y) + thick, int(x0) : int(x1)] = np.array(color) * alpha + buf[int(y) : int(y) + thick, int(x0) : int(x1)] * (1 - alpha)
 
 
 # ---------- 光と塵 ----------
@@ -179,14 +215,22 @@ def face(buf, key, t, t0, t1, z0=1.0, z1=1.12, dx=0.0, fi=0.4, fo=0.4, shade=0.7
     p = (t - t0) / (t1 - t0)
     zoom = z0 + (z1 - z0) * p
     cx, cy = FACES[key]
-    sh = 300 / zoom
+    # 黒帯を除いた見える範囲で、頭頂部に余白が残るように切り出す
+    vis = H - 2 * BAR
+    vis_src = (600 if VERTICAL else 300) / zoom
+    sh = vis_src * H / vis
     sw = sh * W / H
     x0 = min(max(cx - sw / 2 + dx * (p - 0.5), 0), POSTER.width - sw)
-    y0 = cy - sh * 0.38
+    vis_top = max(cy - 0.45 * vis_src, 390)  # ポスター上部のロゴ文字は映さない
+    y0 = vis_top - sh * BAR / H
     im = POSTER.transform((W, H), Image.EXTENT, (x0, y0, x0 + sw, y0 + sh), Image.BICUBIC)
     g = np.asarray(im.convert("L"), np.float32) / 255
     g = np.clip((g - 0.05) / 0.88, 0, 1) ** 1.2
     rgb = g[..., None] * (TEAL * (1 - g[..., None]) + WARM * g[..., None])
+    # 主役にスポットを当て、両隣に写り込む人は暗く沈める
+    fx = (cx - x0) / sw * W
+    spot = 0.12 + 0.88 * np.exp(-((np.arange(W) - fx) / 560) ** 2)
+    rgb *= spot[None, :, None].astype(np.float32)
     a = env(t, t0, t1, fi, fo)
     rgb *= (1 - LOWER * shade)
     buf += rgb * a
@@ -219,6 +263,7 @@ def montage_cuts():
 
 CUTS = montage_cuts()
 CY = H / 2
+VT = BAR + 60  # 縦書きの上端
 
 
 def scene(t):
@@ -232,79 +277,94 @@ def scene(t):
         particles(buf, t, 0.5 * bloom)
         card(buf, "THIS  NOVEMBER", cinzel(78), "gold", W / 2, CY + 120, t, 1.6, 4.6, fi=1.4, track=26, sweep=True)
 
-    # B 問い
+    # B 問い: 小さな一行目は左上、答えを迫る二行目は右下に大きく
     if 4.8 <= t < 9.0:
         buf += HAZE * 0.22 * env(t, 4.8, 9.0, 1.2, 0.5)
         particles(buf, t, 0.45 * env(t, 4.8, 9.0, 1, 0.5))
-        card(buf, "言葉は、", mincho(76), "silver", W / 2, CY - 60, t, 5.0, 8.9, track=14)
-        card(buf, "人を、つなぐのか。", mincho(76), "silver", W / 2, CY + 50, t, 6.2, 8.9, track=14)
+        card(buf, "言葉は、", mincho(60), "silver", 300, CY - 130, t, 5.0, 8.9, track=14, anchor="l")
+        card(buf, "人を、つなぐのか。", mincho(104), "silver", W - 240, CY + 80, t, 6.2, 8.9, track=16, anchor="r")
 
-    # C / D 顔と字幕
+    # C 中央の顔、右に縦書き二列
     face(buf, "b", t, 9.0, 12.6, 1.0, 1.14, 12)
-    card(buf, "同じ言葉でも、伝わらないことがある。", mincho(54), "silver", W / 2, H - BAR - 95, t, 9.4, 12.5, track=8, glow=0.4)
+    card(buf, "同じ言葉でも、", mincho(52), "silver", W - 250, VT, t, 9.4, 12.5, track=6, glow=0.4, anchor="t", vertical=True)
+    card(buf, "伝わらないことがある。", mincho(52), "silver", W - 350, VT + 70, t, 10.2, 12.5, track=6, glow=0.4, anchor="t", vertical=True)
+    # D 右の顔、左に段違い
     face(buf, "i", t, 12.5, 16.0, 1.15, 1.0, -12)
-    card(buf, "言葉が通じなくても、伝わることがある。", mincho(54), "silver", W / 2, H - BAR - 95, t, 12.9, 15.9, track=8, glow=0.4)
+    card(buf, "言葉が通じなくても、", mincho(50), "silver", 170, CY - 70, t, 12.9, 15.9, track=8, glow=0.4, anchor="l")
+    card(buf, "伝わることがある。", mincho(84), "silver", 250, CY + 40, t, 13.6, 15.9, track=12, glow=0.5, anchor="l")
 
-    # E 三連打
+    # E 三連打: 左 → 右 → 中央
     for i, (jp, en) in enumerate([("九人の語り手。", "NINE  VOICES"), ("二つの言語。", "TWO  LANGUAGES"),
                                   ("ひとつの舞台。", "ONE  STAGE")]):
         t0 = 16.0 + i * 2
         if t0 <= t < t0 + 2:
-            buf += HAZE_RED * 0.5 * env(t, t0, t0 + 2, 0.05, 0.4)
-            streak(buf, W / 2, CY + 105, 1.4 * (1 - ease_out((t - t0) / 1.2)) + 0.25, color=(1, .35, .25), length=1100)
+            anc, x, y, size = [("l", 180, CY - 60, 124), ("r", W - 180, CY + 20, 124), ("", W / 2, CY - 30, 156)][i]
+            buf += HAZE_RED * 0.45 * env(t, t0, t0 + 2, 0.05, 0.4)
+            sx = {"l": 560, "r": W - 560, "": W / 2}[anc]
+            streak(buf, sx, y + 125, 1.4 * (1 - ease_out((t - t0) / 1.2)) + 0.25, color=(1, .35, .25), length=1000)
             particles(buf, t, 0.4, (1, .55, .4), 1.6)
-            card(buf, jp, mincho(104), "silver", W / 2, CY - 40, t, t0, t0 + 1.95, fo=0.35, slam=True, track=18)
-            card(buf, en, cinzel(40), "gold", W / 2, CY + 105, t, t0 + 0.25, t0 + 1.95, fi=0.4, fo=0.35, track=24)
+            card(buf, jp, mincho(size), "silver", x, y, t, t0, t0 + 1.95, fo=0.35, slam=True, track=18, anchor=anc)
+            card(buf, en, cinzel(40), "gold", x + (8 if anc == "l" else -8 if anc == "r" else 0), y + 125, t,
+                 t0 + 0.25, t0 + 1.95, fi=0.4, fo=0.35, track=24, anchor=anc)
 
-    # F / G ルール
+    # F 左の顔、右に横組み
     face(buf, "a", t, 22.0, 25.6, 1.0, 1.12, 10)
-    card(buf, "海外のリーダーは、", mincho(52), "silver", W / 2, H - BAR - 150, t, 22.3, 25.5, track=10, glow=0.4)
-    card(buf, "日本語で語る。", mincho(78), "red", W / 2, H - BAR - 70, t, 23.2, 25.5, track=16, glow=0.6)
+    card(buf, "海外のリーダーは、", mincho(50), "silver", 1010, CY - 80, t, 22.3, 25.5, track=10, glow=0.4, anchor="l")
+    card(buf, "日本語で語る。", mincho(104), "red", 1000, CY + 40, t, 23.2, 25.5, track=16, glow=0.6, anchor="l")
+    # G 右の顔、左に縦書き
     face(buf, "d", t, 25.5, 29.0, 1.12, 1.0, -10)
-    card(buf, "日本のリーダーは、", mincho(52), "silver", W / 2, H - BAR - 150, t, 25.8, 28.95, track=10, glow=0.4)
-    card(buf, "英語で語る。", mincho(78), "red", W / 2, H - BAR - 70, t, 26.7, 28.95, track=16, glow=0.6)
+    card(buf, "日本のリーダーは、", mincho(44), "silver", 660, VT, t, 25.8, 28.95, track=6, glow=0.4, anchor="t", vertical=True)
+    card(buf, "英語で語る。", mincho(100), "red", 500, VT + 40, t, 26.7, 28.95, track=8, glow=0.6, anchor="t", vertical=True)
 
-    # H 言葉も、育ちも、文化も
-    for i, (k, s) in enumerate([("c", "言葉も、"), ("g", "育ちも、"), ("h", "文化も、")]):
+    # H 言葉も、育ちも、文化も: 顔と反対側に巨大な縦書き
+    for i, (k, s, x) in enumerate([("c", "言葉も、", W - 300), ("g", "育ちも、", W - 470), ("h", "文化も、", 330)]):
         t0 = 29.0 + i * 1.2
-        face(buf, k, t, t0, t0 + 1.2, 1.35, 1.5, 0, fi=0.02, fo=0.15, shade=0.85)
-        card(buf, s, mincho(120), "silver", W / 2, H - BAR - 120, t, t0, t0 + 1.18, fo=0.15, slam=True, track=24)
+        face(buf, k, t, t0, t0 + 1.2, 1.12, 1.22, 0, fi=0.02, fo=0.15, shade=0.5)
+        card(buf, s, mincho(124), "silver", x, VT - 10, t, t0, t0 + 1.18, fo=0.15, slam=True, track=6,
+             anchor="t", vertical=True)
     if 32.6 <= t < 34.0:
         buf += HAZE_RED * 0.3 * env(t, 32.6, 34.0, 0.02, 0.3)
-        streak(buf, W / 2, CY + 110, 1.6 * (1 - ease_out((t - 32.6) / 1.0)) + 0.2, color=(1, .3, .2), length=1200)
-        card(buf, "すべてが、違う。", mincho(116), "red", W / 2, CY, t, 32.6, 34.0, fo=0.12, slam=True, track=22)
+        streak(buf, W * 0.62, CY + 200, 1.6 * (1 - ease_out((t - 32.6) / 1.0)) + 0.2, color=(1, .3, .2), length=1200)
+        card(buf, "すべてが、", mincho(56), "silver", 360, CY - 150, t, 32.6, 34.0, fo=0.12, track=16, anchor="l")
+        card(buf, "違う。", mincho(270), "red", W - 300, CY + 40, t, 32.72, 34.0, fo=0.12, slam=True, track=30, anchor="r")
 
-    # I それでも
+    # I それでも: 中央に縦書き二列
     if 34.8 <= t < 39.0:
         e = env(t, 34.8, 39.0, 1.6, 0.6)
         buf += HAZE * 0.45 * e
         particles(buf, t, 0.7 * e, (1, .92, .8), 0.6)
-        streak(buf, W / 2, CY - 230, 0.35 * e, color=(1, .85, .6), length=700)
-        card(buf, "それでも、", mincho(60), "silver", W / 2, CY - 60, t, 35.0, 38.9, fi=1.2, track=16, glow=0.5)
-        card(buf, "人は、つながる。", mincho(96), "gold", W / 2, CY + 60, t, 36.3, 38.9, fi=1.4, track=20, sweep=True)
+        streak(buf, W / 2, BAR + 30, 0.35 * e, color=(1, .85, .6), length=700)
+        card(buf, "それでも、", mincho(46), "silver", W / 2 + 100, VT - 10, t, 35.0, 38.9, fi=1.2, track=8,
+             glow=0.5, anchor="t", vertical=True)
+        card(buf, "人は、つながる。", mincho(70), "gold", W / 2 - 40, VT + 20, t, 36.3, 38.9, fi=1.4, track=0,
+             sweep=True, anchor="t", vertical=True)
 
-    # J 英語で語る
+    # J 英語で語る: 左上の小さな告白から右下の宣言へ
     if 39.0 <= t < 43.5:
         buf += HAZE * 0.25 * env(t, 39.0, 43.5, 0.8, 0.4)
         particles(buf, t, 0.45, (1, .9, .85), 0.6)
-        card(buf, "英語は、話せない。", mincho(64), "silver", W / 2, CY - 80, t, 39.2, 43.4, track=14, glow=0.5)
+        card(buf, "英語は、話せない。", mincho(54), "silver", 240, CY - 170, t, 39.2, 43.4, track=14, glow=0.5, anchor="l")
         if t >= 41.0:
             buf += HAZE_RED * 0.25 * env(t, 41.0, 43.5, 0.05, 0.4)
-            streak(buf, W / 2, CY + 165, 1.2 * (1 - ease_out((t - 41.0) / 1.2)), color=(1, .3, .2), length=1000)
-        card(buf, "だから、英語で語る。", mincho(92), "red", W / 2, CY + 60, t, 41.0, 43.4, slam=True, track=18)
+            streak(buf, W * 0.65, CY + 225, 1.2 * (1 - ease_out((t - 41.0) / 1.2)), color=(1, .3, .2), length=1000)
+        card(buf, "だから、", mincho(64), "red", 240, CY - 50, t, 41.0, 43.4, slam=True, track=14, anchor="l")
+        card(buf, "英語で語る。", mincho(160), "red", W - 200, CY + 110, t, 41.15, 43.4, slam=True, track=18, anchor="r")
 
-    # K 最後のモンタージュ
+    # K 最後のモンタージュ: 言葉が画面の隅を移動していく
     if 43.5 <= t < 48.5:
         i = max(j for j, c in enumerate(CUTS) if c <= t)
         nxt = CUTS[i + 1] if i + 1 < len(CUTS) else 48.5
-        face(buf, "abcdefghi"[i % 9], t, CUTS[i], nxt, 1.25, 1.4, 0, fi=0.0, fo=0.0, shade=0.6)
+        face(buf, "abcdefghi"[i % 9], t, CUTS[i], nxt, 1.1, 1.2, 0, fi=0.0, fo=0.0, shade=0.5)
         flash(buf, t, CUTS[i], 0.5, 0.07)
-        words = [("PEOPLE", 43.5, 45.1), ("IDEAS", 45.1, 46.7), ("CONNECTIONS", 46.7, 48.45)]
-        for wd, a, b in words:
-            card(buf, wd, cinzel(120, 800), "gold", W / 2, CY, t, a, b, fi=0.15, fo=0.1, track=30, glow=1.0)
-        streak(buf, W / 2, CY, 0.5 + 0.9 * (t - 43.5) / 5, color=(1, .5, .3), length=1300)
+        for wd, a, b, anc, x, y in [("PEOPLE", 43.5, 45.1, "l", 140, H - BAR - 90),
+                                    ("IDEAS", 45.1, 46.7, "r", W - 140, BAR + 90),
+                                    ("CONNECTIONS", 46.7, 48.45, "", W / 2, H - BAR - 90)]:
+            if a <= t <= b:
+                card(buf, wd, cinzel(110, 800), "gold", x, y, t, a, b, fi=0.15, fo=0.1, track=30, glow=1.0, anchor=anc)
+                streak(buf, {"l": 520, "r": W - 420, "": W / 2}[anc], y, 0.5 + 0.9 * (t - 43.5) / 5,
+                       color=(1, .5, .3), length=1300)
 
-    # M タイトル
+    # M タイトル: BEYOND と WORDS を左右にずらして重ねる
     if 49.3 <= t < 55.0:
         lt = t - 49.3
         e = env(t, 49.3, 55.0, 0.01, 0.5)
@@ -312,12 +372,16 @@ def scene(t):
         particles(buf, t, 0.9 * e, (1, .35, .18), 2.2)
         sc = 1.0 + 0.05 * ease_out(lt / 5.7)
         sw = -0.3 + 1.6 * (lt / 2.0)
-        blit(buf, metal("BEYOND", mont(230), "silver", 10), W / 2, CY - 120, e, sc, sw, 0.7)
-        blit(buf, metal("WORDS", mont(230), "red", 10), W / 2, CY + 95, e, sc, sw - 0.15, 1.0)
+        blit(buf, metal("BEYOND", mont(230), "silver", 10), W / 2 - 110, CY - 130, e, sc, sw, 0.7)
+        blit(buf, metal("WORDS", mont(230), "red", 10), W / 2 + 130, CY + 85, e, sc, sw - 0.15, 1.0)
         fx = W * (0.15 + 0.7 * ease_out(lt / 3.5))
-        streak(buf, fx, CY - 10, 1.6 * (1 - ease_out(lt / 2.5)) + 0.25 * e, color=(.5, .6, 1), length=1300)
-        card(buf, "PEOPLE  ×  IDEAS  ×  CONNECTIONS", mont(34, 500), "gold", W / 2, CY + 240, t, 50.8, 54.95, fi=1.0, fo=0.5, track=14, glow=0.5)
-        card(buf, "言葉を越えて、つながる。", mincho(44), "silver", W / 2, CY + 315, t, 52.0, 54.95, fi=1.0, fo=0.5, track=16, glow=0.4)
+        streak(buf, fx, CY - 20, 1.6 * (1 - ease_out(lt / 2.5)) + 0.25 * e, color=(.5, .6, 1), length=1300)
+        right = W / 2 + 130 + ink_width("WORDS", mont(230), 10) / 2 * sc
+        left = W / 2 - 110 - ink_width("BEYOND", mont(230), 10) / 2 * sc
+        card(buf, "PEOPLE  ×  IDEAS  ×  CONNECTIONS", mont(30, 500), "gold", right, CY + 230, t, 50.8, 54.95,
+             fi=1.0, fo=0.5, track=12, glow=0.5, anchor="r")
+        card(buf, "言葉を越えて、つながる。", mincho(44), "silver", left, CY - 285, t, 52.0, 54.95, fi=1.0, fo=0.5,
+             track=16, glow=0.4, anchor="l")
 
     # N 開催情報
     if 55.0 <= t < 61.5:
@@ -326,13 +390,17 @@ def scene(t):
         buf += g[..., None] * np.array([.5, .32, .3]) * 0.22 * env(t, 55.0, 61.5, 0.8, 0.5)
         particles(buf, t, 0.5, (1, .5, .3), 1.5)
         e1 = env(t, 55.0, 58.6, 0.05, 0.4)
-        streak(buf, W / 2, CY - 40, 1.4 * (1 - ease_out((t - 55.0) / 1.5)) * e1 + 0.15 * e1, color=(1, .75, .4), length=1100)
-        card(buf, "11.22", cinzel(210, 800), "gold", W / 2, CY - 50, t, 55.0, 58.6, fo=0.4, slam=True, track=10, sweep=True)
-        card(buf, "SUNDAY    14:00 – 16:00", cinzel(40), "silver", W / 2, CY + 115, t, 55.8, 58.6, fi=0.6, fo=0.4, track=12, glow=0.4)
-        card(buf, "原宿 HOW’z Cafe", sans(76, 800), "silver", W / 2, CY - 90, t, 58.5, 61.4, fi=0.5, track=6, glow=0.4)
-        card(buf, "東急プラザ原宿 3F", sans(32, 500), "silver", W / 2, CY - 10, t, 58.8, 61.4, fi=0.5, track=10, glow=0.2)
-        card(buf, "参加費 5,500円", sans(60, 800), "gold", W / 2, CY + 90, t, 59.3, 61.4, fi=0.5, track=6, glow=0.5)
-        card(buf, "軽食・ドリンク付き", sans(30, 500), "silver", W / 2, CY + 158, t, 59.5, 61.4, fi=0.5, track=10, glow=0.2)
+        streak(buf, W / 2 + 40, CY + 100, 1.4 * (1 - ease_out((t - 55.0) / 1.5)) * e1 + 0.15 * e1, color=(1, .75, .4), length=1100)
+        card(buf, "11.22", cinzel(240, 800), "gold", W / 2 + 40, CY - 10, t, 55.0, 58.6, fo=0.4, slam=True, track=10,
+             sweep=True, anchor="r")
+        card(buf, "SUNDAY", cinzel(52), "silver", W / 2 + 110, CY - 75, t, 55.8, 58.6, fi=0.6, fo=0.4, track=16, glow=0.4, anchor="l")
+        card(buf, "14:00 – 16:00", cinzel(52), "silver", W / 2 + 110, CY + 15, t, 56.1, 58.6, fi=0.6, fo=0.4, track=8, glow=0.4, anchor="l")
+        e2 = env(t, 58.5, 61.4, 0.5, 0.5)
+        hline(buf, 260, 260 + (W - 520) * ease_out((t - 58.5) / 0.9), CY + 10, e2)
+        card(buf, "原宿 HOW’z Cafe", sans(76, 800), "silver", 260, CY - 75, t, 58.5, 61.4, fi=0.5, track=6, glow=0.4, anchor="l")
+        card(buf, "東急プラザ原宿 3F", sans(32, 500), "silver", 265, CY - 160, t, 58.8, 61.4, fi=0.5, track=10, glow=0.2, anchor="l")
+        card(buf, "参加費 5,500円", sans(64, 800), "gold", W - 260, CY + 95, t, 59.3, 61.4, fi=0.5, track=6, glow=0.5, anchor="r")
+        card(buf, "軽食・ドリンク付き", sans(30, 500), "silver", W - 262, CY + 175, t, 59.5, 61.4, fi=0.5, track=10, glow=0.2, anchor="r")
 
     # O 締め
     if t >= 61.5:
