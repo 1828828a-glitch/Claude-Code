@@ -196,7 +196,7 @@ SC = [(s_intro, 3.6), (s_title, 5), (s_news, 8.5),
       (s_network, 6), (s_end, 5)]
 WIPE = .45
 
-def frame(T):
+def frame(T, SC=SC):
     acc = 0
     for i, (fn, dur) in enumerate(SC):
         if T < acc + dur or i == len(SC)-1:
@@ -211,12 +211,13 @@ def frame(T):
             return fr
         acc += dur
 
-total = sum(d for _, d in SC)
-out = os.path.join(OUT, "grok_training_motion.mp4")
-pr = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-                       "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", out], stdin=subprocess.PIPE)
-for k in range(int(total*FPS)):
-    pr.stdin.write(frame(k/FPS).convert("RGB").tobytes())
-pr.stdin.close(); pr.wait()
-for s in (2.0, 7.5, 12.5, 30.0, 38.5):
-    frame(s).convert("RGB").save(os.path.join(OUT, f"preview_{s:.1f}.png"))
+if __name__ == "__main__":
+    total = sum(d for _, d in SC)
+    out = os.path.join(OUT, "grok_training_motion.mp4")
+    pr = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
+                           "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", out], stdin=subprocess.PIPE)
+    for k in range(int(total*FPS)):
+        pr.stdin.write(frame(k/FPS).convert("RGB").tobytes())
+    pr.stdin.close(); pr.wait()
+    for s in (2.0, 7.5, 12.5, 30.0, 38.5):
+        frame(s).convert("RGB").save(os.path.join(OUT, f"preview_{s:.1f}.png"))
