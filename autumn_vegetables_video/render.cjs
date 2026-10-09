@@ -3,6 +3,7 @@
 //   node render.cjs                 -> autumn_vegetables.mp4 (bgm.cjs の BGM 付き)
 //   node render.cjs --stills 2,8,20 -> 指定秒の PNG を stills/ に出力
 //   node render.cjs --page soft.html --bgm bgm_soft.cjs --out autumn_vegetables_soft.mp4  -> やわらか版
+//   --narration narration_impact.wav を足すと、ナレーション中は BGM を下げて重ねる (narration.py で生成)
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -38,6 +39,7 @@ async function ensureFonts() {
   const opt = (name, def) => (args.includes(name) ? args[args.indexOf(name) + 1] : def);
   const pageFile = opt('--page', 'index.html');
   const bgmFile = opt('--bgm', 'bgm.cjs');
+  const narration = opt('--narration', null);
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
   await page.goto('file://' + path.join(__dirname, pageFile) + '?render=1');
@@ -71,8 +73,17 @@ async function ensureFonts() {
   await browser.close();
 
   require('./' + bgmFile);
-  await new Promise((res, rej) => spawn('ffmpeg', ['-y', '-loglevel', 'error', '-i', silent, '-i', path.join(__dirname, bgmFile.replace(/\.cjs$/, '.wav')),
-    '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', out],
+  const bgmWav = path.join(__dirname, bgmFile.replace(/\.cjs$/, '.wav'));
+  // ナレーションがあれば、話している間だけ BGM を下げてから重ね、SNS 向けに -14 LUFS へ揃える
+  const audioArgs = narration
+    ? ['-i', bgmWav, '-i', path.join(__dirname, narration), '-filter_complex',
+      '[2:a]aresample=44100,aformat=channel_layouts=stereo,volume=1.6,asplit[n1][n2];' +
+      '[1:a][n1]sidechaincompress=threshold=0.02:ratio=6:attack=20:release=350[b];' +
+      '[b][n2]amix=inputs=2:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=44100[a]',
+      '-map', '0:v', '-map', '[a]']
+    : ['-i', bgmWav, '-map', '0:v', '-map', '1:a'];
+  await new Promise((res, rej) => spawn('ffmpeg', ['-y', '-loglevel', 'error', '-i', silent, ...audioArgs,
+    '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', out],
   { stdio: 'inherit' }).on('close', code => (code ? rej(new Error('mux failed')) : res())));
   fs.unlinkSync(silent);
   console.log('done:', out);
