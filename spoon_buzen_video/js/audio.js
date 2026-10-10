@@ -267,6 +267,31 @@
     partial(A, t, 55, v * 0.55, 0.005, 1.1, 0.1);
     noiseHit(A, t, 1.5, v * 0.16, 'highpass', 5000, 0.4, 0.35, 0.003);
   }
+  // エレクトリックピアノ（FMで柔らかいベル系の音）
+  function epiano(A, t, f, v, dur) {
+    const c = A.ctx;
+    dur = dur || 1.0;
+    const car = c.createOscillator();
+    car.frequency.value = f;
+    const mod = c.createOscillator();
+    mod.frequency.value = f;
+    const mg = c.createGain();
+    mg.gain.setValueAtTime(f * 1.2, t);
+    mg.gain.exponentialRampToValueAtTime(f * 0.12, t + 0.9);
+    mod.connect(mg);
+    mg.connect(car.frequency);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(v, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(v * 0.42, t + 0.4);
+    g.gain.exponentialRampToValueAtTime(v * 0.25, t + Math.max(0.45, dur));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.45, dur) + 0.35);
+    car.connect(g);
+    out(A, g, 0.3, t + Math.max(0.45, dur) + 0.45);
+    partial(A, t, f * 4, v * 0.05, 0.002, 0.22, 0.2);
+    car.start(t); mod.start(t);
+    car.stop(t + Math.max(0.45, dur) + 0.4); mod.stop(t + Math.max(0.45, dur) + 0.4);
+  }
   function ding(A, t, v) {
     bell(A, t, nf('C6'), v, 1.4, 0.45);
     bell(A, t + 0.09, nf('E6'), v * 0.8, 1.4, 0.45);
@@ -277,7 +302,7 @@
    * 書き出し中に0.5秒ごとに一時停止して、1秒先までの音だけを作り、
    * 鳴り終わった音はつなぎを外す。全部を最初に作ると、まだ鳴らない音まで
    * 毎回処理されて、60秒の生成に何倍も時間がかかるため。 */
-  const INSTR = { bell, marimba, glock, bass, pad, kick, clap, hat, shaker, snare, tick, pop, whoosh, riser, impact, ding };
+  const INSTR = { bell, marimba, glock, bass, pad, kick, clap, hat, shaker, snare, tick, pop, whoosh, riser, impact, ding, epiano };
   const S = {};
   Object.keys(INSTR).forEach(k => {
     S[k] = (A, t, ...rest) => { A.queue.push({ t, run: () => INSTR[k](A, t, ...rest) }); };
@@ -439,7 +464,7 @@
       const dur = SV.DURATION;
       const ctx = new OAC(2, SR * dur, SR);
       const A = setup(ctx, dur);
-      score(A);
+      (SV.SCORE || score)(A, S, nf);
       const buf = await renderScheduled(ctx, A, dur);
       let peak = 0;
       for (let ch = 0; ch < buf.numberOfChannels; ch++) {

@@ -2,12 +2,15 @@
   "name": "spoon-buzen-video",
   "version": "1.0.0",
   "private": true,
-  "description": "SPOON豊前の60秒サービス紹介動画（JavaScript のモーショングラフィックス）",
+  "description": "SPOON豊前のサービス紹介動画（昼食版・夕食版、各60秒、JavaScript のモーショングラフィックス）",
   "scripts": {
     "render": "node render.js",
+    "render:dinner": "node render.js --page dinner.html --out dist/spoon-buzen-dinner-60s.mp4",
     "render:60fps": "node render.js --fps 60 --out dist/spoon-buzen-60s-60fps.mp4",
     "stills": "node render.js --stills 1.8,8.5,11.6,16.9,19.6,24.9,30.6,40.2,47.2,50.3,53.3,58.6 --out dist/stills/frame.mp4",
-    "narration": "node tools/narration.js"
+    "stills:dinner": "node render.js --page dinner.html --stills 2.6,8.6,13.6,18.0,21.4,24.3,28.4,33.4,42.8,48.5,53.6,58.6 --out dist/stills/dinner.mp4",
+    "narration": "node tools/narration.js",
+    "narration:dinner": "node tools/narration.js --src js/dinner/narration.js --md NARRATION_DINNER.md --srt dist/narration-dinner.srt"
   },
   "devDependencies": {
     "ffmpeg-static": "^5.2.0",

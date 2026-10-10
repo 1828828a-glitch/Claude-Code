@@ -16,6 +16,7 @@
  *   --from 0 --to 60    一部分だけ書き出す
  *   --no-audio          無音で書き出す
  *   --stills 2,19.5     指定秒の静止画だけPNGで保存する
+ *   --page dinner.html  夕食版を書き出す（既定は index.html の昼食版）
  *
  * ffmpeg は 環境変数 FFMPEG_PATH → ffmpeg-static → PATH 上の ffmpeg の順で探します。
  */
@@ -38,6 +39,7 @@ const FROM = Number(arg('from', 0));
 const TO = Number(arg('to', 60));
 const OUT = path.resolve(process.cwd(), String(arg('out', path.join(__dirname, 'dist', 'spoon-buzen-60s.mp4'))));
 const NO_AUDIO = arg('no-audio', false) === true;
+const PAGE = String(arg('page', 'index.html'));   // 夕食版は dinner.html
 const STILLS = arg('stills', '');
 
 function findFfmpeg() {
@@ -61,7 +63,7 @@ function findFfmpeg() {
     });
   }
 
-  await page.goto(pathToFileURL(path.join(__dirname, 'index.html')).href);
+  await page.goto(pathToFileURL(path.join(__dirname, PAGE)).href);
   await page.waitForFunction(() => window.SV && window.SV.isReady && window.SV.isReady(), null, { timeout: 60000 });
   const fams = await page.evaluate(() => window.SV.loadedFamilies());
   console.log('fonts:', fams.join(', ') || '(なし)');

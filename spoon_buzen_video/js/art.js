@@ -594,5 +594,5 @@
     ctx.restore();
   }
 
-  SV.art = { icon, clock, factory, PAL, shop, van, bentoSide, tag, canteenGhost, bento };
+  SV.art = { icon, ICONS, clock, factory, PAL, shop, van, bentoSide, tag, canteenGhost, bento };
 })();

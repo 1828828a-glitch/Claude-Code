@@ -2,7 +2,8 @@
 /*
  * ナレーション台本の時間チェックと書き出し
  *
- *   npm run narration
+ *   npm run narration          昼食版
+ *   npm run narration:dinner   夕食版
  *
  * js/narration.js を読み込み、
  *   1. 各カットの拍数（モーラ）と読む速さ（拍/秒）を計算して表示する
@@ -16,6 +17,13 @@ const path = require('path');
 const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
+function arg(name, def) {
+  const i = process.argv.indexOf('--' + name);
+  return i === -1 || process.argv[i + 1] === undefined ? def : process.argv[i + 1];
+}
+const SRC = arg('src', 'js/narration.js');            // 夕食版は js/dinner/narration.js
+const MD = arg('md', 'NARRATION.md');                  // 夕食版は NARRATION_DINNER.md
+const SRT = arg('srt', 'dist/narration.srt');          // 夕食版は dist/narration-dinner.srt
 const DURATION = 60;
 const FAST = 7.3;       // これを超えると早口に聞こえやすい（拍/秒）
 const COMMA = 0.15;     // 読点での間（秒）
@@ -24,7 +32,7 @@ const PERIOD = 0.3;     // 文中の句点での間（秒）
 const ctx = {};
 ctx.window = ctx;
 vm.createContext(ctx);
-vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/narration.js'), 'utf8'), ctx);
+vm.runInContext(fs.readFileSync(path.join(ROOT, SRC), 'utf8'), ctx);
 const cues = ctx.SV.NARRATION;
 
 const SMALL = new Set(Array.from('ゃゅょぁぃぅぇぉゎャュョァィゥェォヮ'));
@@ -72,12 +80,12 @@ console.log(`\n${cues.length}カット、声が入るのは合計 ${voiced.toFix
 
 // 3. SRT
 const srt = cues.map((c, i) => `${i + 1}\n${srtTime(c.start)} --> ${srtTime(c.end)}\n${c.text}\n`).join('\n');
-fs.mkdirSync(path.join(ROOT, 'dist'), { recursive: true });
-fs.writeFileSync(path.join(ROOT, 'dist', 'narration.srt'), srt);
-console.log('saved dist/narration.srt');
+fs.mkdirSync(path.dirname(path.join(ROOT, SRT)), { recursive: true });
+fs.writeFileSync(path.join(ROOT, SRT), srt);
+console.log('saved ' + SRT);
 
 // 4. NARRATION.md の表
-const mdPath = path.join(ROOT, 'NARRATION.md');
+const mdPath = path.join(ROOT, MD);
 if (fs.existsSync(mdPath)) {
   const md = fs.readFileSync(mdPath, 'utf8');
   const esc = s => String(s || '').replace(/\|/g, '\\|');
@@ -89,7 +97,7 @@ if (fs.existsSync(mdPath)) {
   const next = md.replace(/<!-- cues:start -->[\s\S]*?<!-- cues:end -->/, `<!-- cues:start -->\n${table}\n<!-- cues:end -->`);
   if (next !== md) {
     fs.writeFileSync(mdPath, next);
-    console.log('updated NARRATION.md');
+    console.log('updated ' + MD);
   }
 }
 if (warn) process.exitCode = 1;

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SPOON豊前 紹介動画</title>
-<meta name="description" content="企業・職場向け日替わり弁当 SPOON豊前 の60秒サービス紹介動画。JavaScript（Canvas と Web Audio）で描いたモーショングラフィックス。">
+<title>SPOON豊前 夕食の紹介動画</title>
+<meta name="description" content="SPOON豊前の夕食のお弁当宅配を紹介する60秒動画。JavaScript（Canvas と Web Audio）で描いたモーショングラフィックス。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700&family=Zen+Maru+Gothic:wght@700;900&display=swap">
@@ -14,17 +14,17 @@
 <main class="wrap">
   <header class="head">
     <nav class="versions" aria-label="動画の種類">
-      <a href="index.html" aria-current="page">昼食</a>
-      <a href="dinner.html">夕食</a>
+      <a href="index.html">昼食</a>
+      <a href="dinner.html" aria-current="page">夕食</a>
     </nav>
-    <p class="eyebrow">企業・職場向け 日替わり弁当</p>
-    <h1><span class="brand">SPOON</span>豊前 紹介動画</h1>
+    <p class="eyebrow">ご自宅にも、職場にも。夕食のお弁当宅配</p>
+    <h1><span class="brand">SPOON</span>豊前 夕食の紹介動画</h1>
     <p class="meta"><span>60秒</span><span>1920×1080</span><span>JavaScript（Canvas・Web Audio）</span></p>
   </header>
 
   <section class="player" aria-label="動画プレイヤー">
     <div class="stage" id="stageWrap">
-      <canvas id="stage" width="1920" height="1080" role="img" aria-label="SPOON豊前の紹介動画。社員食堂がなくても、ちゃんと昼休みはつくれる。"></canvas>
+      <canvas id="stage" width="1920" height="1080" role="img" aria-label="SPOON豊前の夕食の紹介動画。夕食のことまで、手が回らない日がある。そんな日の夕食に、SPOON。"></canvas>
       <button class="bigplay" id="bigPlay" type="button" disabled>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg>
         最初から再生 <span class="len">1:00</span>
@@ -63,8 +63,8 @@
         <button id="btnPng" class="btn" type="button">この画面をPNGで保存</button>
       </div>
       <p class="note">WebMは再生しながら記録するため、書き出しに約60秒かかります。</p>
-      <p class="note">入稿用のMP4（H.264・AAC）は、このフォルダで <code>npm install</code> のあと <code>npm run render</code> を実行すると <code>dist/</code> に出力されます。</p>
-      <p class="note">ナレーション台本は <code>NARRATION.md</code>、編集ソフト用の字幕ファイルは <code>dist/narration.srt</code> にあります。プレイヤーの吹き出しボタンを押すと、再生に合わせて今読む一文と次の一文が動画の下に出ます。</p>
+      <p class="note">入稿用のMP4（H.264・AAC）は、このフォルダで <code>npm install</code> のあと <code>npm run render:dinner</code> を実行すると <code>dist/</code> に出力されます。</p>
+      <p class="note">ナレーション台本は <code>NARRATION_DINNER.md</code>、編集ソフト用の字幕ファイルは <code>dist/narration-dinner.srt</code> にあります。プレイヤーの吹き出しボタンを押すと、再生に合わせて今読む一文と次の一文が動画の下に出ます。</p>
       <h3>キー操作</h3>
       <dl class="keys">
         <dt><kbd>Space</kbd></dt><dd>再生と一時停止</dd>
@@ -77,18 +77,20 @@
   </div>
 
   <footer class="foot">
-    40品目以上・7種類のおかず・管理栄養士監修・日替わり1000種類以上・当日9:30締切・9:30〜12:00頃配達・電話番号は SPOON公式LP の記載にもとづいています。
-    ストーリーとコピーは広報戦略資料（2026年9月26日版）のブランド仮説と漫画パンフ案から組み立て、価格は資料の方針どおり載せていません。
-    文言は <code>js/copy.js</code> で直せます。
+    メニューと価格、当日12時までの注文、14時〜17時（最大18時）のお届け、宅配1個から無料、電話とFAXの番号は、夕食チラシと夕食FAX注文票の記載にもとづいています。
+    昼食の日替わり弁当についての「40品目以上」「管理栄養士監修」は、夕食メニューに当てはまるか確認できていないため使っていません。
+    文言は <code>js/dinner/copy.js</code> で直せます。
   </footer>
 </main>
 
-<script src="js/copy.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/art.js"></script>
-<script src="js/scenes.js"></script>
+<script src="js/dinner/copy.js"></script>
+<script src="js/dinner/art.js"></script>
+<script src="js/dinner/scenes.js"></script>
 <script src="js/audio.js"></script>
-<script src="js/narration.js"></script>
+<script src="js/dinner/score.js"></script>
+<script src="js/dinner/narration.js"></script>
 <script src="js/player.js"></script>
 </body>
 </html>
