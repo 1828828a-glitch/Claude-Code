@@ -23,6 +23,16 @@ AI講評を使うときは `ANTHROPIC_API_KEY` を設定する（`ant auth login
 | `FURIOCHI_MODEL` | 講評に使うモデル | `claude-opus-5-5` |
 | `FURIOCHI_EFFORT` | 講評の思考量 | `medium` |
 
+## Web版（claude.ai）
+
+`furiochi_lab/web/` は claude.ai 上で開く1ページ版の元ファイル。問題バンク・採点ルール・AIプロンプトは Python 側から書き出して埋め込むので、問題を直したら作り直す。
+
+```bash
+python furiochi_lab/web/build.py furiochi-lab.html
+```
+
+AI講評は閲覧者自身の Claude で行い、使えないときは自己採点に切り替わる。履歴は閲覧者ごとの非公開領域に保存し、書けないときはそのブラウザに保存する。
+
 ## 実装した範囲
 
 設計書の「次の一手」にある4モードに、Day 1 で使う M03 を加えた5モード。

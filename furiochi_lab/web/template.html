@@ -1,0 +1,931 @@
+<title>フリオチLAB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Old+Mincho:wght@600;700&display=swap">
+<style>
+/* Layout: 台本のページのような一本の縦カラム。お題は寄席のめくり（縦書きの役名札＋台詞）、講評は設計書の順に上から読む */
+:root {
+  --paper: #F4F5F8;
+  --surface: #FFFFFF;
+  --ink: #1B2130;
+  --muted: #5C6477;
+  --line: #D8DCE4;
+  --kin: #946609;          /* 金屏風の金。白地で本文に使える濃さ */
+  --kin-soft: #F4EAD2;
+  --on-kin: #FFFFFF;
+  --ai: #2D4C82;           /* 藍。AI講評の印 */
+  --ai-soft: #E4EAF5;
+  --good: #26754A;
+  --good-soft: #E1F1E8;
+  --warn: #8F5600;
+  --warn-soft: #FBEFD9;
+  --bad: #B0261E;
+  --bad-soft: #FBE5E3;
+  --f-display: "Dela Gothic One", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --f-script: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  --f-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --r: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #10131A; --surface: #191E28; --ink: #E7EAF0; --muted: #9AA2B3; --line: #2B3240;
+    --kin: #E3B653; --kin-soft: #352C17; --on-kin: #1A1406;
+    --ai: #A3BCEA; --ai-soft: #1D283D;
+    --good: #72CB98; --good-soft: #17301F; --warn: #F0B65C; --warn-soft: #33270F; --bad: #F2867E; --bad-soft: #3A1916;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #10131A; --surface: #191E28; --ink: #E7EAF0; --muted: #9AA2B3; --line: #2B3240;
+  --kin: #E3B653; --kin-soft: #352C17; --on-kin: #1A1406;
+  --ai: #A3BCEA; --ai-soft: #1D283D;
+  --good: #72CB98; --good-soft: #17301F; --warn: #F0B65C; --warn-soft: #33270F; --bad: #F2867E; --bad-soft: #3A1916;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.75;
+  padding-inline: 16px;
+  padding-block: 0 48px;
+}
+.wrap { max-width: 640px; margin-inline: auto; display: grid; gap: 22px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; line-height: 1.35; }
+h2 { font-size: 1.12rem; font-weight: 700; }
+h3 { font-size: 0.98rem; font-weight: 700; }
+p { margin: 0; }
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--kin); outline-offset: 2px; }
+.meta { color: var(--muted); font-size: 0.84rem; }
+.stack { display: grid; gap: 14px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.row > .grow { flex: 1 1 200px; min-width: 0; }
+
+/* 見出しとナビ */
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--paper);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding-block: 14px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.mark { font-family: var(--f-display); font-size: 1.45rem; letter-spacing: 0.02em; display: flex; align-items: baseline; gap: 2px; }
+.mark .lab { font-size: 0.8rem; color: var(--kin); letter-spacing: 0.12em; margin-left: 6px; }
+nav { display: flex; gap: 2px; }
+nav button {
+  border: 0; background: none; padding: 6px 10px; border-radius: 6px; cursor: pointer;
+  color: var(--muted); font-weight: 500;
+}
+nav button[aria-current="page"] { color: var(--ink); background: var(--surface); box-shadow: inset 0 -2px 0 var(--kin); }
+
+/* ボタン */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--line); background: var(--surface); border-radius: var(--r);
+  padding: 9px 14px; cursor: pointer; font-weight: 500; min-height: 42px;
+}
+.btn:hover { border-color: var(--kin); }
+.btn.primary { background: var(--kin); border-color: var(--kin); color: var(--on-kin); font-weight: 700; }
+.btn.primary:hover { filter: brightness(1.06); }
+.btn.wide { width: 100%; }
+.btn.small { min-height: 34px; padding: 4px 10px; font-size: 0.88rem; }
+.btn.danger { color: var(--bad); }
+.btn:disabled { opacity: 0.55; cursor: default; }
+.link { border: 0; background: none; padding: 0; color: var(--kin); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+/* パネル */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; }
+.panel.today { border-color: var(--kin); }
+.chip { display: inline-block; font-size: 0.76rem; padding: 1px 8px; border-radius: 999px; background: var(--kin-soft); color: var(--kin); font-weight: 700; white-space: nowrap; }
+.chip.ai { background: var(--ai-soft); color: var(--ai); }
+.chip.tag { background: var(--warn-soft); color: var(--warn); }
+.stats { display: flex; gap: 18px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.stats b { font-family: var(--f-display); font-weight: 400; font-size: 1.3rem; margin-inline: 3px; }
+.qlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.qlist li { display: grid; grid-template-columns: 7.2em 1fr; gap: 8px; align-items: baseline; }
+.qlist li > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.modes { display: grid; gap: 0; border-top: 1px solid var(--line); }
+.mode-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; padding-block: 12px; border-bottom: 1px solid var(--line); }
+.mode-row .name { font-weight: 700; }
+.mode-row .code { font-family: var(--f-display); font-weight: 400; color: var(--kin); margin-right: 6px; }
+details { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+details > summary { cursor: pointer; padding: 10px 14px; font-weight: 500; list-style-position: inside; }
+details > .body { padding: 0 14px 14px; display: grid; gap: 10px; }
+.progress { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.progress > i { display: block; height: 100%; background: var(--kin); }
+
+/* めくり（お題カード） */
+.mekuri {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 18px 16px 18px 12px;
+}
+.mekuri .role {
+  writing-mode: vertical-rl; font-family: var(--f-display); font-size: 1.15rem; letter-spacing: 0.25em;
+  color: var(--kin); border-right: 1px solid var(--line); padding-right: 10px; align-self: stretch;
+}
+.mekuri .line { font-family: var(--f-script); font-weight: 700; font-size: 1.32rem; line-height: 1.8; white-space: pre-line; overflow-wrap: anywhere; align-self: center; }
+.mekuri .cond { font-family: var(--f-body); font-size: 0.9rem; font-weight: 500; color: var(--muted); margin-top: 6px; }
+.ma { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.8rem; letter-spacing: 0.3em; }
+.ma::before, .ma::after { content: ""; flex: 1; border-top: 1px dashed var(--line); }
+
+/* フォーム */
+label.field { display: grid; gap: 6px; font-weight: 500; }
+input[type="text"], textarea, select {
+  width: 100%; border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
+  padding: 10px 12px; min-width: 0;
+}
+textarea { resize: vertical; min-height: 84px; line-height: 1.7; }
+input[type="text"]:focus, textarea:focus, select:focus { border-color: var(--kin); outline: none; box-shadow: 0 0 0 3px var(--kin-soft); }
+.answer-input { font-family: var(--f-script); font-size: 1.1rem; font-weight: 600; }
+.counter { justify-self: end; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.counter.over { color: var(--bad); font-weight: 700; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 0.92rem; }
+.error { color: var(--bad); font-size: 0.9rem; }
+
+/* 採点 */
+fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 6px; }
+legend { font-weight: 700; padding: 0; margin-bottom: 4px; }
+.seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.seg label { border: 1px solid var(--line); border-radius: 6px; padding: 8px; cursor: pointer; display: grid; gap: 2px; font-size: 0.82rem; line-height: 1.45; background: var(--surface); }
+.seg label b { font-family: var(--f-display); font-weight: 400; font-size: 1.05rem; color: var(--kin); }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label:has(input:checked) { border-color: var(--kin); background: var(--kin-soft); }
+.seg label:has(input:focus-visible) { outline: 2px solid var(--kin); outline-offset: 2px; }
+.seg.safety { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* 講評 */
+.quote { border-left: 3px solid var(--line); padding: 4px 0 4px 12px; font-family: var(--f-script); font-weight: 600; font-size: 1.05rem; white-space: pre-line; overflow-wrap: anywhere; }
+.review { display: grid; gap: 18px; }
+.review section { display: grid; gap: 6px; }
+.review h3 { display: flex; gap: 8px; align-items: baseline; }
+.score-head { display: flex; align-items: baseline; gap: 10px; }
+.score-head .num { font-family: var(--f-display); font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.score-head .of { color: var(--muted); }
+.axes { display: grid; gap: 8px; }
+.axis { display: grid; grid-template-columns: 7.4em 3em minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.axis .dots { color: var(--kin); letter-spacing: 0.1em; }
+.axis .why { color: var(--muted); font-size: 0.9rem; }
+.callout { border-radius: 6px; padding: 10px 12px; font-size: 0.92rem; }
+.callout.warn { background: var(--warn-soft); color: var(--warn); }
+.callout.bad { background: var(--bad-soft); color: var(--bad); }
+.callout.info { background: var(--ai-soft); color: var(--ai); }
+.revision { background: var(--kin-soft); border-radius: 6px; padding: 10px 12px; font-family: var(--f-script); font-weight: 600; white-space: pre-line; overflow-wrap: anywhere; }
+.alts { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.alts li { display: grid; gap: 2px; padding-left: 12px; border-left: 2px solid var(--kin-soft); }
+.alts .t { font-family: var(--f-script); font-weight: 600; white-space: pre-line; overflow-wrap: anywhere; }
+.alts .n { font-size: 0.86rem; color: var(--muted); }
+.disclaimer { font-size: 0.82rem; color: var(--muted); }
+.thinking { display: flex; gap: 10px; align-items: center; }
+.thinking .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ai); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+
+/* ノート */
+.note-sum { display: flex; gap: 12px; align-items: baseline; justify-content: space-between; }
+.note-sum .prompt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.filters button[aria-pressed="true"] { border-color: var(--kin); background: var(--kin-soft); }
+.mode-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.mode-stats div { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 0.86rem; }
+.mode-stats b { display: block; font-family: var(--f-display); font-weight: 400; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+
+/* 辞典 */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button[aria-selected="true"] { border-color: var(--kin); background: var(--kin-soft); color: var(--ink); }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.k { font-weight: 700; white-space: nowrap; }
+.defn { font-family: var(--f-script); font-weight: 700; font-size: 1.1rem; border-left: 3px solid var(--kin); padding-left: 12px; }
+.work { display: grid; gap: 4px; }
+a { color: var(--ai); }
+
+@media (max-width: 420px) {
+  .axis { grid-template-columns: auto 1fr; gap: 0 10px; }
+  .axis .why { grid-column: 1 / -1; }
+  .seg label { font-size: 0.78rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking .dot { animation: none; opacity: 1; }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="mark">フリオチ<span class="lab">LAB</span></div>
+    <nav aria-label="メニュー">
+      <button type="button" data-act="nav" data-view="home">ホーム</button>
+      <button type="button" data-act="nav" data-view="practice">練習</button>
+      <button type="button" data-act="nav" data-view="notes">ノート</button>
+      <button type="button" data-act="nav" data-view="dict">辞典</button>
+    </nav>
+  </header>
+  <main id="app" class="stack" aria-live="polite"></main>
+</div>
+
+<script id="furiochi-data" type="application/json">__FURIOCHI_DATA__</script>
+<script>
+(() => {
+"use strict";
+
+// ━━━ データ ━━━
+const D = JSON.parse(document.getElementById("furiochi-data").textContent);
+const MODES = D.modes, RUBRICS = D.rubrics, WEAK = D.weakness, LEVELS = D.levels;
+const BANK = Object.fromEntries(D.problems.map(p => [p.id, p]));
+const byMode = m => D.problems.filter(p => p.mode === m);
+const h = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// ━━━ 状態 ━━━
+const S = {
+  view: "home", dictTab: "basic", noteFilter: "all",
+  queue: [], queueLabel: "", queuePos: 0,
+  mode: "M01", problemId: null, phase: "answer",
+  draft: null, attempt: null, saved: false, retryOf: null, prevAnswer: "", round: 0,
+  aiError: "", canRetryAI: false, ai: "pending", useAi: true, ctl: null,
+  generated: {}, genError: "", generating: false,
+  attempts: [], storage: "memory", storageNote: "",
+  flash: "", confirmDelete: null,
+};
+
+// ━━━ 保存（自分専用のdb → 使えなければこのブラウザ） ━━━
+const LS_KEY = "furiochi.attempts.v1";
+const use = name => {
+  const c = window.claude;
+  return c && typeof c.use === "function" ? c.use(name).catch(() => null) : Promise.resolve(null);
+};
+const Store = {
+  coll: null, queues: {},
+  loadLocal() {
+    try { const raw = localStorage.getItem(LS_KEY); S.attempts = raw ? JSON.parse(raw) : []; S.storage = "local"; }
+    catch { S.attempts = []; S.storage = "memory"; }
+  },
+  saveLocal() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(S.attempts)); } catch { S.storage = "memory"; }
+  },
+  async init() {
+    const [db, user] = await Promise.all([use("db"), use("user")]);
+    if (!db || !user) return;
+    let uid = null;
+    try { uid = await user.id(); } catch { uid = null; }
+    if (!uid) return;
+    try { this.coll = db.collection("data/users/" + uid); } catch { return; }
+    this.coll.orderBy("ts", "asc").limit(1000).onSnapshot(snap => {
+      S.attempts = snap.docs.map(d => d.data());
+      S.storage = "db";
+      if (S.attempt) S.attempt = S.attempts.find(a => a.id === S.attempt.id) || S.attempt;
+      renderIfSafe();
+    }, () => { this.fallback(); });
+  },
+  fallback() {
+    this.coll = null;
+    S.storageNote = "履歴をアカウントに保存できなかったため、このブラウザに保存しています。";
+    this.saveLocal(); if (S.storage !== "memory") S.storage = "local";
+    renderIfSafe();
+  },
+  write(a) {
+    if (!this.coll) { this.saveLocal(); return; }
+    const ref = this.coll.doc(a.id);
+    this.queues[a.id] = (this.queues[a.id] || Promise.resolve())
+      .then(() => ref.set(JSON.parse(JSON.stringify(a))))
+      .catch(() => this.fallback());
+  },
+  add(a) { S.attempts = [...S.attempts, a]; this.write(a); },
+  update(id, fields) {
+    const i = S.attempts.findIndex(a => a.id === id);
+    if (i < 0) return;
+    const next = { ...S.attempts[i], ...fields };
+    S.attempts = S.attempts.map((a, j) => j === i ? next : a);
+    if (S.attempt && S.attempt.id === id) S.attempt = next;
+    this.write(next);
+  },
+  remove(id) {
+    S.attempts = S.attempts.filter(a => a.id !== id);
+    if (this.coll) {
+      const ref = this.coll.doc(id);
+      this.queues[id] = (this.queues[id] || Promise.resolve()).then(() => ref.delete()).catch(() => this.fallback());
+    } else this.saveLocal();
+  },
+};
+
+// ━━━ 集計・出題 ━━━
+const dayKey = ts => { const d = new Date(ts); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
+function streakDays(list) {
+  const days = new Set(list.map(a => dayKey(a.ts)));
+  const d = new Date();
+  if (!days.has(dayKey(d.getTime()))) d.setDate(d.getDate() - 1);
+  let n = 0;
+  while (days.has(dayKey(d.getTime()))) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+const resolveProblem = a => BANK[a.problemId] || a.problemSnapshot || null;
+const getProblem = id => BANK[id] || S.generated[id] || null;
+function lastAttempted(list) { const m = {}; for (const a of list) if (!m[a.problemId] || a.ts > m[a.problemId]) m[a.problemId] = a.ts; return m; }
+function orderedCandidates(mode, list) {
+  const last = lastAttempted(list), ids = byMode(mode).map(p => p.id);
+  return [...ids.filter(id => !(id in last)), ...ids.filter(id => id in last).sort((a, b) => last[a] - last[b])];
+}
+const nextProblemId = (mode, list, exclude = []) => orderedCandidates(mode, list).find(id => !exclude.includes(id)) || null;
+const ROTATION = ["M03", "M01", "M01", "M02", "M06"];
+function pick(modes, list, n) { const out = []; for (const m of modes) { if (out.length >= n) break; const id = nextProblemId(m, list, out); if (id) out.push(id); } return out; }
+function weaknessCounts(list, recent = 20) {
+  const c = {};
+  for (const a of list.slice(-recent)) for (const t of a.evaluation.tags || []) c[t] = (c[t] || 0) + 1;
+  return Object.entries(c).sort((x, y) => y[1] - x[1]);
+}
+function todaysSet(list, n = 5) {
+  const w = weaknessCounts(list);
+  if (w.length) {
+    const tag = w[0][0], fm = WEAK[tag].modes.filter(m => D.implemented.includes(m));
+    return { ids: pick([...fm, ...fm, ...ROTATION], list, n), reason: "直近で多い弱点「" + tag + "」に効くモードを多めにしています" };
+  }
+  return { ids: pick(ROTATION, list, n), reason: "予測の言語化から入り、フリ→オチ、逆算、修理の順に進みます" };
+}
+function pilotSet(day, list) {
+  const plan = D.pilot.find(d => d.day === day), modes = [];
+  for (const [m, c] of plan.menu) for (let i = 0; i < c; i++) modes.push(m);
+  return pick(modes, list, modes.length);
+}
+function explained(a) {
+  const s = a.evaluation.scores;
+  return a.evaluation.rubric === "prediction" ? s.specificity >= 1 && s.match >= 1 : s.expectation >= 1 && s.contrast >= 1;
+}
+function levelProgress(list) {
+  const lv = {};
+  for (const a of list) { const p = resolveProblem(a); if (p) (lv[p.level] = lv[p.level] || []).push(a); }
+  const l1 = (lv[1] || []).slice(-10), ok = l1.filter(explained).length;
+  const l2 = (lv[2] || []).filter(a => a.evaluation.rubric === "neta").map(a => total(a.evaluation)).sort((x, y) => x - y);
+  const med = l2.length ? (l2.length % 2 ? l2[(l2.length - 1) / 2] : (l2[l2.length / 2 - 1] + l2[l2.length / 2]) / 2) : null;
+  return { l1: { done: l1.length, ok, achieved: l1.length >= 10 && ok >= 7 }, l2: { done: l2.length, median: med, achieved: l2.length >= 5 && med >= 7 } };
+}
+const total = ev => Object.values(ev.scores).reduce((x, y) => x + y, 0);
+const maxTotal = ev => 2 * Object.keys(ev.scores).length;
+
+// ━━━ 自動チェックと自己採点 ━━━
+const charCount = s => [...s.replace(/\s/g, "")].length;
+function autoChecks(p, ans) {
+  const mode = MODES[p.mode], out = [], n = charCount(ans);
+  if (mode.char_limit && n > mode.char_limit)
+    out.push({ level: "warn", message: n + "字あり、目安の" + mode.char_limit + "字を超えています。着地のあとに足した言葉を削れないか見直しましょう。", tag: p.mode === "M01" ? "オチが長い" : "" });
+  if (p.mode !== "M03") {
+    const sents = ans.split(/[。！？!?\n]+/).filter(s => s.trim());
+    const tail = sents.length > 1 ? sents.slice(1).join("") : "";
+    const f = D.checks.explanation.find(m => tail.includes(m));
+    if (f) out.push({ level: "warn", message: "後半に「" + f + "」が入っています。オチを自分で説明していないか確認しましょう。", tag: "説明過多" });
+  }
+  if (p.mode === "M05") {
+    const u = Math.max((ans.match(/「/g) || []).length, ans.split("\n").filter(l => l.trim()).length);
+    if (u < 2) out.push({ level: "warn", message: "掛け合いになっていません。A・Bの発話を2つ以上にしましょう。", tag: "会話の不自然さ" });
+    else if (u > 8) out.push({ level: "info", message: "発話が" + u + "つあります。条件は2〜4往復なので、削れる往復がないか見てみましょう。", tag: "" });
+  }
+  const hw = D.checks.harsh.find(w => ans.includes(w));
+  if (hw) out.push({ level: "warn", message: "「" + hw + "」は相手を傷つける可能性があります。誰に向けた言葉か、使う場面で問題ないか確認しましょう。", tag: "危険性" });
+  return out;
+}
+function deriveTags(rubric, sc, checks, safety) {
+  const tags = [], add = t => { if (t && !tags.includes(t)) tags.push(t); };
+  const ct = new Set(checks.map(c => c.tag).filter(Boolean));
+  if (rubric === "prediction") { if (sc.specificity === 0 || sc.match === 0) add("反対軸が不明"); }
+  else {
+    if (sc.expectation === 0 || sc.contrast === 0 || sc.clarity === 0) add("反対軸が不明");
+    if (sc.naturalness === 0) add("会話の不自然さ");
+    if (sc.brevity === 0) add(ct.has("説明過多") ? "説明過多" : "オチが長い");
+    if (sc.brevity <= 1) for (const t of ["オチが長い", "説明過多"]) if (ct.has(t)) add(t);
+    if (sc.naturalness <= 1 && ct.has("会話の不自然さ")) add("会話の不自然さ");
+  }
+  if (safety === "needs_revision") add("危険性");
+  return tags;
+}
+function selfEvaluation(p, sc, safety, checks) {
+  const rubric = MODES[p.mode].rubric, axes = RUBRICS[rubric];
+  const scores = {}, reasons = {};
+  for (const a of axes) { scores[a.key] = Math.max(0, Math.min(2, Number(sc[a.key] ?? 1))); reasons[a.key] = a.levels[scores[a.key]]; }
+  const ck = rubric === "prediction" ? "match" : "contrast";
+  const best = axes.reduce((b, a) => scores[a.key] > scores[b.key] ? a : b, axes[0]);
+  const weakest = axes.filter(a => scores[a.key] < 2).sort((x, y) => scores[x.key] - scores[y.key]).slice(0, 2);
+  return {
+    source: "self", rubric, scores, reasons,
+    expectation: p.expectation, deviation: "", axis: p.axis,
+    relevance: ["unrelated", "weak", "related"][scores[ck]],
+    safety, safetyNote: "",
+    goodPoint: scores[best.key] === 2 ? best.name + "は「" + best.levels[2] + "」と自己評価しています。" : "",
+    improvements: weakest.map(a => a.name + "：「" + a.levels[2] + "」を目指す。"),
+    revision: "", alternatives: p.examples.map(e => ({ ...e })),
+    tags: deriveTags(rubric, scores, checks, safety), confidence: "self", question: "",
+  };
+}
+
+// ━━━ AI講評（閲覧者のClaudeに依頼） ━━━
+let sample = null;
+const HIDE_CODES = new Set(["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"]);
+function aiErrorText(code) {
+  return ({
+    not_granted: "AI講評が許可されなかったので、自己採点で進めます。",
+    sampling_disabled: "このアカウントではAI講評を使えないため、自己採点で進めます。",
+    rate_limited: "AIの利用が混み合っているか、上限に達しました。時間をおいて試すか、自己採点で進めてください。",
+    refused: "この回答はAIが講評できませんでした。表現を変えるか、自己採点で進めてください。",
+    invalid_json: "AIの応答を読み取れませんでした。もう一度頼むか、自己採点で進めてください。",
+    session_expired: "サインインが切れています。サインインし直すとAI講評が使えます。",
+    cancelled: "AI講評を止めました。自己採点で進めます。",
+  })[code] || "AI講評を取得できませんでした。もう一度頼むか、自己採点で進めてください。";
+}
+function buildEvalPrompt(p, d) {
+  const mode = MODES[p.mode], axes = RUBRICS[mode.rubric];
+  const lines = ["モード：" + mode.code + " " + mode.name, "出題：" + p.prompt];
+  if (p.condition) lines.push("条件：" + p.condition);
+  lines.push("指示：" + mode.instruction, "場面：" + p.scene, "出題側の設計意図（フリが作る期待）：" + p.expectation, "想定している対照軸：" + p.axis, "想定している型：" + p.pattern);
+  if (p.weak_reason) lines.push("出題側が想定する弱点：" + p.weak_reason);
+  if (p.scoring_hint) lines.push("採点ヒント：" + p.scoring_hint);
+  if (mode.char_limit) lines.push("字数の目安：" + mode.char_limit + "字以内");
+  const rub = axes.map(a => a.key + "（" + a.name + "）：0点＝" + a.levels[0] + "／1点＝" + a.levels[1] + "／2点＝" + a.levels[2]).join("\n");
+  const ex = p.examples.map(e => e.text + "（" + e.pattern + "）").join("\n") || "なし";
+  const tags = Object.entries(WEAK).map(([k, v]) => k + "：" + v.description).join("\n");
+  const learner = ["回答：" + d.answer];
+  if (d.diagnosis) learner.push("利用者の診断（弱い理由）：" + d.diagnosis);
+  if (d.intent) learner.push("利用者が狙った期待とズレ：" + d.intent);
+  const weak = weaknessCounts(S.attempts).slice(0, 3).map(x => x[0]);
+  if (weak.length) learner.push("過去によく付いた弱点タグ：" + weak.join("、"));
+  const scoreShape = axes.map(a => '"' + a.key + '": {"score": 0〜2の整数, "reason": "根拠"}').join(", ");
+  return D.prompts.evalSystem + "\n\n"
+    + "<mode_guide>\n" + D.prompts.modeGuides[p.mode] + "\n</mode_guide>\n\n"
+    + "<problem>\n" + lines.join("\n") + "\n</problem>\n\n"
+    + "<rubric>\n" + rub + "\n</rubric>\n\n"
+    + "<weakness_tags>\n" + tags + "\n</weakness_tags>\n\n"
+    + "<reference_examples>\n参考の成立例です。採点の基準にはせず、alternatives と重複させないためにだけ使ってください。\n" + ex + "\n</reference_examples>\n\n"
+    + "<learner>\n" + learner.join("\n") + "\n</learner>\n\n"
+    + "次の形のJSONオブジェクトだけを返してください。\n"
+    + '{"detected_expectation": "", "deviation": "", "deviation_axis": "", "relevance": "related か weak か unrelated", '
+    + '"scores": {' + scoreShape + '}, "safety_status": "ok か check_context か needs_revision", "safety_note": "", '
+    + '"good_point": "", "improvements": ["最大2つ"], "one_revision": "", "alternatives": [{"text": "", "pattern": "", "why": ""}], '
+    + '"tags": ["弱点タグの名前"], "confidence": "high か medium か low", "clarifying_question": ""}';
+}
+function toEvaluation(data, rubric) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw { code: "invalid_json" };
+  const scores = {}, reasons = {}, raw = data.scores || {};
+  for (const a of RUBRICS[rubric]) {
+    const it = raw[a.key] || {}, v = Math.round(Number(it.score));
+    scores[a.key] = Number.isFinite(v) ? Math.max(0, Math.min(2, v)) : 0;
+    reasons[a.key] = String(it.reason || "");
+  }
+  const safety = ["ok", "check_context", "needs_revision"].includes(data.safety_status) ? data.safety_status : "ok";
+  const tags = (Array.isArray(data.tags) ? data.tags : []).filter(t => t in WEAK);
+  if (safety === "needs_revision" && !tags.includes("危険性")) tags.push("危険性");
+  const conf = ["high", "medium", "low"].includes(data.confidence) ? data.confidence : "medium";
+  return {
+    source: "ai", rubric, scores, reasons,
+    expectation: String(data.detected_expectation || ""), deviation: String(data.deviation || ""), axis: String(data.deviation_axis || ""),
+    relevance: ["related", "weak", "unrelated"].includes(data.relevance) ? data.relevance : "related",
+    safety, safetyNote: String(data.safety_note || ""), goodPoint: String(data.good_point || ""),
+    improvements: (Array.isArray(data.improvements) ? data.improvements : []).filter(Boolean).map(String).slice(0, 2),
+    revision: String(data.one_revision || ""),
+    alternatives: (Array.isArray(data.alternatives) ? data.alternatives : []).filter(a => a && a.text)
+      .slice(0, 3).map(a => ({ text: String(a.text), pattern: String(a.pattern || ""), note: String(a.why || "") })),
+    tags, confidence: conf, question: conf === "low" ? String(data.clarifying_question || "") : "",
+  };
+}
+function buildGenPrompt(mode, theme) {
+  const m = MODES[mode];
+  const taken = byMode(mode).map(p => p.prompt).concat(Object.values(S.generated).filter(p => p.mode === mode).map(p => p.prompt)).join("\n");
+  return D.prompts.genSystem + "\n\n" + m.code + " " + m.name + " の問題を1問作ってください。\n"
+    + (theme ? "題材の希望：" + theme + "\n" : "")
+    + "既存のお題と重複しないでください。\n<existing>\n" + taken + "\n</existing>\n\n"
+    + '次の形のJSONオブジェクトだけを返してください。\n{"prompt": "", "condition": "", "expectation": "", "axis": "", "pattern": "", '
+    + '"examples": [{"text": "", "pattern": "", "note": ""}], "focus": "", "scoring_hint": "", "weak_reason": ""}';
+}
+function toProblem(data, mode) {
+  if (!data || typeof data !== "object") throw { code: "invalid_json" };
+  for (const k of ["prompt", "expectation", "axis"]) if (!String(data[k] || "").trim()) throw { code: "invalid_json" };
+  const id = "G-" + Math.random().toString(16).slice(2, 10);
+  return {
+    id, mode, level: D.prompts.defaultLevel[mode] || 1, prompt: String(data.prompt).trim(),
+    expectation: String(data.expectation).trim(), axis: String(data.axis).trim(), pattern: String(data.pattern || "").trim(),
+    examples: (Array.isArray(data.examples) ? data.examples : []).filter(e => e && e.text).slice(0, 3)
+      .map(e => ({ text: String(e.text), pattern: String(e.pattern || ""), note: String(e.note || "") })),
+    focus: String(data.focus || ""), scoring_hint: String(data.scoring_hint || ""),
+    condition: mode === "M05" ? String(data.condition || "") : "", weak_reason: mode === "M06" ? String(data.weak_reason || "") : "",
+    scene: "友人との雑談",
+  };
+}
+
+// ━━━ 遷移 ━━━
+function startProblem(id, retryOf = null, prevAnswer = "") {
+  const p = getProblem(id); if (!p) return;
+  Object.assign(S, { problemId: id, mode: p.mode, phase: "answer", draft: null, attempt: null, saved: false, retryOf, prevAnswer, aiError: "", canRetryAI: false, view: "practice", confirmDelete: null });
+  S.round++;
+  render(); window.scrollTo({ top: 0 });
+}
+function startQueue(ids, label) { if (!ids.length) return; Object.assign(S, { queue: ids, queueLabel: label, queuePos: 0 }); startProblem(ids[0]); }
+function stopQueue() { Object.assign(S, { queue: [], queueLabel: "", queuePos: 0 }); }
+function startMode(mode) { stopQueue(); S.mode = mode; const id = nextProblemId(mode, S.attempts); if (id) startProblem(id); }
+function goNext() {
+  if (S.queue.length) {
+    if (S.queuePos + 1 < S.queue.length) { S.queuePos++; startProblem(S.queue[S.queuePos]); return; }
+    S.flash = S.queueLabel + "が終わりました。お疲れさまでした。"; stopQueue();
+  }
+  const cur = getProblem(S.problemId), mode = cur ? cur.mode : S.mode;
+  const id = nextProblemId(mode, S.attempts, cur ? [cur.id] : []);
+  if (id) startProblem(id);
+}
+async function finishAttempt(p, ev) {
+  const d = S.draft, now = Date.now();
+  const a = {
+    id: Math.random().toString(16).slice(2, 14), problemId: p.id, mode: p.mode, answer: d.answer, intent: d.intent, diagnosis: d.diagnosis,
+    evaluation: ev, selfScores: null, favorite: false, memo: "", retryOf: S.retryOf,
+    problemSnapshot: p.id.startsWith("G-") ? p : null, ts: now, createdAt: new Date(now).toISOString(),
+  };
+  if (d.save) Store.add(a);
+  Object.assign(S, { attempt: a, saved: d.save, phase: "result" });
+}
+async function askAI(p) {
+  S.phase = "evaluating"; S.aiError = ""; S.ctl = new AbortController(); render();
+  try {
+    const data = await sample.json(buildEvalPrompt(p, S.draft), { signal: S.ctl.signal, modelTier: "default" });
+    await finishAttempt(p, toEvaluation(data, MODES[p.mode].rubric));
+  } catch (e) {
+    const code = e && e.code;
+    if (HIDE_CODES.has(code)) S.ai = "off";
+    S.aiError = aiErrorText(code);
+    S.canRetryAI = S.ai === "ready" && !["refused", "cancelled"].includes(code);
+    S.phase = "self";
+  }
+  S.ctl = null; render();
+}
+async function reAsk(p, reply) {
+  const a = S.attempt, intent = [a.intent, reply].filter(Boolean).join("\n");
+  S.draft = { ...S.draft, answer: a.answer, diagnosis: a.diagnosis, intent };
+  S.phase = "evaluating"; S.ctl = new AbortController(); render();
+  try {
+    const data = await sample.json(buildEvalPrompt(p, S.draft), { signal: S.ctl.signal, modelTier: "default" });
+    const ev = toEvaluation(data, MODES[p.mode].rubric);
+    if (S.saved) Store.update(a.id, { evaluation: ev, intent }); else S.attempt = { ...a, evaluation: ev, intent };
+  } catch (e) {
+    if (HIDE_CODES.has(e && e.code)) S.ai = "off";
+    S.flash = aiErrorText(e && e.code);
+  }
+  S.ctl = null; S.phase = "result"; render();
+}
+async function generate(mode, theme) {
+  S.generating = true; S.genError = ""; S.ctl = new AbortController(); render();
+  try {
+    const data = await sample.json(buildGenPrompt(mode, theme), { signal: S.ctl.signal, cache: false });
+    const p = toProblem(data, mode);
+    S.generated[p.id] = p; S.generating = false; S.ctl = null; stopQueue(); startProblem(p.id); return;
+  } catch (e) {
+    if (HIDE_CODES.has(e && e.code)) S.ai = "off";
+    S.genError = e && e.code === "cancelled" ? "" : "問題を作れませんでした。" + (e && e.code === "rate_limited" ? "時間をおいて試してください。" : "もう一度試してください。");
+  }
+  S.generating = false; S.ctl = null; render();
+}
+
+// ━━━ 表示部品 ━━━
+const roleOf = p => ({ M01: "フリ", M03: "フリ", M02: "オチ", M05: "お題", M06: "ネタ" })[p.mode];
+function lineOf(p) {
+  if (p.mode === "M01" || p.mode === "M03") return "「" + p.prompt + "」";
+  if (p.mode === "M02") return p.prompt.replace(/^オチ：/, "");
+  if (p.mode === "M05") return p.prompt.replace(/^テーマ：/, "");
+  return p.prompt.replace(/」\s*(?=[AB]「)/g, "」\n");
+}
+const dialogue = s => String(s).replace(/」\s*(?=[AB]「)/g, "」\n");
+const dots = n => "●".repeat(n) + "○".repeat(2 - n);
+function mekuri(p) {
+  const lv = LEVELS[p.level];
+  return '<p class="meta">' + h(MODES[p.mode].code + " " + MODES[p.mode].name) + "　Lv" + p.level + " " + h(lv.name) + "　" + (p.id.startsWith("G-") ? "AI生成" : h(p.id)) + "</p>"
+    + '<div class="mekuri"><div class="role" aria-hidden="true">' + roleOf(p) + '</div><div class="line">' + h(lineOf(p))
+    + (p.condition ? '<div class="cond">条件：' + h(p.condition) + "</div>" : "") + "</div></div>";
+}
+function intentBlock(p) {
+  return '<div class="stack" style="gap:6px"><p><span class="meta">期待</span>　' + h(p.expectation) + "</p>"
+    + '<p><span class="meta">対照軸</span>　' + h(p.axis) + '　<span class="chip">' + h(p.pattern) + "</span></p>"
+    + (p.weak_reason ? '<p><span class="meta">元ネタが弱い理由</span>　' + h(p.weak_reason) + "</p>" : "")
+    + (p.focus ? '<p><span class="meta">解説の焦点</span>　' + h(p.focus) + "</p>" : "") + "</div>";
+}
+function altList(list) {
+  return '<ul class="alts">' + list.map(a => '<li><span class="t">' + h(dialogue(a.text)) + '</span><span class="n"><span class="chip">' + h(a.pattern) + "</span>" + (a.note ? "　" + h(a.note) : "") + "</span></li>").join("") + "</ul>";
+}
+function checksBlock(checks) {
+  return checks.map(c => '<p class="callout ' + (c.level === "warn" ? "warn" : "info") + '">' + h(c.message) + "</p>").join("");
+}
+function statusLine() {
+  const ai = S.ai === "ready" ? "AI講評：使えます（初回だけ許可を求められます）" : S.ai === "pending" ? "AI講評：確認中" : "AI講評：このページでは使えないため、自己採点で進みます";
+  const st = S.storage === "db" ? "履歴：あなた専用に保存（ほかの人には見えません）" : S.storage === "local" ? "履歴：このブラウザに保存" : "履歴：このページを閉じると消えます";
+  return '<p class="meta">' + ai + "<br>" + st + (S.storageNote ? "<br>" + h(S.storageNote) : "") + "</p>";
+}
+
+// ━━━ ホーム ━━━
+function renderHome() {
+  const list = S.attempts, today = dayKey(Date.now());
+  const todayN = list.filter(a => dayKey(a.ts) === today).length;
+  const t = todaysSet(list);
+  let out = '<p>相手の予測を読み、同じ尺度でズレを作り、短く着地させる練習です。正解のボケを当てるゲームではありません。</p>'
+    + '<div class="stats"><span>連続<b>' + streakDays(list) + "</b>日</span><span>今日<b>" + todayN + "</b>問</span><span>累計<b>" + list.length + "</b>問</span></div>"
+    + '<article class="panel today"><div class="row"><h2 class="grow">今日の10分</h2><span class="meta">5問・時間制限なし</span></div>'
+    + '<p class="meta">' + h(t.reason) + '</p><ol class="qlist">'
+    + t.ids.map(id => { const p = BANK[id]; return '<li><span class="chip">' + h(MODES[p.mode].name) + "</span><span>" + h(p.prompt) + "</span></li>"; }).join("")
+    + '</ol><button type="button" class="btn primary wide" data-act="today">今日の10分を始める</button></article>';
+  const weak = weaknessCounts(list).slice(0, 3);
+  if (weak.length) {
+    out += '<section class="stack" style="gap:8px"><h2>最近の弱点</h2>' + weak.map(([tag, n]) => {
+      const m = WEAK[tag].modes[0];
+      return '<div class="row"><div class="grow"><span class="chip tag">' + h(tag) + "</span> " + n + '回<br><span class="meta">' + h(WEAK[tag].description) + '</span></div><button type="button" class="btn small" data-act="mode" data-mode="' + m + '">' + h(MODES[m].name) + "で練習</button></div>";
+    }).join("") + "</section>";
+  }
+  const done = new Set(list.map(a => a.problemId));
+  out += '<section class="stack" style="gap:6px"><h2>モードを選ぶ</h2><div class="modes">' + D.implemented.map(code => {
+    const m = MODES[code], bank = byMode(code), solved = bank.filter(p => done.has(p.id)).length;
+    return '<div class="mode-row"><div><span class="code">' + code + '</span><span class="name">' + h(m.name) + '</span>　<span class="meta">' + h(m.difficulty) + "</span><br>"
+      + '<span class="meta">' + h(m.what) + "　" + solved + "/" + bank.length + "問</span></div>"
+      + '<button type="button" class="btn small" data-act="mode" data-mode="' + code + '">練習する</button></div>';
+  }).join("") + "</div>"
+    + '<p class="meta">今後追加：' + Object.values(MODES).filter(m => !m.implemented).map(m => h(m.code + " " + m.name)).join("、") + "</p></section>";
+  out += '<details><summary>まず試す7日間のパイロット</summary><div class="body">' + D.pilot.map(d => {
+    const menu = d.menu.map(([m, n]) => MODES[m].name + "×" + n).join("、") || "—";
+    return '<div class="row"><div class="grow"><b>Day ' + d.day + "</b>　" + h(menu) + '<br><span class="meta">ゴール：' + h(d.goal) + (d.pending ? "。" + h(d.pending) : "") + "</span></div>"
+      + (d.menu.length ? '<button type="button" class="btn small" data-act="pilot" data-day="' + d.day + '">始める</button>' : "") + "</div>";
+  }).join("") + "</div></details>";
+  const lp = levelProgress(list);
+  out += '<details><summary>進行判定（初期仮説）</summary><div class="body">'
+    + "<p><b>Lv1 " + h(LEVELS[1].name) + '</b>　<span class="meta">' + h(LEVELS[1].criterion) + "</span></p>"
+    + '<div class="progress"><i style="width:' + Math.min(lp.l1.ok, 7) / 7 * 100 + '%"></i></div>'
+    + '<p class="meta">直近' + lp.l1.done + "問中 " + lp.l1.ok + "問で説明できた" + (lp.l1.achieved ? "　達成" : "") + "</p>"
+    + "<p><b>Lv2 " + h(LEVELS[2].name) + '</b>　<span class="meta">' + h(LEVELS[2].criterion) + "</span></p>"
+    + '<p class="meta">' + lp.l2.done + "問　" + (lp.l2.median === null ? "まだ記録なし" : "中央値 " + lp.l2.median) + (lp.l2.achieved ? "　達成" : "") + "</p>"
+    + '<p class="meta">解放条件は仮説です。どの問題もいつでも解けます。</p></div></details>';
+  return out + statusLine();
+}
+
+// ━━━ 練習 ━━━
+function renderPicker() {
+  if (S.queue.length) {
+    return '<div class="stack" style="gap:6px"><div class="row"><span class="grow"><b>' + h(S.queueLabel) + "</b>　" + (S.queuePos + 1) + " / " + S.queue.length
+      + '</span><button type="button" class="btn small" data-act="stopQueue">中断する</button></div><div class="progress"><i style="width:' + (S.queuePos + 1) / S.queue.length * 100 + '%"></i></div></div>';
+  }
+  const done = new Set(S.attempts.map(a => a.problemId));
+  let out = '<div class="row"><select id="modeSelect" class="grow" aria-label="モード">' + D.implemented.map(c => '<option value="' + c + '"' + (c === S.mode ? " selected" : "") + ">" + c + " " + h(MODES[c].name) + "</option>").join("")
+    + '</select><button type="button" class="btn" data-act="nextInMode">次の問題</button></div>'
+    + '<details><summary>問題を選ぶ</summary><div class="body">' + byMode(S.mode).map(p =>
+      '<button type="button" class="btn small" style="justify-content:flex-start;text-align:left" data-act="pick" data-id="' + p.id + '">' + (done.has(p.id) ? "✓ " : "") + h(p.id) + "　" + h(p.prompt) + "</button>").join("") + "</div></details>";
+  if (S.ai === "ready") {
+    out += '<details' + (S.generating || S.genError ? " open" : "") + '><summary>AIで新しい問題を作る</summary><div class="body"><form id="genForm" class="stack" style="gap:8px">'
+      + '<label class="field">題材の希望（任意）<input type="text" id="genTheme" placeholder="例：在宅勤務、引っ越し、新人研修"></label>'
+      + (S.generating ? '<div class="row"><span class="thinking grow"><span class="dot"></span>問題を作っています…</span><button type="button" class="btn small" data-act="stopAI">止める</button></div>'
+        : '<button type="submit" class="btn">' + h(MODES[S.mode].name) + "の問題を作る</button>")
+      + (S.genError ? '<p class="error">' + h(S.genError) + "</p>" : "") + "</form></div></details>";
+  }
+  return out;
+}
+function renderAnswer(p) {
+  const mode = MODES[p.mode], r = S.round;
+  const limit = mode.char_limit ? "（" + mode.char_limit + "字以内が目安）" : "";
+  const short = p.mode === "M01" || p.mode === "M03";
+  return (S.prevAnswer ? '<p class="callout info">前回の回答：' + h(S.prevAnswer) + "<br>同じお題のまま、別の型や別の尺度で書き換えてみましょう。</p>" : "")
+    + "<p>" + h(mode.instruction) + h(limit) + "</p>"
+    + '<details><summary>思考補助</summary><div class="body"><p>このフリを聞いた人は、次に何を期待する？</p><p>その期待と反対の位置にあるものは何？ 同じ尺度で考える。</p><p>どんな場面で、誰に向かって言う？</p></div></details>'
+    + (p.mode !== "M03" ? '<details><summary>ヒント（対照軸）</summary><div class="body"><p>' + h(p.axis) + "</p></div></details>" : "")
+    + '<div class="ma" aria-hidden="true">間</div>'
+    + '<form id="answerForm" class="stack" novalidate>'
+    + (p.mode === "M06" ? '<label class="field">弱い理由（一言で）<input type="text" id="diag-' + r + '" autocomplete="off"></label>' : "")
+    + '<label class="field">' + h(mode.answer_label)
+    + (short ? '<input type="text" class="answer-input" id="ans-' + r + '" autocomplete="off">' : '<textarea class="answer-input" id="ans-' + r + '" rows="4" placeholder="' + (p.mode === "M05" || p.mode === "M06" ? "A「…」&#10;B「…」&#10;A「…」" : "") + '"></textarea>')
+    + '<span class="counter" id="counter">0' + (mode.char_limit ? " / " + mode.char_limit : "") + "字</span></label>"
+    + (p.mode !== "M03" ? '<label class="field">狙った期待とズレ（任意）<textarea id="intent-' + r + '" rows="2" placeholder="例：寝ていない→実は長く寝ている、の睡眠時間の軸で反転させた"></textarea></label>' : "")
+    + '<div class="stack" style="gap:4px"><label class="check"><input type="checkbox" id="save-' + r + '" checked>この回答を履歴に保存する</label>'
+    + (S.ai === "ready" ? '<label class="check"><input type="checkbox" id="useAi"' + (S.useAi ? " checked" : "") + '>Claudeに講評してもらう</label>' : "") + "</div>"
+    + '<p class="error" id="formError" hidden></p>'
+    + '<button type="submit" class="btn primary wide">講評を見る</button></form>';
+}
+function yourAnswer(a) {
+  return '<section class="stack" style="gap:6px"><h3>あなたの回答</h3>' + (a.diagnosis ? '<p><span class="meta">弱い理由</span>　' + h(a.diagnosis) + "</p>" : "")
+    + '<p class="quote">' + h(a.answer) + "</p>" + (a.intent ? '<p class="meta">狙い：' + h(a.intent) + "</p>" : "") + "</section>";
+}
+function renderSelf(p) {
+  const d = S.draft, r = S.round, axes = RUBRICS[MODES[p.mode].rubric];
+  const defSafety = d.checks.some(c => c.tag === "危険性") ? "check_context" : "ok";
+  return (S.aiError ? '<p class="callout warn">' + h(S.aiError) + "</p>" : "")
+    + (S.canRetryAI ? '<button type="button" class="btn" data-act="retryAI">もう一度Claudeに頼む</button>' : "")
+    + yourAnswer(d) + checksBlock(d.checks)
+    + '<div class="panel"><h3>出題側の想定</h3>' + intentBlock(p) + "<h3>成立例（唯一解ではありません）</h3>" + altList(p.examples) + "</div>"
+    + '<form id="selfForm" class="stack"><h2>自己採点</h2><p class="meta">出題側の想定と比べて、各軸を0〜2点で付けてください。想定と違う答えでも、構造が成立していれば点を付けてかまいません。</p>'
+    + axes.map(a => '<fieldset><legend>' + h(a.name) + '</legend><div class="seg">' + [0, 1, 2].map(v =>
+      '<label><input type="radio" name="' + a.key + '" id="sc-' + a.key + "-" + v + "-" + r + '" value="' + v + '"' + (v === 1 ? " checked" : "") + "><b>" + v + "</b>" + h(a.levels[v]) + "</label>").join("") + "</div></fieldset>").join("")
+    + '<fieldset><legend>安全性（点数とは別枠）</legend><div class="seg safety">' + Object.entries(D.safety).map(([k, v]) =>
+      '<label><input type="radio" name="safety" id="sf-' + k + "-" + r + '" value="' + k + '"' + (k === defSafety ? " checked" : "") + ">" + h(v) + "</label>").join("") + "</div></fieldset>"
+    + '<button type="submit" class="btn primary wide">採点を記録</button></form>';
+}
+function renderReview(ev, p) {
+  const axes = RUBRICS[ev.rubric], tot = total(ev), max = maxTotal(ev);
+  let out = '<div class="review">'
+    + '<p>' + (ev.source === "ai" ? '<span class="chip ai">Claudeの講評</span>' : '<span class="chip">自己採点</span>') + "</p>"
+    + "<section><h3>フリが作る期待</h3><p>" + h(ev.expectation || p.expectation) + "</p></section>"
+    + "<section><h3>ズレ</h3>" + (ev.deviation ? "<p>" + h(ev.deviation) + "</p>" : "")
+    + '<p class="meta">対照軸：' + h(ev.axis || p.axis) + "　" + h(D.relevance[ev.relevance] || "") + "</p></section>"
+    + '<section><div class="score-head"><h3>構造スコア</h3><span class="num">' + tot + '</span><span class="of">/ ' + max + '</span></div><div class="axes">'
+    + axes.map(a => { const s = ev.scores[a.key] ?? 0; return '<div class="axis"><span>' + h(a.name) + '</span><span class="dots" aria-label="' + s + '点">' + dots(s) + '</span><span class="why">' + h(ev.reasons[a.key] || a.levels[s]) + "</span></div>"; }).join("")
+    + "</div></section>";
+  if (ev.safety !== "ok") out += '<p class="callout ' + (ev.safety === "needs_revision" ? "bad" : "warn") + '">安全性：' + h(D.safety[ev.safety]) + "　" + h(ev.safetyNote || "誰かを傷つける形になっていないか、使う場面を確認しましょう。") + "</p>";
+  if (ev.goodPoint) out += "<section><h3>良い点</h3><p>" + h(ev.goodPoint) + "</p></section>";
+  if (ev.improvements.length || ev.revision) {
+    out += "<section><h3>改善するなら</h3>" + ev.improvements.map(i => "<p>" + h(i) + "</p>").join("")
+      + (ev.revision ? '<p class="meta">修正案</p><p class="revision">' + h(dialogue(ev.revision)) + "</p>" : "") + "</section>";
+  }
+  if (ev.alternatives.length) out += "<section><h3>" + (ev.source === "ai" ? "別の型で作るなら" : "成立例") + "</h3>" + altList(ev.alternatives) + "</section>";
+  if (ev.tags.length) out += "<section><h3>弱点タグ</h3><p>" + ev.tags.map(t => '<span class="chip tag">' + h(t) + "</span>").join(" ") + "</p></section>";
+  return out + '<p class="disclaimer">得点は笑いの保証ではなく、構造を学ぶための参考指標です。高得点でもウケないことはあるし、低得点でも演技や関係性で成立することがあります。</p></div>';
+}
+function renderResult(p) {
+  const a = S.attempt, ev = a.evaluation, r = S.round;
+  let out = yourAnswer(a);
+  if (ev.source === "ai" && S.draft && S.draft.checks.length) out += checksBlock(S.draft.checks);
+  if (ev.question && S.ai === "ready") {
+    out += '<form id="clarifyForm" class="panel"><h3>確認させてください</h3><p>' + h(ev.question) + "</p>"
+      + '<textarea id="clarify-' + r + '" rows="2" aria-label="狙ったズレ"></textarea><button type="submit" class="btn">狙いを伝えて講評し直す</button></form>';
+  }
+  out += renderReview(ev, p);
+  if (ev.source === "ai") {
+    out += '<details><summary>出題側の想定と成立例</summary><div class="body">' + intentBlock(p) + altList(p.examples) + "</div></details>";
+    const axes = RUBRICS[ev.rubric], mine = a.selfScores;
+    out += '<details' + (mine ? " open" : "") + '><summary>自分の評価と比べる</summary><div class="body"><form id="compareForm" class="stack">'
+      + axes.map(x => '<fieldset><legend>' + h(x.name) + '</legend><div class="seg">' + [0, 1, 2].map(v =>
+        '<label><input type="radio" name="' + x.key + '" id="cmp-' + x.key + "-" + v + "-" + r + '" value="' + v + '"' + (v === (mine ? mine[x.key] : 1) ? " checked" : "") + "><b>" + v + "</b>" + h(x.levels[v]) + "</label>").join("") + "</div></fieldset>").join("")
+      + '<button type="submit" class="btn">比べる</button></form>'
+      + (mine ? '<div class="axes">' + axes.map(x => { const ai = ev.scores[x.key], me = mine[x.key]; return '<div class="axis"><span>' + h(x.name) + "</span><span>" + ai + " / " + me + '</span><span class="why">' + (ai === me ? "一致" : me > ai ? "自分の評価が高め" : "自分の評価が低め") + "</span></div>"; }).join("") + '<p class="meta">左がClaude、右があなたの評価</p></div>' : "")
+      + "</div></details>";
+  }
+  out += '<div class="row"><button type="button" class="btn grow" data-act="retry">同じお題でもう一度作る</button><button type="button" class="btn primary grow" data-act="next">次の問題へ</button></div>';
+  if (S.saved) {
+    out += '<details><summary>お気に入り・実演メモ</summary><div class="body"><label class="check"><input type="checkbox" id="fav-' + r + '" data-act-change="fav" data-id="' + a.id + '"' + (a.favorite ? " checked" : "") + ">お気に入りに入れる</label>"
+      + '<label class="field">実際に使ってみた反応<textarea id="memo-' + r + '" rows="2">' + h(a.memo) + "</textarea></label>"
+      + '<button type="button" class="btn small" data-act="memo" data-id="' + a.id + '" data-src="memo-' + r + '">メモを保存</button></div></details>';
+  } else out += '<p class="meta">この回答は履歴に保存していません。</p>';
+  return out;
+}
+function renderPractice() {
+  let out = (S.flash ? '<p class="callout info">' + h(S.flash) + "</p>" : "") + renderPicker();
+  S.flash = "";
+  const p = getProblem(S.problemId);
+  if (!p) return out + '<div class="panel"><p>モードを選んで「次の問題」を押すと始まります。迷ったらホームの「今日の10分」からどうぞ。</p></div>';
+  out += mekuri(p);
+  if (S.phase === "answer") out += renderAnswer(p);
+  else if (S.phase === "evaluating") out += yourAnswer(S.draft) + '<div class="panel"><div class="thinking"><span class="dot"></span><span>Claudeが講評しています。初回は利用の許可を求められます。</span></div><button type="button" class="btn small" data-act="stopAI">止めて自己採点にする</button></div>';
+  else if (S.phase === "self") out += renderSelf(p);
+  else out += renderResult(p);
+  return out;
+}
+
+// ━━━ ノート ━━━
+function renderNotes() {
+  const all = S.attempts;
+  if (!all.length) return "<h2>ノート</h2><div class=\"panel\"><p>まだ回答がありません。練習で講評を受けると、回答と講評、弱点タグがここにたまっていきます。</p><button type=\"button\" class=\"btn primary\" data-act=\"today\">今日の10分を始める</button></div>" + statusLine();
+  const sum = {};
+  for (const a of all) { const s = sum[a.mode] = sum[a.mode] || { n: 0, r: 0 }; s.n++; s.r += total(a.evaluation) / maxTotal(a.evaluation); }
+  let out = "<h2>ノート</h2><div class=\"mode-stats\">" + Object.keys(sum).sort().map(m => "<div>" + h(MODES[m].name) + "<b>" + sum[m].n + "問</b>平均 " + Math.round(sum[m].r / sum[m].n * 100) + "%</div>").join("") + "</div>";
+  const weak = weaknessCounts(all, all.length);
+  if (weak.length) out += '<p class="meta">弱点タグの累計：' + weak.map(([t, n]) => '<span class="chip tag">' + h(t) + "</span> " + n).join("　") + "</p>";
+  out += '<div class="filters">' + [["all", "すべて"], ["fav", "お気に入り"], ["memo", "実演メモあり"]].map(([k, v]) =>
+    '<button type="button" class="btn small" data-act="filter" data-k="' + k + '" aria-pressed="' + (S.noteFilter === k) + '">' + v + "</button>").join("") + "</div>";
+  const list = all.filter(a => S.noteFilter === "fav" ? a.favorite : S.noteFilter === "memo" ? a.memo : true).slice().reverse();
+  if (!list.length) out += '<p class="meta">該当する回答はありません。</p>';
+  out += list.map(a => {
+    const p = resolveProblem(a), ev = a.evaluation, d = new Date(a.ts);
+    return '<details><summary><span class="note-sum"><span class="prompt">' + (a.favorite ? "★ " : "") + (d.getMonth() + 1) + "/" + d.getDate() + "　" + h(MODES[a.mode].name) + "　" + h(p ? p.prompt : a.problemId)
+      + "</span><span>" + total(ev) + "/" + maxTotal(ev) + '</span></span></summary><div class="body">'
+      + (a.diagnosis ? '<p><span class="meta">弱い理由</span>　' + h(a.diagnosis) + "</p>" : "") + '<p class="quote">' + h(a.answer) + "</p>"
+      + (a.intent ? '<p class="meta">狙い：' + h(a.intent) + "</p>" : "")
+      + "<p><span class=\"meta\">期待</span>　" + h(ev.expectation) + "</p>"
+      + (ev.revision ? '<p class="meta">修正案</p><p class="revision">' + h(dialogue(ev.revision)) + "</p>" : "")
+      + (ev.tags.length ? "<p>" + ev.tags.map(t => '<span class="chip tag">' + h(t) + "</span>").join(" ") + "</p>" : "")
+      + '<p class="meta">' + (ev.source === "ai" ? "Claudeの講評" : "自己採点") + (a.retryOf ? "・再挑戦" : "") + "</p>"
+      + '<label class="check"><input type="checkbox" id="nfav-' + a.id + '" data-act-change="fav" data-id="' + a.id + '"' + (a.favorite ? " checked" : "") + ">お気に入り</label>"
+      + '<label class="field">実演メモ<textarea id="nmemo-' + a.id + '" rows="2">' + h(a.memo) + "</textarea></label>"
+      + '<div class="row"><button type="button" class="btn small" data-act="memo" data-id="' + a.id + '" data-src="nmemo-' + a.id + '">メモを保存</button>'
+      + (p ? '<button type="button" class="btn small" data-act="retryFrom" data-id="' + a.id + '">このお題で再挑戦</button>' : "")
+      + (S.confirmDelete === a.id ? '<button type="button" class="btn small danger" data-act="delete" data-id="' + a.id + '">本当に削除する</button><button type="button" class="link" data-act="cancelDelete">やめる</button>'
+        : '<button type="button" class="btn small danger" data-act="askDelete" data-id="' + a.id + '">削除</button>')
+      + "</div></div></details>";
+  }).join("");
+  return out + statusLine();
+}
+
+// ━━━ 辞典 ━━━
+function table(head, rows) {
+  return '<div class="tablewrap"><table><thead><tr>' + head.map(x => "<th>" + h(x) + "</th>").join("") + "</tr></thead><tbody>"
+    + rows.map(r => "<tr>" + r.map((c, i) => "<td" + (i === 0 ? ' class="k"' : "") + ">" + h(c) + "</td>").join("") + "</tr>").join("") + "</tbody></table></div>";
+}
+function srcLink(n) {
+  const s = n != null && D.tax.sources[String(n)];
+  return s ? '<a href="' + h(s.url) + '" target="_blank" rel="noopener">' + h(s.title) + "</a>" : "概要レベルで紹介";
+}
+function renderDict() {
+  const T = D.tax, tabs = [["basic", "基本構造"], ["types", "12の基本型"], ["tech", "20の技法"], ["works", "作品分析"], ["make", "作り方"]];
+  let out = '<h2>型の辞典</h2><p class="defn">' + h(T.definition) + '</p><div class="tabs" role="tablist">' + tabs.map(([k, v]) =>
+    '<button type="button" role="tab" class="btn small" data-act="dtab" data-k="' + k + '" aria-selected="' + (S.dictTab === k) + '">' + v + "</button>").join("") + '</div><div class="stack">';
+  if (S.dictTab === "basic") {
+    out += "<h3>フリから反応まで</h3>" + table(["段階", "聞き手の認知", "例：AI研修"], T.flow.map(r => [r.stage, r.cognition, r.example]))
+      + "<h3>フリの3つの機能</h3>" + T.furiFunctions.map(f => "<p>" + h(f) + "</p>").join("")
+      + "<h3>理論的な背景</h3>" + table(["視点", "要点", "作問への示唆"], T.theories.map(r => [r.name, r.point, r.for_writing]))
+      + '<p class="meta">これらは笑いを説明する有力な理論・分類であり、一定の構造なら必ず笑うことを保証するものではありません。</p>'
+      + "<h3>分類の3階層</h3>" + table(["階層", "分類軸", "主な選択肢"], T.layers.map(r => [r.layer, r.axis, r.options]));
+  } else if (S.dictTab === "types") {
+    out += table(["型", "予測の反転軸", "例"], T.types.map(t => [String(t.no).padStart(2, "0") + " " + t.name, t.flip, t.example]))
+      + "<h3>オリジナル応用例</h3>" + T.originals.map(o => '<div class="work"><p><b>' + h(o.title) + '</b> <span class="chip">' + h(o.pattern) + "</span></p><p>" + h(o.dialogue) + '</p><p class="meta">' + h(o.breakdown) + "</p></div>").join("")
+      + '<p class="meta">練習用の創作で、元ネタの引用ではありません。実際に起きていない出来事を事実として話すことは勧めません。</p>';
+  } else if (S.dictTab === "tech") {
+    out += table(["技法", "操作", "観察例"], T.techniques.map(t => [String(t.no).padStart(2, "0") + " " + t.name, t.operation, t.seen_in]));
+  } else if (S.dictTab === "works") {
+    out += '<p class="meta">台詞は転載せず、筋立てを要約しています。技法名は分析用の整理で、制作者本人の用語ではありません。</p>'
+      + [["国内", T.domestic], ["海外", T.overseas]].map(([label, works]) => "<h3>" + label + "</h3>" + works.map(w =>
+        "<details><summary>" + h(w.id + " " + w.title) + '　<span class="chip">' + h(w.core) + '</span></summary><div class="body"><p><span class="meta">構造</span>　' + h(w.structure)
+        + '</p><p><span class="meta">転用技術</span>　' + h(w.transfer) + '</p><p class="meta">確認区分：' + srcLink(w.source) + "</p></div></details>").join("")).join("");
+  } else {
+    out += "<h3>ネタ制作の6ステップ</h3>" + table(["順", "やること"], T.steps.map((s, i) => [String(i + 1), s]))
+      + "<h3>よくある失敗</h3>" + table(["失敗", "直し方"], T.failures.map(f => [f.failure, f.fix]))
+      + "<h3>実践の進め方</h3>" + table(["期間", "主な課題", "確認ポイント"], T.plan.map(p => [p.period, p.task, p.check]));
+  }
+  return out + "</div>";
+}
+
+// ━━━ 描画 ━━━
+const app = document.getElementById("app");
+function render() {
+  document.querySelectorAll("nav button").forEach(b => b.setAttribute("aria-current", b.dataset.view === S.view ? "page" : "false"));
+  // 開いていた折りたたみは、描き直しても開いたままにする
+  const open = new Set([...app.querySelectorAll("details[open] > summary")].map(s => s.textContent));
+  app.innerHTML = S.view === "home" ? renderHome() : S.view === "practice" ? renderPractice() : S.view === "notes" ? renderNotes() : renderDict();
+  app.querySelectorAll("details > summary").forEach(s => { if (open.has(s.textContent)) s.parentElement.open = true; });
+}
+function renderIfSafe() {
+  // 入力途中のフォームを消さない
+  if (S.view === "practice" && (S.phase === "answer" || S.phase === "self")) return;
+  if (document.activeElement && app.contains(document.activeElement) && document.activeElement.matches("textarea, input[type=text]")) return;
+  render();
+}
+const val = id => { const el = document.getElementById(id); return el ? el.value.trim() : ""; };
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-act]");
+  if (!t || t.dataset.actChange) return;
+  const act = t.dataset.act;
+  if (act === "nav") { S.view = t.dataset.view; S.confirmDelete = null; render(); window.scrollTo({ top: 0 }); }
+  else if (act === "today") { const { ids } = todaysSet(S.attempts); startQueue(ids, "今日の10分"); }
+  else if (act === "mode") startMode(t.dataset.mode);
+  else if (act === "pilot") startQueue(pilotSet(Number(t.dataset.day), S.attempts), "Day " + t.dataset.day);
+  else if (act === "stopQueue") { stopQueue(); render(); }
+  else if (act === "nextInMode") startMode(S.mode);
+  else if (act === "pick") { stopQueue(); startProblem(t.dataset.id); }
+  else if (act === "next") goNext();
+  else if (act === "retry") startProblem(S.problemId, S.saved && S.attempt ? S.attempt.id : null, S.attempt ? S.attempt.answer : "");
+  else if (act === "retryFrom") { const a = S.attempts.find(x => x.id === t.dataset.id); if (a) { if (a.problemSnapshot) S.generated[a.problemId] = a.problemSnapshot; stopQueue(); startProblem(a.problemId, a.id, a.answer); } }
+  else if (act === "stopAI") { if (S.ctl) S.ctl.abort(); }
+  else if (act === "retryAI") askAI(getProblem(S.problemId));
+  else if (act === "memo") { Store.update(t.dataset.id, { memo: val(t.dataset.src) }); t.textContent = "保存しました"; }
+  else if (act === "filter") { S.noteFilter = t.dataset.k; render(); }
+  else if (act === "askDelete") { S.confirmDelete = t.dataset.id; render(); }
+  else if (act === "cancelDelete") { S.confirmDelete = null; render(); }
+  else if (act === "delete") { Store.remove(t.dataset.id); S.confirmDelete = null; render(); }
+  else if (act === "dtab") { S.dictTab = t.dataset.k; render(); }
+});
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (t.id === "modeSelect") { S.mode = t.value; render(); }
+  else if (t.id === "useAi") S.useAi = t.checked;
+  else if (t.dataset.actChange === "fav") Store.update(t.dataset.id, { favorite: t.checked });
+});
+document.addEventListener("input", e => {
+  if (!e.target.id || !e.target.id.startsWith("ans-")) return;
+  const p = getProblem(S.problemId), lim = MODES[p.mode].char_limit, n = charCount(e.target.value), c = document.getElementById("counter");
+  if (c) { c.textContent = n + (lim ? " / " + lim : "") + "字"; c.classList.toggle("over", !!lim && n > lim); }
+});
+document.addEventListener("submit", e => {
+  e.preventDefault();
+  const f = e.target, p = getProblem(S.problemId), r = S.round;
+  if (f.id === "answerForm") {
+    const answer = val("ans-" + r), diagnosis = val("diag-" + r), err = document.getElementById("formError");
+    const miss = !answer ? MODES[p.mode].answer_label + "を入力してください。" : p.mode === "M06" && !diagnosis ? "弱い理由を一言で入力してください。" : "";
+    if (miss) { err.textContent = miss; err.hidden = false; return; }
+    S.draft = { answer, diagnosis, intent: val("intent-" + r), save: document.getElementById("save-" + r).checked, checks: autoChecks(p, answer) };
+    if (S.ai === "ready" && S.useAi) askAI(p); else { S.phase = "self"; render(); }
+  } else if (f.id === "selfForm") {
+    const fd = new FormData(f), sc = {};
+    for (const a of RUBRICS[MODES[p.mode].rubric]) sc[a.key] = Number(fd.get(a.key));
+    finishAttempt(p, selfEvaluation(p, sc, fd.get("safety") || "ok", S.draft.checks)).then(render);
+  } else if (f.id === "clarifyForm") {
+    const reply = val("clarify-" + r); if (reply) reAsk(p, reply);
+  } else if (f.id === "compareForm") {
+    const fd = new FormData(f), mine = {};
+    for (const a of RUBRICS[S.attempt.evaluation.rubric]) mine[a.key] = Number(fd.get(a.key));
+    if (S.saved) Store.update(S.attempt.id, { selfScores: mine }); else S.attempt = { ...S.attempt, selfScores: mine };
+    render();
+  } else if (f.id === "genForm") generate(S.mode, val("genTheme"));
+});
+
+// ━━━ 起動 ━━━
+Store.loadLocal();
+render();
+use("sample").then(s => { sample = s; S.ai = s ? "ready" : "off"; renderIfSafe(); });
+Store.init();
+})();
+</script>
