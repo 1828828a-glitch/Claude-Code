@@ -15,6 +15,7 @@ import uuid
 from furiochi_lab.data.modes import MODES, RUBRICS, WEAKNESS_TAGS
 from furiochi_lab.data.problems import PROBLEMS
 from furiochi_lab.data.taxonomy import BASIC_TYPE_NAMES, TECHNIQUE_NAMES
+from furiochi_lab.engine.rubric import split_answers
 from furiochi_lab.models.drill import Evaluation, Example, Problem
 
 DEFAULT_MODEL = "claude-opus-5-5"
@@ -23,7 +24,7 @@ DEFAULT_EFFORT = "medium"
 FALLBACK_MODELS = {"claude-opus-5-5", "claude-opus-5", "claude-fable-5-1", "claude-sonnet-5-5"}
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
 
-DEFAULT_LEVEL = {"M01": 1, "M02": 2, "M03": 1, "M05": 3, "M06": 2}
+DEFAULT_LEVEL = {"M01": 1, "M02": 2, "M03": 1, "M04": 3, "M05": 3, "M06": 2, "M07": 2}
 
 
 class CoachError(Exception):
@@ -80,8 +81,10 @@ MODE_GUIDES = {
     "M01": "回答はフリに続くオチです。フリが作る期待と同じ尺度の上でズレているかを中心に評価します。",
     "M02": "回答は、指定されたオチが効くように利用者が作ったフリです。フリが作る期待と、指定のオチが同じ尺度でぶつかるかを評価します。alternatives には、同じオチに対する別のフリを書きます。",
     "M03": "回答は、フリを聞いた人が次に何を予想するかを言語化したものです。評価軸は予測の具体性とフリとの対応の2つです。意味が合っていれば表現は問いません。one_revision には、より具体的な予想の書き方を1つ書きます。alternatives には、その期待を裏切るオチの例を書きます。",
+    "M04": "回答は、一つのフリから利用者が作った3つのオチで、条件の型の順に回答1・回答2・回答3として並んでいます。3案が本当に違う型を使い分けているか、同じ型の言い換えになっていないかを見ます。あわせて、各案がフリと同じ尺度の上でズレているかを1案ずつ確かめ、成立していない案があれば deviation で番号を挙げて触れます。one_revision には、いちばん弱い案を直した1案を書きます。alternatives には、回答とも参考の成立例とも違う型を使った別の3案を、1案ずつ書きます。",
     "M05": "回答は、テーマと条件に沿って利用者がゼロから作った掛け合いです。指定の型を使えているかに deviation で触れ、型が違う場合は改善点に入れます。alternatives には、同じテーマで別の型を使った掛け合いを書きます。",
     "M06": "出題は弱いフリオチで、回答は利用者による改善版です。利用者の診断（弱い理由）が別に付いています。採点は改善版のネタに対して行い、診断が出題側の想定する弱点を捉えているかに deviation の中で一言触れます。",
+    "M07": "出題はAとBの掛け合いで、最後のAの発言がボケです。回答は、利用者がBとして返すツッコミです。ツッコミがボケのズレの核心を突いているか、本来どうあるべきかという基準を示して笑いを確定させているかを評価し、短く言い切れているかも見ます。必要以上に攻撃的な言い方は tone を下げ、相手を立てたまま突っ込めていれば評価します。detected_expectation には、ボケの前に聞き手が抱いていた期待を書きます。one_revision と alternatives には、別の角度から突っ込むツッコミを書き、pattern にはツッコミが指したボケの型を書きます。",
 }
 
 GENERATION_SYSTEM = f"""あなたはフリオチ思考訓練ドリルの出題者です。会話力を磨きたい社会人が、聞き手の期待を設計し、理解可能なズレを作る練習をするための問題を1問作ります。
@@ -91,7 +94,7 @@ GENERATION_SYSTEM = f"""あなたはフリオチ思考訓練ドリルの出題�
 実在の芸人のネタや決め台詞を使わない。
 フリとオチは同じ尺度の上で対比できるようにし、axis にその尺度を書く。
 expectation には、フリを聞いた人が自然に抱く期待を一文で書く。
-examples は2〜3件。唯一解ではなく、成立条件を学ぶための参考例として、型を変えて書く。
+examples は2〜3件。唯一解ではなく、成立条件を学ぶための参考例として、型を変えて書く（M04 と M07 は下のモードごとの書き方に従う）。
 pattern には次の型の名前から選ぶ：{PATTERN_LIST}
 focus には解説の焦点を一文で、scoring_hint には採点で見るべき点を一文で書く。
 Markdownの記号は使わない。
@@ -100,8 +103,10 @@ Markdownの記号は使わない。
 M01 フリ→オチ：prompt はフリの一言（30字以内、カギ括弧なし）。examples はオチ（40字以内）。condition と weak_reason は空。
 M02 オチ→フリ：prompt は「オチ：「…」」の形。examples は「フリ →「合いの手」→「オチ」」の形。condition と weak_reason は空。
 M03 期待の言語化：prompt はフリの一言。examples は、その期待を裏切るオチの例を1〜2件。condition と weak_reason は空。
+M04 同一フリ3オチ：prompt はフリの一言（30字以内、カギ括弧なし）。condition は、互いに違う3つの型の名前を「／」でつないだもの（例：大小逆転／解釈転換／自己矛盾）。pattern は condition の最初の型。examples は condition の型の順に1件ずつ計3件のオチ（各40字以内）で、それぞれの pattern にその型を書く。3案とも、フリと同じ尺度の上でズレるようにする。weak_reason は空。
 M05 フリオチ自作：prompt は「テーマ：…」の形。condition は「（12の基本型のどれか）を使う／2〜4往復」の形。examples はA「…」B「…」の形の掛け合い。weak_reason は空。
-M06 ネタの修理：prompt はA「…」B「…」の形の、どこかが弱いフリオチ。weak_reason に弱い理由を一文で書く。examples は改善版の掛け合い。condition は空。"""
+M06 ネタの修理：prompt はA「…」B「…」の形の、どこかが弱いフリオチ。weak_reason に弱い理由を一文で書く。examples は改善版の掛け合い。condition は空。
+M07 ツッコミ設計：prompt はA「…」B「…」A「…」の形の掛け合いで、最後はAのボケで終える。expectation にはボケの前に聞き手が抱く期待、axis にはボケが外した尺度、pattern にはボケの型を書く。examples は、Bとして返すツッコミ（30字以内）を2〜3件。それぞれの pattern にはボケの型、note にはそのツッコミの狙いを短く書く。condition と weak_reason は空。"""
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -181,7 +186,8 @@ def build_evaluation_request(problem: Problem, answer: str, intent_note: str = "
     if problem.scoring_hint:
         lines.append(f"採点ヒント：{problem.scoring_hint}")
     if mode.char_limit:
-        lines.append(f"字数の目安：{mode.char_limit}字以内")
+        per = "1案につき" if mode.answer_count > 1 else ""
+        lines.append(f"字数の目安：{per}{mode.char_limit}字以内")
 
     axes = "\n".join(
         f"{a.key}（{a.name}）：0点＝{a.levels[0]}／1点＝{a.levels[1]}／2点＝{a.levels[2]}"
@@ -190,7 +196,12 @@ def build_evaluation_request(problem: Problem, answer: str, intent_note: str = "
     examples = "\n".join(f"{e.text}（{e.pattern}）" for e in problem.examples) or "なし"
     tags = "\n".join(f"{name}：{t['description']}" for name, t in WEAKNESS_TAGS.items())
 
-    learner = [f"回答：{answer}"]
+    if mode.answer_count > 1:
+        parts = split_answers(answer)
+        parts += [""] * (mode.answer_count - len(parts))
+        learner = [f"回答{i}：{part or '（未記入）'}" for i, part in enumerate(parts, 1)]
+    else:
+        learner = [f"回答：{answer}"]
     if diagnosis:
         learner.append(f"利用者の診断（弱い理由）：{diagnosis}")
     if intent_note:
@@ -287,6 +298,13 @@ def to_problem(data: dict, mode_code: str) -> Problem:
         for e in (data.get("examples") or [])
         if isinstance(e, dict) and e.get("text")
     ][:3]
+    condition = str(data.get("condition", "")).strip() if mode_code in ("M04", "M05") else ""
+    pattern = str(data.get("pattern", "")).strip()
+    if mode_code == "M04":
+        types = [t.strip() for t in condition.split("／") if t.strip()]
+        if len(types) != 3 or len(set(types)) != 3:
+            raise CoachError("生成された問題の型の条件が3つそろっていませんでした。もう一度生成してください。")
+        pattern = pattern or types[0]
     return Problem(
         id=f"G-{uuid.uuid4().hex[:8]}",
         mode=mode_code,
@@ -294,11 +312,11 @@ def to_problem(data: dict, mode_code: str) -> Problem:
         prompt=str(data["prompt"]).strip(),
         expectation=str(data["expectation"]).strip(),
         axis=str(data["axis"]).strip(),
-        pattern=str(data.get("pattern", "")).strip(),
+        pattern=pattern,
         examples=examples,
         focus=str(data.get("focus", "")),
         scoring_hint=str(data.get("scoring_hint", "")),
-        condition=str(data.get("condition", "")) if mode_code == "M05" else "",
+        condition=condition,
         weak_reason=str(data.get("weak_reason", "")) if mode_code == "M06" else "",
     )
 

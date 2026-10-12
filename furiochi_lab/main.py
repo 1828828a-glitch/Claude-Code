@@ -9,12 +9,13 @@
 
 import argparse
 import sys
+import time
 
 from furiochi_lab.data.modes import IMPLEMENTED_MODES, MODES, RELEVANCE, RUBRICS, SAFETY_STATUS
 from furiochi_lab.data.problems import PROBLEMS, PROBLEMS_BY_ID, problems_for_mode
 from furiochi_lab.engine.ai_coach import CoachError, FuriochiCoach, ai_available
 from furiochi_lab.engine.history import HistoryStore, weakness_counts
-from furiochi_lab.engine.rubric import auto_checks, self_evaluation
+from furiochi_lab.engine.rubric import auto_checks, self_evaluation, split_answers
 from furiochi_lab.engine.selector import ordered_candidates, todays_set
 from furiochi_lab.models.drill import Attempt, Evaluation, Problem
 
@@ -38,6 +39,41 @@ def ask_score(name: str, levels: tuple[str, str, str]) -> int:
         value = ask("    点数 (0/1/2) > ")
         if value in ("0", "1", "2"):
             return int(value)
+
+
+def ask_satisfaction() -> int | None:
+    while True:
+        value = ask("  自分の出来への満足度 1〜5（Enterで省略）> ", allow_empty=True)
+        if not value:
+            return None
+        if value in ("1", "2", "3", "4", "5"):
+            return int(value)
+
+
+def ask_answer(problem: Problem) -> str:
+    """回答を受け取る。M04 は条件の型ごとに1案ずつ聞き、順番どおり改行でつなぐ"""
+    mode = MODES[problem.mode]
+    if mode.answer_count == 1:
+        return ask(f"  {mode.answer_label} > ")
+    types = problem.condition_types()
+    while True:
+        parts = []
+        for i in range(mode.answer_count):
+            slot = types[i] if i < len(types) else ""
+            label = f"{i + 1}案目〔{slot}〕" if slot else f"{i + 1}案目"
+            parts.append(ask(f"  {label} {mode.answer_label} > ", allow_empty=True))
+        if any(parts):
+            return "\n".join(parts)
+        print("  1案以上書いてください。")
+
+
+def format_answer(problem: Problem, answer: str) -> str:
+    """M04 の回答を、型の名前を添えて1案ずつ並べる"""
+    types = problem.condition_types()
+    return "\n".join(
+        f"  {i}案目〔{types[i - 1] if i <= len(types) else ''}〕{part or '（未記入）'}"
+        for i, part in enumerate(split_answers(answer), 1)
+    )
 
 
 def print_evaluation(ev: Evaluation, problem: Problem) -> None:
@@ -75,14 +111,18 @@ def run_problem(problem: Problem, store: HistoryStore, coach: FuriochiCoach | No
     print(f"\n  {problem.prompt}")
     if problem.condition:
         print(f"  条件：{problem.condition}")
-    limit = f"（{mode.char_limit}字以内が目安）" if mode.char_limit else ""
+    per = "1案" if mode.answer_count > 1 else ""
+    limit = f"（{per}{mode.char_limit}字以内が目安）" if mode.char_limit else ""
     print(f"\n  {mode.instruction}{limit}\n")
 
     retry_of = None
     while True:
+        started = time.monotonic()
         diagnosis = ask("  弱い理由（一言で）> ") if problem.mode == "M06" else ""
-        answer = ask(f"  {mode.answer_label} > ")
-        intent = "" if problem.mode == "M03" else ask("  狙った期待とズレ（任意、Enterで省略）> ", allow_empty=True)
+        answer = ask_answer(problem)
+        elapsed = int(time.monotonic() - started)
+        intent_label = "突いたズレと示した基準" if problem.mode == "M07" else "狙った期待とズレ"
+        intent = "" if problem.mode == "M03" else ask(f"  {intent_label}（任意、Enterで省略）> ", allow_empty=True)
         checks = auto_checks(problem, answer)
         for c in checks:
             print(f"  ! {c.message}")
@@ -105,9 +145,15 @@ def run_problem(problem: Problem, store: HistoryStore, coach: FuriochiCoach | No
             ng = ask("  安全性に気になる点はありますか？ (y/N) > ", allow_empty=True).lower() == "y"
             ev = self_evaluation(problem, scores, "check_context" if ng else "ok", checks)
 
+        if mode.answer_count > 1:
+            print("\n  あなたの回答")
+            print(format_answer(problem, answer))
         print_evaluation(ev, problem)
+        print(f"  制作時間：{elapsed}秒")
+        satisfaction = ask_satisfaction()
         attempt = Attempt(problem_id=problem.id, mode=problem.mode, answer=answer, evaluation=ev,
-                          intent_note=intent, diagnosis=diagnosis, retry_of=retry_of)
+                          intent_note=intent, diagnosis=diagnosis, retry_of=retry_of,
+                          elapsed_sec=elapsed, satisfaction=satisfaction)
         if ask("\n  履歴に保存しますか？ (Y/n) > ", allow_empty=True).lower() != "n":
             store.add(attempt)
         if ask("  同じお題でもう一度作りますか？ (y/N) > ", allow_empty=True).lower() != "y":

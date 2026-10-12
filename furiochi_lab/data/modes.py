@@ -13,8 +13,9 @@ class Mode:
     implemented: bool
     instruction: str = ""  # 問題画面に出す指示文
     answer_label: str = "あなたの回答"
-    char_limit: int | None = None
+    char_limit: int | None = None  # 複数案のモードでは1案あたりの目安
     rubric: str = "neta"
+    answer_count: int = 1  # 1問で出す案の数（M04は3）
 
 
 MODES: dict[str, Mode] = {
@@ -42,7 +43,9 @@ MODES: dict[str, Mode] = {
     "M04": Mode(
         code="M04", name="同一フリ3オチ",
         what="一つのフリから型を変えて3案を作る",
-        difficulty="中級", skill="発想の幅", implemented=False,
+        difficulty="中級", skill="発想の幅", implemented=True,
+        instruction="このフリから、型を変えて3つのオチを作ってください。条件の型を1案ずつ使います。",
+        answer_label="オチ", char_limit=40, rubric="trio", answer_count=3,
     ),
     "M05": Mode(
         code="M05", name="フリオチ自作",
@@ -61,7 +64,9 @@ MODES: dict[str, Mode] = {
     "M07": Mode(
         code="M07", name="ツッコミ設計",
         what="ボケに対する的確なツッコミを提案する",
-        difficulty="中級", skill="ズレの明示", implemented=False,
+        difficulty="中級", skill="ズレの明示", implemented=True,
+        instruction="このボケに、Bとして返すツッコミを書いてください。",
+        answer_label="ツッコミ", char_limit=30, rubric="tsukkomi",
     ),
     "M08": Mode(
         code="M08", name="掛け合いリレー",
@@ -143,6 +148,28 @@ RUBRICS: dict[str, list[Axis]] = {
         Axis("match", "フリとの対応",
              ("フリと関係の薄い予想", "一部がフリの期待と重なる", "フリが作る期待と意味が合う")),
     ],
+    # M04 同一フリ3オチ。3案をまとめて、型の使い分けと各案の成立を見る
+    "trio": [
+        Axis("variety", "型の使い分け",
+             ("同じ型の繰り返し", "2つは違う型", "3案すべて違う型")),
+        Axis("validity", "各案の成立",
+             ("成立しているのは1案以下", "2案が成立", "3案とも同じ尺度でズレている")),
+        Axis("clarity", "理解の速さ",
+             ("説明が要る案が多い", "一部に解釈が必要", "どれも一度で伝わる")),
+        Axis("brevity", "コンパクトさ",
+             ("長い説明が付いている", "冗長な案がある", "どれも短く着地")),
+    ],
+    # M07 ツッコミ設計。ボケのズレを短く言語化し、本来の基準を示せたかを見る
+    "tsukkomi": [
+        Axis("pinpoint", "ズレの指摘",
+             ("どこがおかしいか言っていない", "ズレに触れているが曖昧", "ズレの核心を一言で突いている")),
+        Axis("standard", "基準の提示",
+             ("本来どうあるべきかが見えない", "基準がぼんやり伝わる", "正しい基準を示して笑いを確定させる")),
+        Axis("brevity", "短さ",
+             ("説明的で長い", "やや長い", "短く言い切る")),
+        Axis("tone", "言い方",
+             ("必要以上に攻撃的", "少し強い", "相手を立てたまま突っ込める")),
+    ],
 }
 
 SAFETY_STATUS = {
@@ -189,7 +216,7 @@ WEAKNESS_TAGS: dict[str, dict] = {
     },
     "繰り返し依存": {
         "description": "同じズレの反復に頼り、後半に新しさがない",
-        "modes": ["M05"],
+        "modes": ["M04", "M05"],
     },
 }
 
@@ -203,10 +230,8 @@ PILOT_PLAN: list[dict] = [
     {"day": 1, "menu": [("M03", 5), ("M01", 3)], "goal": "期待が一文で言える"},
     {"day": 2, "menu": [("M01", 8)], "goal": "同じ尺度の反転ができる"},
     {"day": 3, "menu": [("M02", 8)], "goal": "オチから逆算できる"},
-    {"day": 4, "menu": [("M06", 5)], "goal": "弱点の診断ができる",
-     "pending": "M07×3問（ツッコミ設計）は今後追加"},
-    {"day": 5, "menu": [("M05", 2)], "goal": "一つのテーマを多角化",
-     "pending": "M04×3問（同一フリ3オチ）は今後追加"},
+    {"day": 4, "menu": [("M06", 5), ("M07", 3)], "goal": "弱点の診断ができる"},
+    {"day": 5, "menu": [("M04", 3), ("M05", 2)], "goal": "一つのテーマを多角化"},
     {"day": 6, "menu": [], "goal": "掛け合い・実話に展開",
      "pending": "M08×3往復、M09×1件は今後追加"},
     {"day": 7, "menu": [], "goal": "実戦反応と改善点を記録",

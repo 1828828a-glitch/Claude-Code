@@ -135,11 +135,31 @@ def mode_summary(attempts: list[Attempt]) -> dict[str, dict]:
     }
 
 
+def effort_summary(attempts: list[Attempt]) -> dict:
+    """制作時間の中央値と、自己満足度の平均（記録がある回答だけで数える）"""
+    secs = [a.elapsed_sec for a in attempts if a.elapsed_sec is not None]
+    sats = [a.satisfaction for a in attempts if a.satisfaction is not None]
+    return {
+        "timed": len(secs),
+        "median_sec": median(secs) if secs else None,
+        "rated": len(sats),
+        "avg_satisfaction": sum(sats) / len(sats) if sats else None,
+    }
+
+
 def explained_structure(attempt: Attempt) -> bool:
-    """予測とズレを説明できたか（期待とズレの軸がどちらも1点以上）"""
+    """予測とズレを説明できたか（期待とズレの軸がどちらも1点以上）
+
+    M04 は各案の成立、M07 はズレの指摘が1点以上なら、ズレを説明できたとみなす。
+    """
     sc = attempt.evaluation.scores
-    if attempt.evaluation.rubric == "prediction":
+    rubric = attempt.evaluation.rubric
+    if rubric == "prediction":
         return sc.get("specificity", 0) >= 1 and sc.get("match", 0) >= 1
+    if rubric == "trio":
+        return sc.get("validity", 0) >= 1
+    if rubric == "tsukkomi":
+        return sc.get("pinpoint", 0) >= 1
     return sc.get("expectation", 0) >= 1 and sc.get("contrast", 0) >= 1
 
 

@@ -9,6 +9,7 @@
 from datetime import date
 import html
 import re
+import time
 
 import streamlit as st
 
@@ -24,10 +25,10 @@ from furiochi_lab.data.taxonomy import (
 )
 from furiochi_lab.engine.ai_coach import CoachError, FuriochiCoach, ai_available
 from furiochi_lab.engine.history import (
-    HistoryStore, attempt_date, attempted_ids, level_progress, mode_summary,
+    HistoryStore, attempt_date, attempted_ids, effort_summary, level_progress, mode_summary,
     resolve_problem, streak_days, weakness_counts,
 )
-from furiochi_lab.engine.rubric import auto_checks, char_count, self_evaluation
+from furiochi_lab.engine.rubric import auto_checks, char_count, self_evaluation, split_answers
 from furiochi_lab.engine.selector import next_problem_id, pilot_set, todays_set
 from furiochi_lab.models.drill import Attempt, Evaluation, Problem
 
@@ -77,6 +78,68 @@ def quote(text: str) -> str:
     return "> " + "  \n> ".join(lines)
 
 
+def fmt_sec(sec: int) -> str:
+    minutes, seconds = divmod(int(sec), 60)
+    return f"{minutes}分{seconds:02d}秒" if minutes else f"{seconds}秒"
+
+
+# 型の名前 → 一言の説明（M04 の入力欄のヘルプに使う）
+TYPE_HINTS = {t["name"]: t["flip"] for t in BASIC_TYPES}
+TYPE_HINTS.update({t["name"]: t["operation"] for t in TECHNIQUES if t["name"] not in TYPE_HINTS})
+
+SATISFACTION = {1: "1 納得いかない", 2: "2 いまいち", 3: "3 まあまあ", 4: "4 わりと好き", 5: "5 会心"}
+
+THINKING_AIDS = {
+    "M04": ("- このフリを聞いた人は、次に何を期待する？\n"
+            "- 型ごとに、何をずらすかを決める（大きさ・言葉の意味・本人の矛盾など）\n"
+            "- 3案とも、フリと同じ尺度の上に乗っている？"),
+    "M07": ("- ボケの前に、聞き手は何を期待していた？\n"
+            "- ボケはその期待のどこを外した？ 一言で言うと？\n"
+            "- 本来どうあるべきかを短く示せる？ 相手を下げすぎていない？"),
+}
+DEFAULT_THINKING_AID = ("- このフリを聞いた人は、次に何を期待する？\n"
+                        "- その期待と反対の位置にあるものは何？ 同じ尺度で考える\n"
+                        "- どんな場面で、誰に向かって言う？")
+
+INTENT_FIELD = {
+    "M04": ("狙った期待とズレ（任意）", "例：1案目は変化の大きさ、2案目は変化の向き、3案目は本人の矛盾でずらした"),
+    "M07": ("突いたズレと、示した基準（任意）", "例：詳しいと言ったのに、一番有名なものを使っていない点を突いた"),
+}
+DEFAULT_INTENT_FIELD = ("狙った期待とズレ（任意）", "例：寝ていない→実は長く寝ている、の睡眠時間の軸で反転させた")
+
+
+def limit_note(mode) -> str:
+    """字数の目安の書き添え。複数案のモードは1案あたりの目安"""
+    if not mode.char_limit:
+        return ""
+    per = "1案" if mode.answer_count > 1 else ""
+    return f"（{per}{mode.char_limit}字以内が目安）"
+
+
+def answer_slots(problem: Problem) -> list[str]:
+    """複数案のモードで、各案に使う型の名前（条件が足りなければ「n案目」）"""
+    count = MODES[problem.mode].answer_count
+    types = problem.condition_types()
+    return [types[i] if i < len(types) else f"{i + 1}案目" for i in range(count)]
+
+
+def answer_markdown(problem: Problem | None, answer: str) -> str:
+    """回答を表示用のMarkdownにする。M04 は案ごとに型と字数を添える"""
+    if problem is None or MODES[problem.mode].answer_count == 1:
+        return quote(answer)
+    parts = split_answers(answer)
+    rows = []
+    for i, slot in enumerate(answer_slots(problem)):
+        text = parts[i] if i < len(parts) else ""
+        body = f"{esc(text)}　（{char_count(text)}字）" if text else "（未記入）"
+        rows.append(f"{i + 1}. 〔{esc(slot)}〕 {body}")
+    return "\n".join(rows)
+
+
+def render_answer(problem: Problem | None, answer: str) -> None:
+    st.markdown(answer_markdown(problem, answer))
+
+
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # セッション状態
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -102,6 +165,7 @@ def init_session_state() -> None:
         "practice_mode": "M01",
         "flash": "",
         "pending_problem": None,
+        "shown_at": None,  # 問題を出した時刻（制作時間の計測に使う）
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -129,7 +193,7 @@ def get_problem(pid: str | None) -> Problem | None:
 
 
 def problem_display(p: Problem) -> str:
-    if p.mode in ("M01", "M03"):
+    if p.mode in ("M01", "M03", "M04"):
         return f"「{p.prompt}」"
     return p.prompt
 
@@ -147,6 +211,7 @@ def start_problem(pid: str, retry_of: str | None = None) -> None:
     st.session_state.retry_of = retry_of
     st.session_state.ai_error = ""
     st.session_state.round += 1
+    st.session_state.shown_at = time.time()
     problem = get_problem(pid)
     if problem:
         st.session_state.practice_mode = problem.mode
@@ -424,8 +489,7 @@ def render_problem_card(problem: Problem) -> None:
     st.markdown(f"<div class='prompt-card'>{html.escape(problem_display(problem))}</div>", unsafe_allow_html=True)
     if problem.condition:
         st.markdown(f"条件：{esc(problem.condition)}")
-    limit = f"（{mode.char_limit}字以内が目安）" if mode.char_limit else ""
-    st.markdown(f"{mode.instruction}{limit}")
+    st.markdown(f"{mode.instruction}{limit_note(mode)}")
 
 
 def render_answer_phase(problem: Problem) -> None:
@@ -435,30 +499,43 @@ def render_answer_phase(problem: Problem) -> None:
     if st.session_state.retry_of:
         prev = store.get(st.session_state.retry_of) or st.session_state.current
         if prev:
-            st.info(f"前回の回答：{esc(prev.answer)}\n\n同じお題のまま、別の型や別の尺度で書き換えてみましょう。")
+            with st.container(border=True):
+                st.markdown("**前回の回答**")
+                render_answer(problem, prev.answer)
+                st.caption("同じお題のまま、別の型や別の尺度で書き換えてみましょう。")
 
     with st.expander("思考補助"):
-        st.markdown("- このフリを聞いた人は、次に何を期待する？\n"
-                    "- その期待と反対の位置にあるものは何？ 同じ尺度で考える\n"
-                    "- どんな場面で、誰に向かって言う？")
+        st.markdown(THINKING_AIDS.get(problem.mode, DEFAULT_THINKING_AID))
     if problem.mode != "M03":
-        with st.expander("ヒント（対照軸）"):
+        hint_label = "ヒント（ボケが外した尺度）" if problem.mode == "M07" else "ヒント（対照軸）"
+        with st.expander(hint_label):
             st.markdown(esc(problem.axis))
 
     with st.form(f"answer_form_{rnd}"):
         diagnosis = ""
         if problem.mode == "M06":
             diagnosis = st.text_input("弱い理由（一言で）", key=f"diag_{rnd}")
-        label = f"{mode.answer_label}（{mode.char_limit}字以内が目安）" if mode.char_limit else mode.answer_label
-        if problem.mode in ("M01", "M03"):
-            answer = st.text_input(label, key=f"ans_{rnd}")
+        if mode.answer_count > 1:
+            # M04：条件の型ごとに1案ずつ。順番を保ったまま改行でつなぐ
+            parts = []
+            for i, slot in enumerate(answer_slots(problem)):
+                hint = TYPE_HINTS.get(slot)
+                parts.append(st.text_input(
+                    f"{i + 1}案目　{slot}" + (f"（{hint}）" if hint else ""), key=f"ans_{rnd}_{i + 1}",
+                    help=f"{mode.char_limit}字以内が目安" if mode.char_limit else None,
+                ).strip())
+            answer = "\n".join(parts)
+        elif problem.mode in ("M01", "M03", "M07"):
+            label = f"{mode.answer_label}{limit_note(mode)}"
+            answer = st.text_input(label, key=f"ans_{rnd}").strip()
         else:
+            label = f"{mode.answer_label}{limit_note(mode)}"
             answer = st.text_area(label, key=f"ans_{rnd}", height=120,
-                                  placeholder="A「…」B「…」A「…」" if problem.mode in ("M05", "M06") else "")
+                                  placeholder="A「…」B「…」A「…」" if problem.mode in ("M05", "M06") else "").strip()
         intent = ""
         if problem.mode != "M03":
-            intent = st.text_area("狙った期待とズレ（任意）", key=f"intent_{rnd}", height=68,
-                                  placeholder="例：寝ていない→実は長く寝ている、の睡眠時間の軸で反転させた")
+            intent_label, intent_placeholder = INTENT_FIELD.get(problem.mode, DEFAULT_INTENT_FIELD)
+            intent = st.text_area(intent_label, key=f"intent_{rnd}", height=68, placeholder=intent_placeholder)
         save = st.checkbox("この回答を履歴に保存する", value=True, key=f"save_{rnd}")
         submitted = st.form_submit_button("講評を見る", type="primary", use_container_width=True)
 
@@ -471,12 +548,14 @@ def render_answer_phase(problem: Problem) -> None:
         st.warning("弱い理由を一言で入力してください。")
         return
 
+    shown_at = st.session_state.shown_at
     draft = {
-        "answer": answer.strip(),
+        "answer": answer,
         "intent": intent.strip(),
         "diagnosis": diagnosis.strip(),
         "save": save,
         "checks": auto_checks(problem, answer),
+        "elapsed_sec": max(0, int(time.time() - shown_at)) if shown_at else None,
     }
     st.session_state.draft = draft
 
@@ -507,6 +586,7 @@ def finish_attempt(problem: Problem, ev: Evaluation) -> None:
         diagnosis=draft["diagnosis"],
         retry_of=st.session_state.retry_of,
         problem_snapshot=problem.to_dict() if problem.id.startswith("G-") else None,
+        elapsed_sec=draft.get("elapsed_sec"),
     )
     if draft["save"]:
         store.add(attempt)
@@ -529,8 +609,9 @@ def render_self_eval_phase(problem: Problem) -> None:
     st.markdown("##### あなたの回答")
     if draft["diagnosis"]:
         st.markdown(f"弱い理由：{esc(draft['diagnosis'])}")
-    st.markdown(quote(draft["answer"]))
-    st.caption(f"{char_count(draft['answer'])}字")
+    render_answer(problem, draft["answer"])
+    if MODES[problem.mode].answer_count == 1:
+        st.caption(f"{char_count(draft['answer'])}字")
     if draft["intent"]:
         st.markdown(f"狙い：{esc(draft['intent'])}")
     render_checks(draft["checks"])
@@ -572,7 +653,9 @@ def render_result_phase(problem: Problem) -> None:
     st.markdown("##### あなたの回答")
     if attempt.diagnosis:
         st.markdown(f"弱い理由：{esc(attempt.diagnosis)}")
-    st.markdown(quote(attempt.answer))
+    render_answer(problem, attempt.answer)
+    if attempt.elapsed_sec is not None:
+        st.caption(f"制作時間 {fmt_sec(attempt.elapsed_sec)}")
     if draft and draft["checks"] and ev.source == "ai":
         render_checks(draft["checks"])
 
@@ -625,6 +708,18 @@ def render_result_phase(problem: Problem) -> None:
                     m_score = attempt.self_scores.get(axis.key, 0)
                     gap = "" if a_score == m_score else ("　自分の評価が高め" if m_score > a_score else "　自分の評価が低め")
                     st.markdown(f"{axis.name}：AI {a_score}　自分 {m_score}{gap}")
+
+    with st.container(border=True):
+        # 新しい回答は未選択から始まる。選んだ値はウィジェットの状態として同じ回のあいだ残る
+        sat = st.radio(
+            "自分の出来への満足度（任意）", list(SATISFACTION), key=f"sat_{rnd}", horizontal=True,
+            index=None, format_func=SATISFACTION.get,
+        )
+        st.caption("点数とは別に、自分がどれくらい気に入ったかを残しておくと、あとで見返すときの手がかりになります。")
+        if sat != attempt.satisfaction:
+            attempt.satisfaction = sat
+            if st.session_state.saved:
+                store.update(attempt.id, satisfaction=sat)
 
     st.divider()
     c1, c2 = st.columns(2)
@@ -679,10 +774,21 @@ def render_notes() -> None:
         st.info("まだ回答がありません。練習で講評を受けると、ここに保存されます。")
         return
 
-    summary = mode_summary(attempts)
-    cols = st.columns(len(summary))
-    for col, (mode, s) in zip(cols, sorted(summary.items())):
-        col.metric(f"{MODES[mode].name}（平均 {s['avg_ratio'] * 100:.0f}%）", f"{s['count']}問")
+    summary = sorted(mode_summary(attempts).items())
+    for start in range(0, len(summary), 4):
+        row = summary[start:start + 4]
+        for col, (mode, s) in zip(st.columns(4), row):
+            col.metric(MODES[mode].name, f"{s['count']}問")
+            col.caption(f"平均 {s['avg_ratio'] * 100:.0f}%")
+
+    effort = effort_summary(attempts)
+    effort_parts = []
+    if effort["median_sec"] is not None:
+        effort_parts.append(f"制作時間の中央値 {fmt_sec(effort['median_sec'])}（{effort['timed']}問）")
+    if effort["avg_satisfaction"] is not None:
+        effort_parts.append(f"自己満足度の平均 {effort['avg_satisfaction']:.1f}（{effort['rated']}問）")
+    if effort_parts:
+        st.caption("　".join(effort_parts))
 
     weak = weakness_counts(attempts, recent=len(attempts))
     if weak:
@@ -703,7 +809,14 @@ def render_notes() -> None:
         with st.expander(title):
             if a.diagnosis:
                 st.markdown(f"弱い理由：{esc(a.diagnosis)}")
-            st.markdown(quote(a.answer))
+            render_answer(problem, a.answer)
+            meta = []
+            if a.elapsed_sec is not None:
+                meta.append(f"制作時間 {fmt_sec(a.elapsed_sec)}")
+            if a.satisfaction is not None:
+                meta.append(f"自己満足度 {a.satisfaction}/5")
+            if meta:
+                st.caption("　".join(meta))
             if a.intent_note:
                 st.markdown(f"狙い：{esc(a.intent_note)}")
             ev = a.evaluation

@@ -1,1 +1,131 @@
-/* グラフの見た目。charts.js と対 */
+/* グラフの見た目。charts.js と対
+   グラフ用の色は検証済みの段階値（OKLCH の明度帯・彩度・色覚シミュレーションでの差を確認）。
+   --ch-self は自分のデータ（金）、--ch-ai は Claude / 比較（藍）。--ch-heat-0〜4 はカレンダーの濃さ（0は練習なし） */
+:root {
+  --ch-self: #946609;
+  --ch-ai: #365BA1;
+  --ch-heat-0: #E5E8EE;
+  --ch-heat-1: #D7B16A;
+  --ch-heat-2: #BE8F37;
+  --ch-heat-3: #A26F05;
+  --ch-heat-4: #7B5104;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ch-self: #B8892D; --ch-ai: #678CCF;
+    --ch-heat-0: #262C38; --ch-heat-1: #654D1F; --ch-heat-2: #8D6926; --ch-heat-3: #B48931; --ch-heat-4: #DBAF4E;
+  }
+}
+:root[data-theme="dark"] {
+  --ch-self: #B8892D; --ch-ai: #678CCF;
+  --ch-heat-0: #262C38; --ch-heat-1: #654D1F; --ch-heat-2: #8D6926; --ch-heat-3: #B48931; --ch-heat-4: #DBAF4E;
+}
+
+/* 器 */
+.ch { margin: 0; min-width: 0; display: grid; gap: 8px; font-family: var(--f-body); }
+.ch-svg { display: block; max-width: 100%; height: auto; overflow: visible; }
+.ch-svg text { font-family: var(--f-body); }
+.ch-note { color: var(--muted); font-size: 0.88rem; }
+.ch-cap { color: var(--muted); font-size: 0.78rem; line-height: 1.5; }
+.ch-scroll { overflow-x: auto; min-width: 0; }
+
+/* 罫と文字 */
+.ch-grid { fill: none; stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.ch-lab { fill: var(--ink); font-size: 12px; font-weight: 500; }
+.ch-tick { fill: var(--muted); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.ch-halo { paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+
+/* 凡例（線や面の形を、そのまま小さく写す） */
+.ch-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; font-size: 0.8rem; line-height: 1.5; color: var(--ink); }
+.ch-key { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.ch-legend-sum { color: var(--muted); font-variant-numeric: tabular-nums; margin-left: auto; }
+.ch-key > i { display: inline-block; flex: none; }
+.ch-sw-area { width: 14px; height: 10px; border-radius: 2px; background: color-mix(in srgb, var(--ch-self) 18%, transparent); border: 2px solid var(--ch-self); }
+.ch-sw-dash { width: 18px; border-top: 2px dashed var(--ch-ai); }
+.ch-sw-bar { width: 16px; height: 8px; border-radius: 0 3px 3px 0; background: var(--ch-self); }
+.ch-sw-mark { width: 2px; height: 14px; border-radius: 1px; background: var(--ch-ai); }
+.ch-sw-rawdot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+.ch-sw-avg { width: 18px; height: 3px; border-radius: 2px; background: var(--ch-self); }
+
+/* 点（周りに地の色の輪をつけて、線と重なっても読めるように） */
+.ch-dot { fill: var(--ch-self); stroke: var(--surface); stroke-width: 2px; }
+.ch-hit { fill: transparent; }
+
+/* レーダー */
+.ch-radar { justify-items: center; }
+.ch-radar .ch-svg { margin-inline: auto; }
+.ch-r-area { fill: var(--ch-self); fill-opacity: 0.16; stroke: var(--ch-self); stroke-width: 2px; stroke-linejoin: round; }
+.ch-r-cmp { fill: none; stroke: var(--ch-ai); stroke-width: 2px; stroke-dasharray: 5 4; stroke-linejoin: round; }
+.ch-r-cmpdot { fill: none; stroke: var(--ch-ai); stroke-width: 2px; }
+.ch-grow { transform-origin: 0 0; animation: ch-grow 0.5s cubic-bezier(0.2, 0.7, 0.2, 1); }
+@keyframes ch-grow { from { transform: scale(0.86); } to { transform: none; } }
+
+/* 横棒（評価・弱点タグ） */
+.ch-bgrid, .ch-tgrid { display: grid; grid-template-columns: fit-content(9em) minmax(0, 1fr) auto; gap: 10px 12px; align-items: center; }
+.ch-tgrid { grid-template-columns: fit-content(9em) minmax(0, 1fr); }
+.ch-blabel { font-size: 0.86rem; line-height: 1.4; min-width: 0; overflow-wrap: anywhere; }
+.ch-btrack { position: relative; height: 10px; border-radius: 0 4px 4px 0; background: var(--kin-soft); min-width: 0; }
+.ch-btrack::after { content: ""; position: absolute; left: calc(50% - 1px); top: 0; bottom: 0; width: 2px; background: var(--surface); }
+.ch-bfill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 4px 4px 0; background: var(--ch-self); transform-origin: left center; animation: ch-bar 0.45s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.ch-bmark { position: absolute; top: -5px; bottom: -5px; width: 3px; margin-left: -1.5px; border-radius: 2px; background: var(--ch-ai); box-shadow: 0 0 0 2px var(--surface); z-index: 1; }
+.ch-bval { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 1ch; text-align: right; }
+.ch-ttrack { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.ch-tfill { display: block; flex: none; height: 10px; border-radius: 0 4px 4px 0; background: var(--warn); transform-origin: left center; animation: ch-bar 0.45s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.ch-tval { font-size: 0.84rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@keyframes ch-bar { from { transform: scaleX(0.55); } to { transform: none; } }
+
+/* 練習カレンダー */
+.ch-cal .ch-svg { width: 100%; max-width: 400px; }
+.ch-cal-long .ch-scroll { direction: rtl; }
+.ch-cal-long .ch-svg { width: auto; max-width: none; direction: ltr; }
+.ch-cell { stroke: transparent; stroke-width: 1.5px; }
+.ch-cell:hover { stroke: var(--ink); }
+.ch-cell.ch-today { stroke: var(--ink); }
+.ch-h0 { fill: var(--ch-heat-0); }
+.ch-h1 { fill: var(--ch-heat-1); }
+.ch-h2 { fill: var(--ch-heat-2); }
+.ch-h3 { fill: var(--ch-heat-3); }
+.ch-h4 { fill: var(--ch-heat-4); }
+.ch-scale { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); }
+.ch-scale .ch-sw { width: 12px; height: 12px; border-radius: 3px; }
+.ch-scale .ch-sw:first-of-type { margin-left: 4px; }
+.ch-scale .ch-sw:last-of-type { margin-right: 4px; }
+.ch-sw.ch-h0 { background: var(--ch-heat-0); }
+.ch-sw.ch-h1 { background: var(--ch-heat-1); }
+.ch-sw.ch-h2 { background: var(--ch-heat-2); }
+.ch-sw.ch-h3 { background: var(--ch-heat-3); }
+.ch-sw.ch-h4 { background: var(--ch-heat-4); }
+
+/* 得点率の推移 */
+.ch-trend .ch-svg { width: 100%; max-width: 440px; }
+.ch-t-raw { fill: none; stroke: var(--muted); stroke-opacity: 0.55; stroke-width: 1.25px; stroke-linejoin: round; }
+.ch-t-rawdot { fill: var(--muted); }
+.ch-t-avg, .ch-t-main { fill: none; stroke: var(--ch-self); stroke-width: 2.5px; stroke-linejoin: round; stroke-linecap: round; }
+.ch-t-main { stroke-width: 2px; }
+.ch-t-last { fill: var(--ch-self); stroke: var(--surface); stroke-width: 2.5px; }
+.ch-t-val { fill: var(--ink); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ch-band rect { fill: transparent; }
+.ch-cross { stroke: var(--muted); stroke-width: 1; opacity: 0; vector-effect: non-scaling-stroke; }
+.ch-band:hover .ch-cross { opacity: 0.7; }
+.ch-quiet .ch-svg { opacity: 0.9; }
+
+/* 進み具合の輪 */
+.ch-ring { justify-items: center; gap: 2px; text-align: center; }
+.ch-ring-svg { width: 76px; }
+.ch-ring-track { fill: none; stroke: var(--kin-soft); stroke-width: 7px; }
+.ch-ring-arc { fill: none; stroke: var(--kin); stroke-width: 7px; stroke-linecap: round; }
+.ch-ring-full { stroke-linecap: butt; }
+.ch-ring-num { fill: var(--ink); }
+.ch-ring-v { font-family: var(--f-display); }
+.ch-ring-max { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.ch-ring figcaption { display: grid; gap: 0; line-height: 1.45; min-width: 0; }
+.ch-ring-label { font-size: 0.86rem; font-weight: 700; }
+.ch-ring-sub { font-size: 0.76rem; color: var(--muted); overflow-wrap: anywhere; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-grow, .ch-bfill, .ch-tfill { animation: none; }
+}
+@media (forced-colors: active) {
+  .ch-r-area, .ch-t-avg, .ch-t-main { stroke: CanvasText; }
+  .ch-r-cmp, .ch-r-cmpdot { stroke: Highlight; }
+}
