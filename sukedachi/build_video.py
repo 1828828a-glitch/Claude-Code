@@ -399,6 +399,28 @@ def wrap(text, font, max_w):
     return lines
 
 
+def _kind(ch):
+    o = ord(ch)
+    if 0x3041 <= o <= 0x309F:
+        return "hira"
+    if 0x30A0 <= o <= 0x30FF or 0x4E00 <= o <= 0x9FFF or ch.isalnum():
+        return "word"
+    return "other"
+
+
+def split_words(text):
+    """ひらがなの直後に漢字・カタカナ・英数字が来る位置を、語の切れ目とみなす。"""
+    out, cur = [], ""
+    for i, ch in enumerate(text):
+        if cur and _kind(text[i - 1]) == "hira" and _kind(ch) == "word":
+            out.append(cur)
+            cur = ""
+        cur += ch
+    if cur:
+        out.append(cur)
+    return out
+
+
 def wrap_phrases(text, font, max_w):
     """句読点の後ろで改行する。収まらない句だけ文字単位で折る。"""
     tokens, cur = [], ""
@@ -414,7 +436,7 @@ def wrap_phrases(text, font, max_w):
         if merged and all(c in BREAK_AFTER for c in tk):
             merged[-1] += tk
         else:
-            merged.append(tk)
+            merged += split_words(tk)
     lines, line = [], ""
     for tk in merged:
         if font.getlength(line + tk) <= max_w:
@@ -595,7 +617,7 @@ def stage_layout(ctx, sp_):
         else:
             pos = ("L", mouth[0] + gap, 110) if side == "L" else ("R", mouth[0] - gap, 110)
         target = (mouth[0] + (110 if side == "L" else -110), mouth[1] - 20)
-        b = make_bubble(ctx, "……" if sh.get("silent") else sh["text"], kind, pos, target, max_w=820, max_lines=3)
+        b = make_bubble(ctx, "……" if sh.get("silent") else sh["text"], kind, pos, target, max_w=820, max_lines=4)
         return {"bubble": b, "mouth": mouth}
     return ctx.memo(("layout", sp_["idx"]), make)
 
