@@ -47,7 +47,25 @@ const Stage = (() => {
       }
       break;
     }
-    return { html: kept.map(paint).join("\n"), cut };
+    return { html: kept.map(u => balance(u).map(paint).join("\n")).join("\n"), cut };
+  }
+  // 2列以上にわたる段落は字数をならして自分で列を切る。成り行きに任せると「す」」のような1〜2字だけの列が残る。
+  // 閉じ括弧や句読点の前では切らない（列頭に来ない）
+  const CLOSERS = /^[」』）)、。，．！？!?ー…]/;
+  function balance(u) {
+    const w = widthOf(u);
+    if (w <= PER_COL) return [u];
+    const n = Math.ceil((w + 1) / PER_COL), target = w / n, cols = [];
+    let cur = [], acc = 0;
+    u.forEach((x, i) => {
+      cur.push(x); acc += x.w;
+      const next = u[i + 1];
+      if (next && cols.length < n - 1 && acc >= target - 0.01 && !CLOSERS.test(next.s)) {
+        cols.push(cur); cur = []; acc = 0;
+      }
+    });
+    if (cur.length) cols.push(cur);
+    return cols;
   }
   // 漫才の台本（A「…」B「…」）は話者ごとに列を改める
   const turns = s => String(s ?? "").replace(/\r\n?/g, "\n").replace(/」\s*(?=[AB]「)/g, "」\n");
