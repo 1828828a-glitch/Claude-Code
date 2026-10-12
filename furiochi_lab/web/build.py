@@ -47,10 +47,18 @@ data = {
     },
 }
 
-here = Path(__file__).parent
+# src/ の部品を順につなぐ。JS はひとつの即時関数の中で同じスコープを共有する
+CSS_FILES = ["base.css", "stage.css", "charts.css"]
+JS_FILES = ["charts.js", "stage.js", "app.js"]
+
+src = Path(__file__).parent / "src"
 blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
-template = (here / "template.html").read_text(encoding="utf-8")
-assert "__FURIOCHI_DATA__" in template
+shell = (src / "shell.html").read_text(encoding="utf-8")
+for marker in ("/*__CSS__*/", "/*__JS__*/", "__FURIOCHI_DATA__"):
+    assert shell.count(marker) == 1, marker
+css = "\n".join((src / f).read_text(encoding="utf-8") for f in CSS_FILES)
+js = "\n".join((src / f).read_text(encoding="utf-8") for f in JS_FILES)
+html = shell.replace("/*__CSS__*/", css).replace("/*__JS__*/", js).replace("__FURIOCHI_DATA__", blob)
 out = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("furiochi-lab.html")
-out.write_text(template.replace("__FURIOCHI_DATA__", blob), encoding="utf-8")
+out.write_text(html, encoding="utf-8")
 print(out, len(out.read_bytes()), "bytes")

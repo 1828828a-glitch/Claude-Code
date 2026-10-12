@@ -25,7 +25,7 @@ AI講評を使うときは `ANTHROPIC_API_KEY` を設定する（`ant auth login
 
 ## Web版（claude.ai）
 
-`furiochi_lab/web/` は claude.ai 上で開く1ページ版の元ファイル。問題バンク・採点ルール・AIプロンプトは Python 側から書き出して埋め込むので、問題を直したら作り直す。
+`furiochi_lab/web/src/` は claude.ai 上で開く1ページ版の部品（shell.html・CSS・JS）。問題バンク・採点ルール・AIプロンプトは Python 側から書き出して埋め込むので、問題を直したら作り直す。
 
 ```bash
 python furiochi_lab/web/build.py furiochi-lab.html
