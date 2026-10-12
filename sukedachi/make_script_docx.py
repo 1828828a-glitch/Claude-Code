@@ -96,7 +96,7 @@ def main():
             row[c].width = w
         row[0].text = f"{i + 1:02d}"
         row[1].text = times.get(i, "")
-        row[2].text = SCENE[sh["type"]]
+        row[2].text = "カットイン" if sh.get("cutin") else SCENE[sh["type"]]
         row[3].text = NAMES.get(sh.get("sp"), "")
         p = row[4].paragraphs[0]
         line = "" if sh.get("silent") else sh.get("text", "")
@@ -113,11 +113,22 @@ def main():
             for c in row:
                 shade(c, "F3ECDC")
     doc.add_paragraph()
+    doc.add_paragraph("仮音声の配役").runs[0].bold = True
+    for t in ["中山　JVNV-M1を低め・ゆっくり・抑揚強めに調整",
+              "ナレーション　JVNV-M1をさらに低く、抑揚を抑えて読み上げ調に",
+              "工藤　JVNV-M2を少し低め、抑揚控えめで淡々と",
+              "中野　JVNV-M2を少し高め・速め、明るい感情スタイルで",
+              "佐伯（架空の依頼主）　JVNV-F1",
+              "音声モデルはStyle-Bert-VITS2のJVNVモデル（CC BY-SA 4.0）。公開する場合はクレジット表記が必要。本番は収録か正式な音声に差し替える。"]:
+        doc.add_paragraph(t, style="List Bullet")
+    doc.add_paragraph()
     doc.add_paragraph("確認事項").runs[0].bold = True
     for t in ["中山さんの語尾と言い回しは仮。本人の話し方に合わせて調整する。",
               "中野さんの立ち絵とキャラ設定が届いたら、シルエットを差し替える。",
               "ひなた食品、佐伯さん、商品名「まいにちポタ」はすべて架空。実案件に寄せる場合は守秘範囲を確認する。",
-              "相談導線の診断ページは未制作。公開前にURLと文言を確定する。"]:
+              "相談導線の診断ページは未制作。公開前にURLと文言を確定する。",
+              "中山さんの関西弁は、合成音声だと標準語のアクセントで読まれる。収録時に本人の抑揚で直す。",
+              "BGMは仮の自動生成。公開前に権利処理済みの曲へ差し替える。"]:
         doc.add_paragraph(t, style="List Bullet")
     doc.save(a.out)
 
