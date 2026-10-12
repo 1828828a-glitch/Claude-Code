@@ -1,4 +1,4 @@
-"""宣伝助太刀の動画を、episodeのJSONと合成済みの台詞音声から書き出す。
+"""宣伝助太刀の動画を、episodeのJSONと合成済みの台詞音声から書き出す（モーションコミック版）。
 
 使い方:
   python build_video.py episode01.json --assets <素材> --voices <音声> --out <出力>
@@ -8,6 +8,7 @@
 素材フォルダに置くもの:
   kudo.png / naka.png / kv.png  キャラシートとキービジュアル（4倍アップスケール済み）
   NotoSansJP-500.ttf / NotoSansJP-900.ttf / YujiBoku.ttf
+  isnetis.onnx                  skytnt/anime-seg（立ち絵の切り抜きに使う。結果は cutouts/ に保存）
 音声フォルダは synth_voices.py の出力（voices.json）。
 """
 import argparse
@@ -22,19 +23,21 @@ import numpy as np
 from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 
 W, H, FPS, SR = 1920, 1080, 30, 44100
+WW, WH = 2112, 1188  # カメラが動く余白を含めた舞台の大きさ
 SCALE = 4  # アップスケール倍率。CROPSは元画像の座標
 
 CROPS = {
     "k_n1": ("kudo", (325, 15, 505, 245)), "k_n2": ("kudo", (500, 15, 722, 245)),
     "k_think": ("kudo", (725, 15, 900, 245)), "k_smile": ("kudo", (1100, 15, 1306, 245)),
-    "k_laugh": ("kudo", (1310, 15, 1530, 245)), "k_pc": ("kudo", (340, 255, 640, 497)),
+    "k_laugh": ("kudo", (1310, 15, 1530, 245)), "k_pc": ("kudo", (345, 255, 640, 497)),
     "k_phone": ("kudo", (640, 255, 842, 497)), "k_glass": ("kudo", (845, 255, 1077, 497)),
     "k_rub": ("kudo", (1080, 255, 1282, 497)), "k_surp": ("kudo", (1285, 255, 1530, 497)),
     "k_type": ("kudo", (1065, 515, 1330, 750)), "k_up": ("kudo", (1372, 770, 1530, 1000)),
     "n_basic": ("naka", (728, 428, 878, 626)), "n_laugh": ("naka", (884, 425, 1034, 628)),
     "n_think": ("naka", (1038, 425, 1188, 628)), "n_angry": ("naka", (1191, 425, 1342, 628)),
-    "n_phone": ("naka", (812, 725, 1056, 930)), "n_meet": ("naka", (558, 725, 806, 930)),
+    "n_phone": ("naka", (812, 725, 1056, 930)),
 }
+DEFAULT_IMG = {"K": "k_n2", "N": "n_basic", "NA": "na"}
 
 CHARS = {
     "K": {"name": "工藤", "side": "R", "color": (61, 90, 128), "cut": (34, 78, 150)},
@@ -58,12 +61,17 @@ CREAM = (243, 236, 220)
 GOLD = (226, 178, 84)
 RED = (168, 50, 42)
 NO_LINE_START = set("、。，．・：；？！ー）」』】…ぁぃぅぇぉっゃゅょァィゥェォッャュョ")
+BREAK_AFTER = "、。？！…」　"
 
-SLOT = {"L": {"big": (600, 455), "small": (390, 470)}, "R": {"big": (1320, 455), "small": (1480, 470)}}
-TILT = {"L": 1.5, "R": -1.5}
-BIG, SMALL = (700, 880), (470, 600)
-TELOP_TYPES = ("talk", "board", "list")
-LEAD = {"talk": 0.22, "cutin": 0.45, "board": 0.35, "list": 0.3, "mail": 0.6, "kv": 0.6, "summary": 0.5, "cta": 0.5, "next": 0.7}
+# 舞台上の立ち位置（舞台座標）と大きさ
+X_POS = {"L": {"med": 660, "two": 600, "close": 760, "lis": 330},
+         "R": {"med": 1450, "two": 1510, "close": 1350, "lis": 1790}}
+STAND_H = {"med": 1080, "two": 960, "close": 1560, "lis": 860}
+STAND_DROP = {"med": 40, "two": 120, "close": 560, "lis": 40}
+CAMERA = {"med": (1.0, 1.04), "two": (1.0, 1.03), "close": (1.02, 1.08)}
+OTO_COLOR = {"impact": (232, 64, 52), "surprise": (250, 214, 92), "sweat": (170, 214, 244), "laugh": (250, 170, 70)}
+
+LEAD = {"talk": 0.25, "cutin": 0.45, "board": 0.35, "list": 0.3, "mail": 0.6, "kv": 0.6, "summary": 0.5, "cta": 0.5, "next": 0.7}
 TAIL = {"talk": 0.35, "cutin": 0.7}
 MIN_DUR = {"talk": 1.4, "cutin": 2.2, "card": 2.6, "chapter": 2.3, "list": 3.0, "board": 2.0, "mail": 3.0}
 
@@ -98,6 +106,146 @@ def lerp(a, b, u):
     return a + (b - a) * u
 
 
+# ---------- 切り抜き ----------
+
+def segment(sess, im):
+    from scipy import ndimage
+    s = 1024
+    w, h = im.size
+    r = s / max(w, h)
+    rs = im.resize((max(1, int(w * r)), max(1, int(h * r))), Image.LANCZOS)
+    canvas = np.zeros((s, s, 3), np.float32)
+    ph, pw = (s - rs.height) // 2, (s - rs.width) // 2
+    canvas[ph:ph + rs.height, pw:pw + rs.width] = np.asarray(rs, np.float32) / 255
+    m = sess.run(None, {sess.get_inputs()[0].name: canvas.transpose(2, 0, 1)[None]})[0][0, 0]
+    m = np.clip(m[ph:ph + rs.height, pw:pw + rs.width], 0, 1)
+    lab, n = ndimage.label(m > 0.5)
+    if n > 1:
+        sizes = ndimage.sum(np.ones_like(m), lab, range(1, n + 1))
+        keep = ndimage.binary_dilation(lab == int(np.argmax(sizes)) + 1, iterations=4)
+        m = m * keep
+    a = Image.fromarray((m * 255).astype(np.uint8)).resize((w, h), Image.BILINEAR)
+    out = im.convert("RGBA")
+    out.putalpha(a)
+    return out.crop(a.point(lambda v: 255 if v > 24 else 0).getbbox())
+
+
+def prepare_cutouts(assets):
+    folder = os.path.join(assets, "cutouts")
+    os.makedirs(folder, exist_ok=True)
+    todo = [k for k in CROPS if not os.path.exists(os.path.join(folder, k + ".png"))]
+    if not todo:
+        return
+    import onnxruntime as ort
+    sess = ort.InferenceSession(os.path.join(assets, "isnetis.onnx"), providers=["CPUExecutionProvider"])
+    sheets = {k: Image.open(os.path.join(assets, k + ".png")).convert("RGB") for k in ("kudo", "naka")}
+    for k in todo:
+        sheet, box = CROPS[k]
+        segment(sess, sheets[sheet].crop(tuple(v * SCALE for v in box))).save(os.path.join(folder, k + ".png"))
+        print("cutout", k, flush=True)
+
+
+# ---------- 背景 ----------
+
+def scene_office(w, h, seed=3):
+    rng = np.random.default_rng(seed)
+    ys = np.linspace(0, 1, h)
+    top, mid, hor = np.array([8, 12, 30]), np.array([28, 30, 72]), np.array([96, 62, 112])
+    u = np.clip(ys / 0.62, 0, 1)[:, None]
+    col = np.where(u < 0.6, top + (mid - top) * (u / 0.6), mid + (hor - mid) * ((u - 0.6) / 0.4))
+    sky = np.repeat(col[:, None, :], w, axis=1)
+    im = Image.fromarray(sky.astype(np.uint8))
+    d = ImageDraw.Draw(im)
+    for _ in range(90):
+        x, y = rng.uniform(0, w), rng.uniform(0, h * 0.35)
+        c = int(rng.uniform(120, 230))
+        d.point((x, y), fill=(c, c, min(255, c + 20)))
+    lights = Image.new("RGB", (w, h), (0, 0, 0))
+    ld = ImageDraw.Draw(lights)
+    horizon = int(h * 0.66)
+    for layer, (hmin, hmax, colr, lit, wcol) in enumerate([
+            (0.10, 0.28, (44, 46, 86), 0.10, (130, 130, 190)),
+            (0.18, 0.45, (24, 26, 50), 0.28, (255, 208, 120))]):
+        x = -20
+        while x < w:
+            bw = int(rng.uniform(60, 170))
+            bh = int(h * rng.uniform(hmin, hmax))
+            d.rectangle([x, horizon - bh, x + bw, horizon + 40], fill=colr)
+            for wy in range(horizon - bh + 14, horizon - 6, 18):
+                for wx in range(x + 8, x + bw - 8, 14):
+                    if rng.random() < lit:
+                        d.rectangle([wx, wy, wx + 6, wy + 9], fill=wcol)
+                        ld.rectangle([wx, wy, wx + 6, wy + 9], fill=wcol)
+            if layer == 1 and rng.random() < 0.15:
+                d.line([(x + bw // 2, horizon - bh), (x + bw // 2, horizon - bh - 40)], fill=colr, width=4)
+                d.ellipse([x + bw // 2 - 4, horizon - bh - 46, x + bw // 2 + 4, horizon - bh - 38], fill=(230, 60, 60))
+                ld.ellipse([x + bw // 2 - 6, horizon - bh - 48, x + bw // 2 + 6, horizon - bh - 36], fill=(230, 60, 60))
+            x += bw + int(rng.uniform(4, 30))
+    im = ImageChops.add(im, lights.filter(ImageFilter.GaussianBlur(9)))
+    d = ImageDraw.Draw(im)
+    frame = (14, 16, 24)
+    for mx in range(-60, w + 520, 520):
+        d.rectangle([mx, 0, mx + 26, h], fill=frame)
+        d.line([(mx + 26, 0), (mx + 26, h)], fill=(44, 48, 64), width=2)
+    d.rectangle([0, int(h * 0.15), w, int(h * 0.15) + 18], fill=frame)
+    sill = int(h * 0.70)
+    for y in range(sill, h):
+        c = int(22 - 8 * (y - sill) / (h - sill))
+        d.line([(0, y), (w, y)], fill=(c, c + 1, c + 7))
+    d.rectangle([0, sill, w, sill + 10], fill=(56, 60, 76))
+    pot_x = int(w * 0.06)
+    for k in range(9):
+        a = math.radians(200 + k * 17)
+        d.ellipse([pot_x + 60 + math.cos(a) * 120 - 40, sill - 140 + math.sin(a) * 120 - 18,
+                   pot_x + 60 + math.cos(a) * 120 + 40, sill - 140 + math.sin(a) * 120 + 18], fill=(20, 40, 34))
+    d.polygon([(pot_x, sill - 10), (pot_x + 120, sill - 10), (pot_x + 100, sill + 90), (pot_x + 20, sill + 90)], fill=(30, 30, 36))
+    glow2 = Image.new("RGB", (w, h), (0, 0, 0))
+    ImageDraw.Draw(glow2).rectangle([int(w * 0.80), sill - 200, int(w * 0.95), sill - 40], fill=(40, 90, 150))
+    im = ImageChops.add(im, glow2.filter(ImageFilter.GaussianBlur(60)))
+    vig = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(vig).ellipse([-w * 0.2, -h * 0.3, w * 1.2, h * 1.3], fill=255)
+    vig = vig.filter(ImageFilter.GaussianBlur(160))
+    return Image.composite(im, ImageEnhance.Brightness(im).enhance(0.45), vig)
+
+
+def scene_meeting(w, h, seed=5):
+    rng = np.random.default_rng(seed)
+    im = Image.new("RGB", (w, h))
+    d = ImageDraw.Draw(im)
+    for y in range(h):
+        u = y / h
+        d.line([(0, y), (w, y)], fill=(int(214 - 30 * u), int(206 - 32 * u), int(190 - 36 * u)))
+    bx0, by0, bx1, by1 = int(w * 0.08), int(h * 0.12), int(w * 0.60), int(h * 0.66)
+    d.rectangle([bx0 - 14, by0 - 14, bx1 + 14, by1 + 14], fill=(170, 174, 182))
+    d.rectangle([bx0, by0, bx1, by1], fill=(246, 247, 248))
+    d.rectangle([bx0, by1 + 14, bx1, by1 + 30], fill=(150, 154, 162))
+    for k in range(7):
+        y = by0 + 60 + k * 62
+        x = bx0 + 60 + rng.uniform(0, 80)
+        d.line([(x, y), (x + rng.uniform(260, 620), y + rng.uniform(-6, 6))], fill=(186, 192, 204), width=5)
+    for k, c in enumerate([(250, 226, 120), (250, 180, 190), (170, 220, 250), (250, 226, 120)]):
+        x = bx1 - 380 + (k % 2) * 160 + rng.uniform(-10, 10)
+        y = by0 + 70 + (k // 2) * 160
+        d.rectangle([x, y, x + 130, y + 130], fill=c)
+    wx0 = int(w * 0.66)
+    d.rectangle([wx0, int(h * 0.08), w - 40, int(h * 0.72)], fill=(236, 232, 214))
+    for y in range(int(h * 0.08), int(h * 0.72), 26):
+        d.rectangle([wx0, y + 16, w - 40, y + 25], fill=(204, 196, 176))
+    light = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(light).polygon([(wx0, int(h * 0.1)), (w, int(h * 0.1)), (int(w * 0.55), h), (int(w * 0.2), h)], fill=60)
+    im = Image.composite(Image.new("RGB", (w, h), (255, 248, 224)), im, light.filter(ImageFilter.GaussianBlur(40)))
+    d = ImageDraw.Draw(im)
+    ty = int(h * 0.80)
+    for y in range(ty, h, 6):
+        k = (y - ty) / (h - ty)
+        d.line([(0, y), (w, y)], fill=(int(110 - 30 * k), int(80 - 24 * k), int(56 - 18 * k)), width=6)
+    d.rectangle([0, ty, w, ty + 12], fill=(140, 106, 78))
+    return im
+
+
+SCENES = {"office": scene_office, "meeting": scene_meeting}
+
+
 # ---------- 素材 ----------
 
 class Ctx:
@@ -105,12 +253,8 @@ class Ctx:
         self.assets = assets
         self.fonts = {}
         self.cache = {}
-        self.sheets = {k: Image.open(os.path.join(assets, k + ".png")).convert("RGB") for k in ("kudo", "naka")}
         self.kv = Image.open(os.path.join(assets, "kv.png")).convert("RGB").resize((2304, 1296), Image.LANCZOS)
-        self.base = make_base_bg(2000, 1125)
-        self.base_dark = ImageEnhance.Brightness(self.base).enhance(0.45)
         self.header = make_header(self)
-        self.bar = make_telop_bar()
 
     def font(self, kind, size):
         key = (kind, size)
@@ -124,112 +268,99 @@ class Ctx:
             self.cache[key] = fn()
         return self.cache[key]
 
-    def char_image(self, key):
-        if key == "na":
-            return self.memo(("crop", key), lambda: nakano_placeholder(self))
-        sheet, box = CROPS[key]
-        return self.memo(("crop", key), lambda: self.sheets[sheet].crop(tuple(v * SCALE for v in box)))
-
-    def panel(self, key, side, size="big", dim=False):
+    def world(self, scene, blur):
         def make():
-            if dim:
-                return darken(self.panel(key, side, size), 0.55)
-            h, w = BIG if size == "big" else SMALL
-            return framed(self.char_image(key), h, w, TILT[side])
-        return self.memo(("panel", key, side, size, dim), make)
+            im = self.memo(("scene", scene), lambda: SCENES[scene](WW, WH))
+            return im.filter(ImageFilter.GaussianBlur(blur)) if blur else im
+        return self.memo(("world", scene, blur), make)
 
-    def bg(self, T, dark=False):
-        ox = int(40 + 30 * math.sin(2 * math.pi * T / 37))
-        oy = int(22 + 15 * math.sin(2 * math.pi * T / 51))
-        return (self.base_dark if dark else self.base).crop((ox, oy, ox + W, oy + H))
+    def backdrop(self, scene, level=0.55):
+        """図解や一覧の後ろに敷く、ぼかして暗くした背景。"""
+        def make():
+            im = self.world(scene, 10).resize((W, H), Image.BILINEAR)
+            return ImageEnhance.Brightness(im).enhance(level)
+        return self.memo(("backdrop", scene, level), make)
 
+    def cutout(self, key):
+        if key == "na":
+            return self.memo(("cut", key), lambda: nakano_silhouette(self))
+        return self.memo(("cut", key), lambda: Image.open(os.path.join(self.assets, "cutouts", key + ".png")).convert("RGBA"))
 
-def make_base_bg(w, h):
-    im = Image.new("RGB", (w, h), (29, 31, 36))
-    d = ImageDraw.Draw(im)
-    sx = w / W
-    d.polygon([(1050 * sx, 0), (w, 0), (w, h), (920 * sx, h)], fill=(58, 70, 86))
-    over = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    o = ImageDraw.Draw(over)
-    cx, cy = 500, 540
-    for i in range(72):
-        t = i / 72 * 2 * math.pi
-        o.line([(cx + math.cos(t) * 260, cy + math.sin(t) * 260),
-                (cx + math.cos(t) * 1700, cy + math.sin(t) * 1700)], fill=GOLD + (34,), width=2)
-    for y in range(0, h, 24):
-        for x in range(0, w, 24):
-            left = x < (1050 - 130 * y / h) * sx
-            r = 2.4 if (x // 24 + y // 24) % 2 == 0 else 1.6
-            o.ellipse([x - r, y - r, x + r, y + r], fill=(GOLD + (46,)) if left else (CREAM + (34,)))
-    for bx, bw, bh in [(1220, 110, 330), (1350, 80, 230), (1450, 130, 420), (1600, 90, 280), (1720, 150, 380), (1890, 90, 300)]:
-        o.rectangle([bx, h - bh, bx + bw, h], outline=CREAM + (40,), width=3)
-        for wy in range(h - bh + 24, h - 20, 34):
-            for wx in range(bx + 16, bx + bw - 16, 26):
-                o.rectangle([wx, wy, wx + 10, wy + 14], outline=CREAM + (36,), width=2)
-    im = Image.alpha_composite(im.convert("RGBA"), over)
-    d = ImageDraw.Draw(im)
-    d.polygon([(1037 * sx, 0), (1063 * sx, 0), (933 * sx, h), (907 * sx, h)], fill=GOLD)
-    return im.convert("RGB")
+    def stand(self, key, h, dark=False):
+        """白フチと影をつけた立ち絵。返り値は (画像, 頭の中心x, 口元y)。"""
+        def make():
+            if dark:
+                im, hx, my = self.stand(key, h)
+                r, g, b, a = im.split()
+                rgb = ImageEnhance.Brightness(Image.merge("RGB", (r, g, b))).enhance(0.55).filter(ImageFilter.GaussianBlur(1.6))
+                out = rgb.convert("RGBA")
+                out.putalpha(a)
+                return out, hx, my
+            cut = self.cutout(key)
+            s = h / cut.height
+            cut = cut.resize((max(1, int(cut.width * s)), h), Image.LANCZOS)
+            r = max(5, h // 120)
+            pad = r + 30
+            a = Image.new("L", (cut.width + pad * 2, cut.height + pad * 2), 0)
+            a.paste(cut.split()[3], (pad, pad))
+            fuchi = a.filter(ImageFilter.GaussianBlur(r / 1.6)).point(lambda v: 255 if v > 10 else 0).filter(ImageFilter.GaussianBlur(1))
+            out = Image.new("RGBA", a.size, (0, 0, 0, 0))
+            shadow = Image.new("RGBA", a.size, (0, 0, 0, 0))
+            shadow.paste((0, 0, 0, 110), (16, 10), fuchi)
+            out.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(12)))
+            white = Image.new("RGBA", a.size, (255, 255, 255, 0))
+            white.putalpha(fuchi)
+            out.alpha_composite(white)
+            out.alpha_composite(cut, (pad, pad))
+            arr = np.asarray(cut.split()[3]) > 40
+            rows = np.where(arr.any(axis=1))[0]
+            top = rows[0]
+            band = arr[top: top + max(4, int(h * 0.22))]
+            xs = np.where(band.any(axis=0))[0]
+            hx = pad + (xs.mean() if len(xs) else cut.width / 2)
+            my = pad + top + h * 0.24
+            return out, hx, my
+        return self.memo(("stand", key, h, dark), make)
+
+    def speedlines(self, variant):
+        def make():
+            rng = np.random.default_rng(variant + 11)
+            im = Image.new("RGBA", (WW, WH), (0, 0, 0, 0))
+            d = ImageDraw.Draw(im)
+            cx, cy = WW / 2, WH * 0.42
+            for _ in range(140):
+                a = rng.uniform(0, 2 * math.pi)
+                r0 = rng.uniform(420, 620)
+                wdt = rng.uniform(0.004, 0.012)
+                pts = [(cx + math.cos(a) * r0, cy + math.sin(a) * r0),
+                       (cx + math.cos(a - wdt) * 1700, cy + math.sin(a - wdt) * 1700),
+                       (cx + math.cos(a + wdt) * 1700, cy + math.sin(a + wdt) * 1700)]
+                d.polygon(pts, fill=(255, 255, 255, int(rng.uniform(70, 150))))
+            return im
+        return self.memo(("speed", variant), make)
 
 
 def make_header(ctx):
-    im = Image.new("RGBA", (W, 100), (0, 0, 0, 0))
+    im = Image.new("RGBA", (W, 90), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
-    d.polygon([(0, 26), (720, 26), (690, 92), (0, 92)], fill=INK + (235,))
-    d.text((44, 59), "企画・宣伝協同組合 ／ 宣伝助太刀 第一話", font=ctx.font("b", 32), fill=CREAM, anchor="lm")
-    d.rectangle([W - 380, 36, W - 40, 84], fill=RED + (235,))
-    d.text((W - 210, 60), "※架空のモデルケースです", font=ctx.font("b", 26), fill="white", anchor="mm")
+    d.polygon([(0, 24), (560, 24), (536, 74), (0, 74)], fill=INK + (200,))
+    d.text((34, 49), "企画・宣伝協同組合 ／ 宣伝助太刀 第一話", font=ctx.font("b", 26), fill=CREAM, anchor="lm")
+    d.rectangle([W - 330, 30, W - 34, 70], fill=RED + (220,))
+    d.text((W - 182, 50), "※架空のモデルケースです", font=ctx.font("b", 23), fill="white", anchor="mm")
     return im
 
 
-BAR_Y = 760
-
-
-def make_telop_bar():
-    im = Image.new("RGBA", (W, H - BAR_Y), (0, 0, 0, 0))
+def nakano_silhouette(ctx):
+    w, h = 900, 1100
+    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
-    pts = [(70, 846), (1850, 826), (1834, 1046), (86, 1056)]
-    d.polygon([(x, y - BAR_Y) for x, y in pts], fill=INK + (238,), outline=CREAM + (255,))
+    body = (22, 52, 48, 255)
+    d.ellipse([w / 2 - 190, 60, w / 2 + 190, 470], fill=body)
+    d.rounded_rectangle([w / 2 - 400, 500, w / 2 + 400, h + 300], radius=300, fill=body)
+    d.polygon([(w / 2 - 90, 420), (w / 2 + 90, 420), (w / 2 + 110, 540), (w / 2 - 110, 540)], fill=body)
+    d.text((w / 2, 770), "中野", font=ctx.font("b", 180), fill=(220, 236, 230, 255), anchor="mm")
+    d.text((w / 2, 920), "立ち絵 差し替え予定", font=ctx.font("r", 54), fill=(190, 214, 206, 255), anchor="mm")
     return im
-
-
-def nakano_placeholder(ctx):
-    w, h = 720, 880
-    im = Image.new("RGB", (w, h), (36, 128, 112))
-    d = ImageDraw.Draw(im)
-    for y in range(h):
-        c = int(30 * y / h)
-        d.line([(0, y), (w, y)], fill=(36 + c, 128 - c, 112 - c))
-    d.ellipse([w / 2 - 150, 150, w / 2 + 150, 470], fill=(18, 40, 38))
-    d.rounded_rectangle([w / 2 - 300, 480, w / 2 + 300, h + 200], radius=220, fill=(18, 40, 38))
-    d.text((w / 2, 640), "中野", font=ctx.font("b", 150), fill=CREAM, anchor="mm")
-    d.text((w / 2, 770), "立ち絵 差し替え予定", font=ctx.font("r", 44), fill=CREAM, anchor="mm")
-    return im
-
-
-def framed(img, target_h, max_w, tilt):
-    s = target_h / img.height
-    if img.width * s > max_w:
-        s = max_w / img.width
-    img = img.resize((int(img.width * s), int(img.height * s)), Image.LANCZOS)
-    b = 14
-    card = Image.new("RGBA", (img.width + b * 2 + 8, img.height + b * 2 + 8), INK + (255,))
-    card.paste(Image.new("RGB", (img.width + b * 2, img.height + b * 2), CREAM), (4, 4))
-    card.paste(img, (b + 4, b + 4))
-    card = card.rotate(tilt, resample=Image.BICUBIC, expand=True)
-    shadow = Image.new("RGBA", (card.width + 60, card.height + 60), (0, 0, 0, 0))
-    shadow.paste((0, 0, 0, 150), (30 + 14, 30 + 18), card.split()[3])
-    shadow = shadow.filter(ImageFilter.GaussianBlur(14))
-    shadow.alpha_composite(card, (30, 30))
-    return shadow
-
-
-def darken(im, amount):
-    r, g, b, a = im.split()
-    rgb = ImageEnhance.Brightness(Image.merge("RGB", (r, g, b))).enhance(1 - amount)
-    out = rgb.convert("RGBA")
-    out.putalpha(a)
-    return out
 
 
 def fade(im, alpha):
@@ -255,10 +386,6 @@ def paste_c(frame, im, cx, cy):
 def wrap(text, font, max_w):
     lines, cur = [], ""
     for ch in text:
-        if ch == "\n":
-            lines.append(cur)
-            cur = ""
-            continue
         if font.getlength(cur + ch) > max_w and cur:
             if ch in NO_LINE_START:
                 cur += ch
@@ -277,14 +404,14 @@ def wrap_phrases(text, font, max_w):
     tokens, cur = [], ""
     for ch in text:
         cur += ch
-        if ch in "、。？！…」　" and not (ch == "…" and False):
+        if ch in BREAK_AFTER:
             tokens.append(cur)
             cur = ""
     if cur:
         tokens.append(cur)
     merged = []
     for tk in tokens:
-        if merged and all(c in "、。？！…」　" for c in tk):
+        if merged and all(c in BREAK_AFTER for c in tk):
             merged[-1] += tk
         else:
             merged.append(tk)
@@ -342,127 +469,199 @@ def text_image(ctx, text, kind, size, fill, stroke=0, stroke_fill=INK):
     return im
 
 
-# ---------- テロップ ----------
+# ---------- 吹き出し ----------
 
-def draw_telop(ctx, frame, sp, t, text, lead, vlen, telop_in, name_wipe, note=None):
-    yoff = int((1 - ease_out(t / 0.22)) * 300) if telop_in else 0
-    frame.paste(ctx.bar, (0, BAR_Y + yoff), ctx.bar)
-    ch = CHARS[sp]
-
-    def tag():
-        nf = ctx.font("b", 46)
-        nw = int(nf.getlength(ch["name"])) + 64
-        im = Image.new("RGBA", (nw + 10, 80), (0, 0, 0, 0))
-        d = ImageDraw.Draw(im)
-        d.polygon([(0, 6), (nw, 0), (nw - 8, 72), (4, 76)], fill=ch["color"] + (255,))
-        d.text((32, 38), ch["name"], font=nf, fill="white", anchor="lm")
-        return im
-    tg = ctx.memo(("tag", sp), tag)
-    if name_wipe:
-        w = int(tg.width * ease_out((t - 0.04) / 0.18))
-        if w > 0:
-            part = tg.crop((0, 0, w, tg.height))
-            frame.paste(part, (96, 780 + yoff), part)
+def make_bubble(ctx, text, kind, box_pos, target, max_w=700, sizes=(50, 46, 42), max_lines=4):
+    """吹き出し本体としっぽを1枚にまとめる。box_pos は ('L'|'R'|'free', x, y)。"""
+    f, lines = fit_lines(ctx, text, "b", sizes, max_w, max_lines)
+    lh = int(f.size * 1.38)
+    tw = max(f.getlength(ln) for ln in lines)
+    th = lh * len(lines)
+    bw, bh = int(tw * 1.28 + 80), int(th * 1.3 + 70)
+    mode, ax, ay = box_pos
+    x0 = ax if mode == "L" else ax - bw if mode == "R" else ax - bw / 2
+    x0 = int(min(max(x0, 30), W - bw - 30))
+    y0 = int(min(max(ay, 92), H - bh - 30))
+    cx, cy = x0 + bw / 2, y0 + bh / 2
+    pad = 90
+    lx0, ly0 = min(x0, target[0]) - pad, min(y0, target[1]) - pad
+    lx1, ly1 = max(x0 + bw, target[0]) + pad, max(y0 + bh, target[1]) + pad
+    size = (int(lx1 - lx0), int(ly1 - ly0))
+    mask = Image.new("L", size, 0)
+    d = ImageDraw.Draw(mask)
+    ox, oy = cx - lx0, cy - ly0
+    rx, ry = bw / 2, bh / 2
+    if kind == "spike":
+        rng = np.random.default_rng(len(text))
+        pts = []
+        n = 26
+        for k in range(n * 2):
+            a = math.pi * k / n
+            rr = (1.18 if k % 2 == 0 else 0.98) * rng.uniform(0.96, 1.04)
+            pts.append((ox + math.cos(a) * rx * rr, oy + math.sin(a) * ry * rr))
+        d.polygon(pts, fill=255)
+    elif kind == "cloud":
+        d.ellipse([ox - rx, oy - ry, ox + rx, oy + ry], fill=255)
+        for k in range(14):
+            a = 2 * math.pi * k / 14
+            px, py = ox + math.cos(a) * rx * 0.92, oy + math.sin(a) * ry * 0.92
+            r = min(rx, ry) * 0.36
+            d.ellipse([px - r, py - r, px + r, py + r], fill=255)
     else:
-        frame.paste(tg, (96, 780 + yoff), tg)
-    d = ImageDraw.Draw(frame)
-    if note:
-        a = ease_out((t - 0.2) / 0.4)
-        c = int(40 + 160 * a)
-        d.text((W / 2, 950 + yoff), note, font=ctx.font("r", 52), fill=(c, c, c), anchor="mm")
+        d.ellipse([ox - rx, oy - ry, ox + rx, oy + ry], fill=255)
+    tx, ty = target[0] - lx0, target[1] - ly0
+    ang = math.atan2(ty - oy, tx - ox)
+    edge_x, edge_y = ox + math.cos(ang) * rx, oy + math.sin(ang) * ry
+    if kind == "cloud":
+        for u, r in ((0.35, 22), (0.6, 15), (0.8, 10)):
+            px, py = lerp(edge_x, tx, u), lerp(edge_y, ty, u)
+            d.ellipse([px - r, py - r, px + r, py + r], fill=255)
+    else:
+        spread = 0.16
+        b1 = (ox + math.cos(ang - spread) * rx * 0.86, oy + math.sin(ang - spread) * ry * 0.86)
+        b2 = (ox + math.cos(ang + spread) * rx * 0.86, oy + math.sin(ang + spread) * ry * 0.86)
+        tip = (lerp(edge_x, tx, 0.8), lerp(edge_y, ty, 0.8))
+        d.polygon([b1, b2, tip], fill=255)
+    edge = mask.filter(ImageFilter.GaussianBlur(3.2)).point(lambda v: 255 if v > 6 else 0).filter(ImageFilter.GaussianBlur(0.8))
+    im = Image.new("RGBA", size, INK + (0,))
+    im.putalpha(edge)
+    white = Image.new("RGBA", size, (255, 255, 255, 0))
+    white.putalpha(mask.filter(ImageFilter.GaussianBlur(0.8)))
+    im.alpha_composite(white)
+    return {"img": im, "x": int(lx0), "y": int(ly0), "cx": cx, "cy": cy, "font": f, "lines": lines, "lh": lh, "tw": tw, "th": th}
+
+
+def draw_bubble(frame, b, t, text_t0, text_dur, pop_t=0.03):
+    if t < pop_t:
         return
-    f, lines = ctx.memo(("telop", text), lambda: fit_lines(ctx, text, "b", (60, 54, 48), 1640, 2))
-    total = sum(len(x) for x in lines)
-    shown = int(round(total * clamp01((t - lead) / max(0.5, vlen * 0.7)))) if vlen else total
-    lh = int(f.size * 1.42)
-    y0 = 946 - lh * (len(lines) - 1) / 2 + yoff
-    for i, ln in enumerate(lines):
+    k = ease_back((t - pop_t) / 0.2)
+    im = b["img"]
+    if k < 0.999 and t - pop_t < 0.2:
+        s = lerp(0.55, 1, k)
+        im = fade(scaled(im, s), clamp01((t - pop_t) / 0.08))
+        x = int(b["cx"] + (b["x"] - b["cx"]) * s)
+        y = int(b["cy"] + (b["y"] - b["cy"]) * s)
+        frame.paste(im, (x, y), im)
+        return
+    frame.paste(im, (b["x"], b["y"]), im)
+    total = sum(len(ln) for ln in b["lines"])
+    shown = int(round(total * clamp01((t - text_t0) / max(0.4, text_dur)))) if text_dur else total
+    d = ImageDraw.Draw(frame)
+    x0 = b["cx"] - b["tw"] / 2
+    y0 = b["cy"] - b["th"] / 2 + b["lh"] / 2
+    for i, ln in enumerate(b["lines"]):
         part = ln[: max(0, shown)]
         shown -= len(ln)
         if part:
-            d.text((130, y0 + i * lh), part, font=f, fill="white", anchor="lm", stroke_width=2, stroke_fill=INK)
+            d.text((x0, y0 + i * b["lh"]), part, font=b["font"], fill=INK, anchor="lm")
 
 
-# ---------- 各レイアウト ----------
+def draw_oto(ctx, frame, text, kind, x, y, t, start=0.04):
+    if t < start:
+        return
+    col = OTO_COLOR.get(kind, (255, 255, 255))
+    im = ctx.memo(("oto", text, kind), lambda: text_image(ctx, text, "brush", 150, col, 12, INK).rotate(8, expand=True, resample=Image.BICUBIC))
+    k = ease_out((t - start) / 0.14)
+    jit = 4 * math.sin(t * 40) if t - start < 0.5 else 0
+    paste_c(frame, fade(scaled(im, 1.7 - 0.7 * k), k), x + jit, y)
 
-def fx_marks(ctx, frame, kind, side, box, t):
-    x0, y0, x1, y1 = box
-    d = ImageDraw.Draw(frame)
-    inner_x = x1 - 60 if side == "L" else x0 + 60
-    sgn = 1 if side == "L" else -1
-    if kind == "surprise" and t > 0.05:
-        k = ease_back((t - 0.05) / 0.15)
-        for dx, dy in ((1.0, -0.25), (0.75, -0.85), (0.25, -1.1)):
-            px, py = inner_x + sgn * 10, y0 + 80
-            qx, qy = px + sgn * dx * 90 * k, py + dy * 90 * k
-            d.line([(px, py), (qx, qy)], fill="white", width=20)
-            d.line([(px, py), (qx, qy)], fill=INK, width=11)
-    elif kind == "sweat":
-        cx = inner_x - sgn * 40
-        cy = y0 + 110 + 40 * ease_io(t / 1.2)
-        d.ellipse([cx - 20, cy - 4, cx + 20, cy + 36], fill=(170, 214, 244), outline=INK, width=4)
-        d.polygon([(cx - 17, cy + 8), (cx + 17, cy + 8), (cx, cy - 34)], fill=(170, 214, 244))
-        d.line([(cx - 18, cy + 8), (cx, cy - 34), (cx + 18, cy + 8)], fill=INK, width=4)
-    elif kind == "think":
-        bx = x0 - 200 if side == "R" else x1 + 30
-        by = y0 + 60
-        if t > 0.1:
-            d.rounded_rectangle([bx, by, bx + 170, by + 70], radius=34, fill=CREAM, outline=INK, width=4)
-            for k in range(3):
-                if t > 0.25 + k * 0.25:
-                    d.ellipse([bx + 34 + k * 44, by + 26, bx + 52 + k * 44, by + 44], fill=INK)
+
+# ---------- 会話 ----------
+
+def cam_center(side, shot):
+    if shot == "two":
+        return WW / 2
+    return lerp(WW / 2, X_POS[side][shot], 0.28)
+
+
+def stage_layout(ctx, sp_):
+    """このカットの口元の位置と吹き出しを決める（カット内で固定）。"""
+    def make():
+        sh = sp_["sh"]
+        side = CHARS[sh["sp"]]["side"]
+        shot = sp_["shot"]
+        im, hx, my = ctx.stand(sh["img"], STAND_H[shot])
+        x = X_POS[side][shot]
+        top = WH + STAND_DROP[shot] - im.height
+        z = sum(CAMERA[shot]) / 2
+        vw, vh = WW / z, WH / z
+        cx = min(max(cam_center(side, shot), vw / 2), WW - vw / 2)
+        mw = (x - im.width / 2 + hx, top + my)
+        mouth = ((mw[0] - (cx - vw / 2)) * W / vw, (mw[1] - (WH / 2 - vh / 2)) * H / vh)
+        kind = sh.get("bubble") or ("spike" if sh.get("fx") == "impact" else "cloud" if sh.get("silent") else "round")
+        gap = 260 if shot == "close" else 210
+        if shot == "two":
+            pos = ("free", W / 2, 96)
+        else:
+            pos = ("L", mouth[0] + gap, 110) if side == "L" else ("R", mouth[0] - gap, 110)
+        target = (mouth[0] + (110 if side == "L" else -110), mouth[1] - 20)
+        b = make_bubble(ctx, "……" if sh.get("silent") else sh["text"], kind, pos, target, max_w=820, max_lines=3)
+        return {"bubble": b, "mouth": mouth}
+    return ctx.memo(("layout", sp_["idx"]), make)
+
+
+def paste_stand(world, im, x, bottom):
+    world.paste(im, (int(x - im.width / 2), int(bottom - im.height)), im)
 
 
 def draw_talk(ctx, sp_, t, T):
     sh = sp_["sh"]
     side = CHARS[sh["sp"]]["side"]
     other = "R" if side == "L" else "L"
-    frame = ctx.bg(T)
+    shot = sp_["shot"]
+    world = ctx.world(sp_["scene"], 9 if shot == "close" else 2).copy()
     f = min(int(t * FPS), len(sp_["env"]) - 1) if sp_["env"] else 0
     env = sp_["env"][f] if sp_["env"] else 0
-    lis = sp_.get("lis")
-    if lis:
-        mode = sp_["lis_mode"]
-        (bx, by), (sx, sy) = SLOT[other]["big"], SLOT[other]["small"]
-        if mode == "shrink" and t < 0.25:
-            u = ease_io(t / 0.25)
-            im = scaled(ctx.panel(lis, other), lerp(1, SMALL[0] / BIG[0], u))
-            paste_c(frame, darken(im, 0.55 * u), lerp(bx, sx, u), lerp(by, sy, u))
-        else:
-            im = ctx.panel(lis, other, "small", dim=True)
-            if mode == "fadein":
-                im = fade(im, ease_out(t / 0.25))
-            paste_c(frame, im, sx, sy)
-    (cx, cy), (scx, scy) = SLOT[side]["big"], SLOT[side]["small"]
-    cy -= 7 * env
-    mode = sp_["spk_mode"]
-    img = sh["img"]
-    big = ctx.panel(img, side)
-    off = -W / 2 - 300 if side == "L" else W / 2 + 300
+    if sp_.get("lis") and shot != "close":
+        two = shot == "two"
+        lim = ctx.stand(sp_["lis"], STAND_H["two" if two else "lis"], dark=not two)[0]
+        lx = X_POS[other]["two" if two else "lis"]
+        if sp_["lis_mode"] == "slidein":
+            lx += (-1 if other == "L" else 1) * 900 * (1 - ease_out(t / 0.32))
+        paste_stand(world, lim, lx, WH + STAND_DROP["two" if two else "lis"])
+    if shot == "close":
+        sl = ctx.speedlines(int(t * 12) % 3)
+        world.paste(sl, (0, 0), sl)
+    im = ctx.stand(sh["img"], STAND_H[shot])[0]
+    x = X_POS[side][shot]
+    bottom = WH + STAND_DROP[shot] - 6 * env
     if sh.get("fx") == "surprise":
-        cy -= 40 * math.sin(math.pi * clamp01(t / 0.3))
-    if mode == "enter":
-        u = ease_back(t / 0.34)
-        box = paste_c(frame, big, cx + off * (1 - u), cy)
-    elif mode == "swap":
-        if t < 0.22:
-            paste_c(frame, ctx.panel(sp_["old"], side), cx, cy + 900 * ease_in(t / 0.22))
-        u = ease_back((t - 0.12) / 0.34)
-        box = paste_c(frame, big, cx + off * (1 - u), cy)
-    elif sp_["grow"] and t < 0.25:
-        u = ease_io(t / 0.25)
-        im = darken(scaled(big, lerp(SMALL[0] / BIG[0], 1, u)), 0.55 * (1 - u))
-        box = paste_c(frame, im, lerp(scx, cx, u), lerp(scy, cy, u))
+        bottom -= 50 * math.sin(math.pi * clamp01(t / 0.3))
+    mode = sp_["spk_mode"]
+    if mode in ("enter", "swap"):
+        if mode == "swap" and t < 0.2:
+            paste_stand(world, ctx.stand(sp_["old"], STAND_H[shot])[0], x, bottom + 900 * ease_in(t / 0.2))
+        u = ease_back((t - (0.1 if mode == "swap" else 0)) / 0.34)
+        if u > 0:
+            paste_stand(world, im, x, bottom + 700 * (1 - u))
     elif mode == "expr" and t < 0.16:
-        paste_c(frame, ctx.panel(sp_["old"], side), cx, cy)
-        box = paste_c(frame, fade(big, ease_out(t / 0.16)), cx, cy - 10 * (1 - t / 0.16))
+        paste_stand(world, ctx.stand(sp_["old"], STAND_H[shot])[0], x, bottom)
+        paste_stand(world, fade(im, ease_out(t / 0.16)), x, bottom)
     else:
-        s = 1.12 - 0.12 * ease_out(t / 0.2) if sh.get("fx") == "impact" else 1
-        box = paste_c(frame, scaled(big, s), cx, cy)
-    if sh.get("fx") in ("surprise", "sweat", "think"):
-        fx_marks(ctx, frame, sh["fx"], side, box, t)
+        paste_stand(world, im, x, bottom)
+
+    z0, z1 = CAMERA[shot]
+    z = lerp(z0, z1, ease_io(t / sp_["dur"]))
+    if sh.get("fx") == "impact":
+        z += 0.1 * (1 - ease_out(t / 0.25))
+    whip = sp_.get("whip", 0)
+    wu = 1 - ease_out(t / 0.24)
+    vw, vh = WW / z, WH / z
+    cx = cam_center(side, shot) + whip * 420 * wu
+    cx = min(max(cx, vw / 2), WW - vw / 2)
+    box = (int(cx - vw / 2), int(WH / 2 - vh / 2), int(cx + vw / 2), int(WH / 2 + vh / 2))
+    frame = world.crop(box).resize((W, H), Image.BILINEAR)
+    if whip and wu > 0.25:
+        blur = frame.resize((W // 10, H), Image.BILINEAR).resize((W, H), Image.BILINEAR)
+        frame = Image.blend(frame, blur, min(0.85, wu))
+
+    lay = stage_layout(ctx, sp_)
+    draw_bubble(frame, lay["bubble"], t, sp_["lead"], sp_["vlen"] * 0.72, pop_t=0.12 if mode in ("enter", "swap") else 0.04)
+    if sh.get("oto"):
+        mx, my = lay["mouth"]
+        ox = mx - 330 if side == "L" else mx + 330
+        draw_oto(ctx, frame, sh["oto"], sh.get("fx", "impact"), min(max(ox, 180), W - 180), max(my - 260, 200), t)
     frame.paste(ctx.header, (0, 0), ctx.header)
-    draw_telop(ctx, frame, sh["sp"], t, sh["text"], sp_["lead"], sp_["vlen"], sp_["telop_in"], sp_["name_wipe"], sh.get("telop_note"))
     if sh.get("fx") == "impact":
         frame = shake(frame, t, 0, 0.3, 16)
     return frame
@@ -471,49 +670,70 @@ def draw_talk(ctx, sp_, t, T):
 def draw_cutin(ctx, sp_, t, T):
     sh = sp_["sh"]
     ch = CHARS[sh["sp"]]
-    side = ch["side"]
-    frame = ctx.bg(T, dark=True)
+    frame = ctx.backdrop(sp_["scene"], 0.32).copy()
     d = ImageDraw.Draw(frame)
     xo = -W * (1 - ease_out(t / 0.2))
-    top = [(0, 250), (W, 180)]
-    bot = [(W, 770), (0, 840)]
-    band = [(x + xo, y) for x, y in top + bot]
+    band = [(0 + xo, 300), (W + xo, 230), (W + xo, 820), (0 + xo, 890)]
     d.polygon(band, fill=ch["cut"])
     rng = np.random.default_rng(sp_["idx"])
     light = tuple(int(c + (255 - c) * 0.35) for c in ch["cut"])
     for k in range(26):
-        y = 240 + rng.uniform(0, 560)
+        y = 290 + rng.uniform(0, 560)
         ln = rng.uniform(200, 700)
         x = (rng.uniform(0, W + 800) - 2600 * t) % (W + 800) - 400 + xo
         slope = -70 / W
         d.line([(x, y + slope * x), (x + ln, y + slope * (x + ln))], fill=light, width=int(rng.uniform(3, 9)))
-    d.line([(p[0], p[1]) for p in band[:2]], fill=INK, width=12)
-    d.line([(p[0], p[1]) for p in band[2:]], fill=INK, width=12)
+    d.line(band[:2], fill=INK, width=12)
+    d.line(band[2:], fill=INK, width=12)
     d.line([(band[0][0], band[0][1] + 18), (band[1][0], band[1][1] + 18)], fill=GOLD, width=4)
     d.line([(band[3][0], band[3][1] - 18), (band[2][0], band[2][1] - 18)], fill=GOLD, width=4)
-    face = ctx.memo(("cutface", sh["img"]), lambda: framed(ctx.char_image(sh["img"]), 640, 760, 3 if side == "L" else -3))
+    im = ctx.stand(sh["img"], 1080)[0]
     u = ease_back((t - 0.05) / 0.3)
-    paste_c(frame, face, lerp(-500, 470, u), 510)
+    frame.paste(im, (int(lerp(-900, 480 - im.width / 2, u)), H + 130 - im.height), im)
 
     def make_text():
-        f, lines = fit_lines(ctx, sh.get("cut_text", sh["text"]), "b", (100, 90, 80, 70), 940, 3)
+        f, lines = fit_lines(ctx, sh.get("cut_text", sh["text"]), "b", (100, 90, 80, 70), 900, 3)
         lh = int(f.size * 1.3)
-        im = Image.new("RGBA", (1000, lh * len(lines) + 40), (0, 0, 0, 0))
-        dd = ImageDraw.Draw(im)
+        timg = Image.new("RGBA", (980, lh * len(lines) + 40), (0, 0, 0, 0))
+        dd = ImageDraw.Draw(timg)
         for i, ln in enumerate(lines):
             dd.text((20, 20 + i * lh), ln, font=f, fill="white", stroke_width=9, stroke_fill=INK)
-        return im
+        return timg
     txt = ctx.memo(("cuttext", sp_["idx"]), make_text)
     if t > 0.25:
         k = ease_out((t - 0.25) / 0.14)
-        paste_c(frame, fade(scaled(txt, 1.35 - 0.35 * k), k), 1330, 515)
+        paste_c(frame, fade(scaled(txt, 1.35 - 0.35 * k), k), 1380, 560)
         tag = ctx.memo(("cuttag", sh["sp"]), lambda: text_image(ctx, ch["name"], "b", 44, "white", 0))
-        tx, ty = 850, int(515 - txt.height / 2 - tag.height - 10)
+        tx, ty = 910, int(560 - txt.height / 2 - tag.height - 10)
         d.rectangle([tx - 16, ty - 8, tx + tag.width + 16, ty + tag.height + 8], fill=INK)
         frame.paste(tag, (tx, ty), tag)
     if 0.25 <= t < 0.33:
         frame = Image.blend(frame, Image.new("RGB", (W, H), "white"), 0.4 * (1 - (t - 0.25) / 0.08))
     return shake(frame, t, 0.25, 0.3, 18)
+
+
+# ---------- 図解・一覧（話者が横で話す） ----------
+
+PANEL_S, PANEL_X, PANEL_Y = 0.84, 34, 70
+
+
+def presenter(ctx, frame, sp_, t, layer):
+    """縮めた図解レイヤーを置き、右下に話者の立ち絵、下に吹き出しを出す。"""
+    sh = sp_["sh"]
+    small = layer.resize((int(W * PANEL_S), int(H * PANEL_S)), Image.BILINEAR)
+    frame.paste(small, (PANEL_X, PANEL_Y), small)
+    img = sh.get("img") or DEFAULT_IMG[sh["sp"]]
+    im, hx, my = ctx.stand(img, 640)
+    u = ease_back((t - 0.1) / 0.35) if sp_.get("telop_in") else 1
+    x0 = int(W - im.width + 70)
+    y0 = int(H + 30 - im.height + 400 * (1 - u))
+    frame.paste(im, (x0, y0), im)
+
+    def make():
+        return make_bubble(ctx, sh["text"], "round", ("free", 780, 790), (x0 + hx - 60, H + 30 - im.height + my + 20),
+                           max_w=1120, sizes=(44, 40, 36), max_lines=2)
+    b = ctx.memo(("pbubble", sp_["idx"]), make)
+    draw_bubble(frame, b, t, sp_["lead"], sp_["vlen"] * 0.72, pop_t=0.15)
 
 
 def chip(ctx, i, hl):
@@ -532,24 +752,22 @@ def chip(ctx, i, hl):
 
 def draw_list(ctx, sp_, t, T):
     sh = sp_["sh"]
-    frame = ctx.bg(T)
+    frame = ctx.backdrop(sp_["scene"]).copy()
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
 
     def panel():
         im = Image.new("RGBA", (1640, 680), (0, 0, 0, 0))
         d = ImageDraw.Draw(im)
-        d.rounded_rectangle([10, 10, 1630, 670], radius=26, fill=(10, 14, 22), outline=(80, 150, 200), width=4)
+        d.rounded_rectangle([10, 10, 1630, 670], radius=26, fill=(10, 14, 22, 245), outline=(80, 150, 200), width=4)
         d.text((60, 70), "AIが出した施策案", font=ctx.font("b", 52), fill=(150, 210, 240), anchor="lm")
         return im
     pn = ctx.memo(("listpanel",), panel)
     build = sh.get("mode") == "build"
-    s = lerp(0.94, 1, ease_out(t / 0.22)) if build else 1
-    paste_c(frame, scaled(pn, s), 960, 440)
-    d = ImageDraw.Draw(frame)
-    n_vis = 32
+    paste_c(layer, scaled(pn, lerp(0.94, 1, ease_out(t / 0.22)) if build else 1), 960, 440)
+    d = ImageDraw.Draw(layer)
+    n_vis = 0 if build else 32
     scan_t = {}
-    if build:
-        n_vis = 0
-    else:
+    if not build:
         for k, idx in enumerate(sh.get("scan", [])):
             scan_t[idx] = sp_["lead"] + sp_["vlen"] * 0.85 * (k + 0.2) / len(sh["scan"])
     for i in range(32):
@@ -563,20 +781,21 @@ def draw_list(ctx, sp_, t, T):
             y += int(16 * (1 - ease_out((t - ti) / 0.1)))
         if i in scan_t and t >= scan_t[i]:
             k = ease_out((t - scan_t[i]) / 0.12)
-            im = scaled(chip(ctx, i, True), 1.15 - 0.15 * k)
-            paste_c(frame, im, x + 186, y + 26)
+            paste_c(layer, scaled(chip(ctx, i, True), 1.15 - 0.15 * k), x + 186, y + 26)
         else:
             im = chip(ctx, i, False)
-            frame.paste(im, (x, y), im)
+            layer.paste(im, (x, y), im)
     stamp_t = 0.35 + 32 * 0.045 + 0.15
     if not build or t >= stamp_t:
         k = ease_out((t - stamp_t) / 0.12) if build else 1
         st = ctx.memo(("stamp32",), lambda: text_image(ctx, "32件", "b", 92, (232, 70, 60), 6, (10, 14, 22)))
-        paste_c(frame, scaled(st, 1.8 - 0.8 * k), 1640, 170)
+        paste_c(layer, scaled(st, 1.8 - 0.8 * k), 1640, 170)
     else:
         d.text((1720, 170), f"{n_vis}件", font=ctx.font("b", 84), fill=(150, 160, 170), anchor="rm")
+    presenter(ctx, frame, sp_, t, layer)
+    if sh.get("oto") and build and t >= stamp_t:
+        draw_oto(ctx, frame, sh["oto"], "impact", 1720, 330, t, stamp_t + 0.05)
     frame.paste(ctx.header, (0, 0), ctx.header)
-    draw_telop(ctx, frame, sh["sp"], t, sh["text"], sp_["lead"], sp_["vlen"], sp_["telop_in"], sp_["name_wipe"])
     return shake(frame, t, stamp_t, 0.25, 12) if build else frame
 
 
@@ -596,28 +815,29 @@ def plate_image(ctx, box, key):
 
 def draw_board(ctx, sp_, t, T):
     sh = sp_["sh"]
-    frame = ctx.bg(T)
+    frame = ctx.backdrop(sp_["scene"]).copy()
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     xo = int((1 - ease_out(t / 0.3)) * 1300)
-    pl, px, py = plate_image(ctx, (190, 120, 1730, 760), "board")
-    frame.paste(pl, (px + xo, py), pl)
-    d = ImageDraw.Draw(frame)
-    hf = ctx.font("b", 66)
-    d.text((260 + xo, 200), sh["heading"], font=hf, fill=INK, anchor="lm")
-    d.line([(260 + xo, 248), (260 + xo + hf.getlength(sh["heading"]), 248)], fill=RED, width=8)
+    pl, px, py = plate_image(ctx, (190, 120, 1730, 860), "board")
+    layer.paste(pl, (px + xo, py), pl)
+    d = ImageDraw.Draw(layer)
+    hf = ctx.font("b", 72)
+    d.text((260 + xo, 205), sh["heading"], font=hf, fill=INK, anchor="lm")
+    d.line([(260 + xo, 256), (260 + xo + hf.getlength(sh["heading"]), 256)], fill=RED, width=9)
     items = sh["items"]
     n = len(items)
-    rh = 470 / n
+    rh = 560 / n
     hl, prev = sh["hl"], sp_.get("prev_hl")
     if hl >= 0:
         if prev is not None and prev >= 0 and prev != hl:
-            yb = lerp(290 + prev * rh, 290 + hl * rh, ease_io((t - 0.3) / 0.3))
+            yb = lerp(295 + prev * rh, 295 + hl * rh, ease_io((t - 0.3) / 0.3))
             wb = 1.0
         else:
-            yb = 290 + hl * rh
+            yb = 295 + hl * rh
             wb = ease_out((t - 0.35) / 0.25)
         if wb > 0:
             d.rectangle([230 + xo, yb + 6, 230 + xo + 1430 * wb, yb + rh - 14], fill=(235, 222, 196))
-            d.rectangle([230 + xo, yb + 6, 246 + xo, yb + rh - 14], fill=RED)
+            d.rectangle([230 + xo, yb + 6, 248 + xo, yb + rh - 14], fill=RED)
     for i, (label, desc) in enumerate(items):
         if sp_["first"]:
             ti = sp_["lead"] + sp_["vlen"] * 0.75 * i / n if hl < 0 else 0.25 + 0.08 * i
@@ -628,19 +848,21 @@ def draw_board(ctx, sp_, t, T):
         on = hl < 0 or hl == i
         col = INK if on else (170, 165, 155)
         dx = int(40 * (1 - ease_out((t - ti) / 0.18))) if ti > 0 else 0
-        y = 290 + i * rh
-        lf = ctx.font("b", 46 if n > 2 else 52)
-        d.text((280 + xo + dx, y + rh / 2 - 26), label, font=lf, fill=RED if on else col, anchor="lm")
-        df, dl = ctx.memo(("desc", desc), lambda: fit_lines(ctx, desc, "r", (40, 36), 1340, 1))
-        d.text((300 + xo + dx, y + rh / 2 + 30), dl[0], font=df, fill=col, anchor="lm")
+        y = 295 + i * rh
+        lf = ctx.font("b", 54 if n > 2 else 60)
+        d.text((285 + xo + dx, y + rh / 2 - 30), label, font=lf, fill=RED if on else col, anchor="lm")
+        df, dl = ctx.memo(("desc", desc), lambda: fit_lines(ctx, desc, "r", (46, 42, 38), 1360, 1))
+        d.text((305 + xo + dx, y + rh / 2 + 34), dl[0], font=df, fill=col, anchor="lm")
+    presenter(ctx, frame, sp_, t, layer)
     frame.paste(ctx.header, (0, 0), ctx.header)
-    draw_telop(ctx, frame, sh["sp"], t, sh["text"], sp_["lead"], sp_["vlen"], sp_["telop_in"], sp_["name_wipe"])
     return frame
 
 
+# ---------- その他の画面 ----------
+
 def draw_mail(ctx, sp_, t, T):
     sh = sp_["sh"]
-    frame = ctx.bg(T)
+    frame = ctx.backdrop(sp_["scene"]).copy()
 
     def window():
         im = Image.new("RGBA", (1420, 680), (0, 0, 0, 0))
@@ -714,7 +936,7 @@ def draw_chapter(ctx, sp_, t, T):
         paste_c(lay, ti, W / 2 + 900 * (1 - ease_out((t - 0.45) / 0.3)), 565)
     out_u = ease_in((t - (dur - 0.3)) / 0.3)
     if out_u > 0:
-        frame = ctx.bg(T)
+        frame = ctx.world(sp_["scene"], 2).resize((W, H), Image.BILINEAR)
         frame.paste(lay, (int(-W * out_u), 0))
         return frame
     return shake(lay, t, 0.25, 0.22, 10)
@@ -723,9 +945,8 @@ def draw_chapter(ctx, sp_, t, T):
 def draw_kv(ctx, sp_, t, T):
     dur = sp_["dur"]
     z = 1 + 0.06 * t / dur
-    cw, chh = 2304 / z / 1.0, 1296 / z / 1.0
-    cx, cy = 1152, 648
-    frame = ctx.kv.crop((int(cx - cw / 2), int(cy - chh / 2), int(cx + cw / 2), int(cy + chh / 2))).resize((W, H), Image.BILINEAR)
+    cw, chh = 2304 / z, 1296 / z
+    frame = ctx.kv.crop((int(1152 - cw / 2), int(648 - chh / 2), int(1152 + cw / 2), int(648 + chh / 2))).resize((W, H), Image.BILINEAR)
     if sp_["kv_first"] and t < 0.3:
         frame = Image.blend(frame, Image.new("RGB", (W, H), "white"), 0.8 * (1 - t / 0.3))
     if sp_["kv_last"] and t > dur - 1.0:
@@ -735,7 +956,7 @@ def draw_kv(ctx, sp_, t, T):
 
 def draw_summary(ctx, sp_, t, T):
     sh = sp_["sh"]
-    frame = ctx.bg(T)
+    frame = ctx.backdrop(sp_["scene"]).copy()
     pl, px, py = plate_image(ctx, (190, 120, 1730, 880), "summary")
     yo = int(-900 * (1 - ease_back(t / 0.4)))
     frame.paste(pl, (px, py + yo), pl)
@@ -763,7 +984,7 @@ def draw_summary(ctx, sp_, t, T):
 
 def draw_cta(ctx, sp_, t, T):
     sh = sp_["sh"]
-    frame = ctx.bg(T)
+    frame = ctx.backdrop(sp_["scene"]).copy()
     pl, px, py = plate_image(ctx, (230, 220, 1690, 700), "cta")
     k = ease_back(t / 0.35)
     paste_c(frame, fade(scaled(pl, lerp(0.85, 1, k)), clamp01(t / 0.12)), px + pl.width / 2, py + pl.height / 2)
@@ -835,12 +1056,15 @@ def voice_env(v, lead, frames):
 def plan(ep, voices):
     specs, se, waves = [], [], []
     state, active, visible = {"L": None, "R": None}, None, False
-    prev_telop_sp, prev_type = None, None
+    prev_type, prev_talk_sp = None, None
     seen_board, kv_count = {}, 0
     kv_total = sum(1 for s in ep["shots"] if s["type"] == "kv")
+    scene = ep.get("scene", "office")
     T = 0.0
     for i, sh in enumerate(ep["shots"]):
         typ = "cutin" if sh.get("cutin") else sh["type"]
+        if typ == "chapter":
+            scene = sh.get("scene", scene)
         v = read_wav(voices[str(i)]["wav"]) if str(i) in voices else np.zeros(0, np.float32)
         vlen = len(v) / SR
         lead = LEAD.get(typ, 0.0)
@@ -848,13 +1072,12 @@ def plan(ep, voices):
         frames = round(dur * FPS)
         dur = frames / FPS
         sp_ = {"idx": i, "type": typ, "sh": sh, "dur": dur, "frames": frames, "t0": T, "lead": lead, "vlen": vlen,
-               "env": voice_env(v, lead, frames) if vlen else []}
+               "env": voice_env(v, lead, frames) if vlen else [], "scene": scene}
         loc = []
         if typ in ("talk", "cutin"):
             side = CHARS[sh["sp"]]["side"]
             other = "R" if side == "L" else "L"
             slot = state[side]
-            old = slot["img"] if slot else None
             if not visible or slot is None:
                 mode = "enter"
             elif slot["char"] != sh["sp"]:
@@ -863,35 +1086,49 @@ def plan(ep, voices):
                 mode = "expr"
             else:
                 mode = "same"
-            sp_.update(spk_mode=mode, old=old, grow=mode in ("expr", "same") and active != side)
+            if sh.get("shot"):
+                shot = sh["shot"]
+            elif sh.get("fx") in ("impact", "surprise"):
+                shot = "close"
+            elif prev_type == "talk" and prev_talk_sp == sh["sp"]:
+                shot = "close"
+            elif not visible and state[other]:
+                shot = "two"
+            else:
+                shot = "med"
+            sp_.update(spk_mode=mode, old=slot["img"] if slot else None, shot=shot,
+                       whip=(1 if side == "R" else -1) if visible and active and active != side else 0)
             if state[other]:
                 sp_["lis"] = state[other]["img"]
-                sp_["lis_mode"] = "fadein" if not visible else ("shrink" if active == other else "static")
-            if sp_["grow"] and mode == "expr":
-                sp_["spk_mode"] = "grow"
+                sp_["lis_mode"] = "slidein" if not visible else "static"
             state[side] = {"char": sh["sp"], "img": sh["img"]}
             active = side
             if typ == "talk":
                 if mode in ("enter", "swap"):
                     loc.append((0.02 if mode == "enter" else 0.12, "pop"))
+                elif sp_["whip"]:
+                    loc.append((0.0, "whoosh_s"))
                 if sh.get("fx") == "surprise":
                     loc.append((0.03, "surprise"))
                 if sh.get("fx") == "impact":
                     loc.append((0.0, "impact"))
+                if sh.get("oto") and sh.get("fx") not in ("impact", "surprise"):
+                    loc.append((0.04, "stamp_s"))
+                prev_talk_sp = sh["sp"]
             else:
                 loc += [(0.0, "shing"), (0.25, "impact")]
+                prev_talk_sp = None
             visible = typ == "talk"
         else:
             visible = False
+            prev_talk_sp = None
         if typ == "chapter":
             state, active = {"L": None, "R": None}, None
             loc += [(0.0, "whoosh"), (0.25, "taiko")]
-        if typ in TELOP_TYPES:
-            sp_["telop_in"] = prev_type not in TELOP_TYPES
-            sp_["name_wipe"] = sp_["telop_in"] or prev_telop_sp != sh["sp"]
-            prev_telop_sp = sh["sp"]
-        else:
-            prev_telop_sp = None
+        if typ in ("board", "list"):
+            sp_["telop_in"] = prev_type not in ("board", "list")
+            if sp_["telop_in"]:
+                loc.append((0.1, "pop"))
         if typ == "board":
             sp_["first"] = sh["heading"] not in seen_board
             sp_["prev_hl"] = seen_board.get(sh["heading"])
@@ -1009,6 +1246,7 @@ def make_sfx():
     n = int(0.6 * SR)
     t = np.arange(n) / SR
     s["stamp"] = _reverb((np.sin(2 * np.pi * 85 * t) * np.exp(-t * 14) * 0.7 + _lp(_noise(n, 8), 4) * np.exp(-t * 45) * 0.4).astype(np.float32)) * 0.7
+    s["stamp_s"] = s["stamp"] * 0.45
     n = int(0.9 * SR)
     t = np.arange(n) / SR
     tone = lambda f: np.sin(2 * np.pi * f * t) * np.exp(-t * 5) + 0.3 * np.sin(4 * np.pi * f * t) * np.exp(-t * 8)
@@ -1145,6 +1383,7 @@ def main():
     ap.add_argument("--workers", type=int, default=3)
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
+    prepare_cutouts(a.assets)
     ep = json.load(open(a.episode, encoding="utf-8"))
     voices = json.load(open(os.path.join(a.voices, "voices.json")))
     specs, se, waves, total = plan(ep, voices)
@@ -1155,7 +1394,7 @@ def main():
             i, t = item.split(":")
             sp_ = specs[int(i)]
             t = min(float(t), sp_["dur"] - 1 / FPS)
-            DRAW[sp_["type"]](_CTX, sp_, t, sp_["t0"] + t).save(f"{a.out}/still_{int(i):03d}_{t:.2f}.png")
+            DRAW[sp_["type"]](_CTX, sp_, t, sp_["t0"] + t).convert("RGB").save(f"{a.out}/still_{int(i):03d}_{t:.2f}.png")
         return
 
     targets = [s for s in specs if a.only is None or s["idx"] in a.only]

@@ -1,6 +1,7 @@
 {
   "title": "宣伝助太刀 第一話「発売まであと2週間。なのに、誰も知らない。」",
   "note": "架空のモデルケース。中山の関西弁は仮。中野は立ち絵待ちのためシルエットで仮置き。",
+  "scene": "office",
   "shots": [
     {
       "type": "card",
@@ -19,14 +20,16 @@
       "sp": "K",
       "img": "k_rub",
       "text": "予算も十分じゃない。どうしたら認知が取れるのか……",
-      "fx": "sweat"
+      "fx": "sweat",
+      "oto": "ズーン"
     },
     {
       "type": "list",
       "sp": "K",
       "text": "AIに聞いたら、施策が32個出てきました。",
       "yomi": "エーアイに聞いたら、施策が、さんじゅうにこ出てきました。",
-      "mode": "build"
+      "mode": "build",
+      "oto": "ドン"
     },
     {
       "type": "talk",
@@ -155,7 +158,8 @@
       "sp": "N",
       "img": "n_basic",
       "text": "工藤。全部やる気か？",
-      "fx": "impact"
+      "fx": "impact",
+      "oto": "ギロッ"
     },
     {
       "type": "talk",
@@ -164,7 +168,8 @@
       "text": "え……はい。可能性は広げておいたほうが。",
       "fx": "surprise",
       "emo": "Surprise",
-      "emo_weight": 1.2
+      "emo_weight": 1.2,
+      "oto": "ビクッ"
     },
     {
       "type": "talk",
@@ -181,7 +186,8 @@
       "yomi": "エスエヌエスの担当の方が、ひとりです。",
       "fx": "sweat",
       "emo": "Sad",
-      "emo_weight": 1.0
+      "emo_weight": 1.0,
+      "oto": "タラ…"
     },
     {
       "type": "talk",
@@ -192,7 +198,8 @@
     {
       "type": "chapter",
       "no": "其の三",
-      "title": "作戦会議"
+      "title": "作戦会議",
+      "scene": "meeting"
     },
     {
       "type": "talk",
@@ -205,7 +212,8 @@
       "sp": "K",
       "img": "k_think",
       "text": "……絞り込めていません。",
-      "fx": "sweat"
+      "fx": "sweat",
+      "oto": "タラ…"
     },
     {
       "type": "talk",
@@ -231,7 +239,9 @@
       "img": "n_laugh",
       "text": "せや。知らん人を一から探しに行くより、近いところから覚えてもらう。2週間なら、なおさらや。",
       "emo": "Happy",
-      "emo_weight": 1.0
+      "emo_weight": 1.0,
+      "oto": "ニッ",
+      "fx": "laugh"
     },
     {
       "type": "board",
@@ -368,7 +378,8 @@
     {
       "type": "chapter",
       "no": "其の四",
-      "title": "やらないことを決める"
+      "title": "やらないことを決める",
+      "scene": "meeting"
     },
     {
       "type": "talk",
@@ -459,7 +470,8 @@
       "text": "あ……",
       "fx": "surprise",
       "emo": "Surprise",
-      "emo_weight": 1.2
+      "emo_weight": 1.2,
+      "oto": "ハッ"
     },
     {
       "type": "talk",
@@ -467,7 +479,9 @@
       "img": "n_laugh",
       "text": "ほな、明日、佐伯さんのとこ行こか。電話より、顔見て聞いたほうが早い。",
       "emo": "Happy",
-      "emo_weight": 1.0
+      "emo_weight": 1.0,
+      "oto": "ニカッ",
+      "fx": "laugh"
     },
     {
       "type": "talk",
