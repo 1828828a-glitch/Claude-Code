@@ -1,21 +1,23 @@
 # SPOON豊前 紹介動画（昼食版・夕食版、各60秒）
 
-お弁当宅配「SPOON豊前」のサービス紹介動画です。企業・職場向けの昼食を紹介する昼食版と、ご自宅にも職場にも届ける夕食を紹介する夕食版の2本があります。映像は Canvas 2D、音は Web Audio API で、すべて JavaScript のコードから生成しています。画像や音声の素材ファイルは使っていません。
+お弁当宅配「SPOON豊前」のサービス紹介動画です。企業・職場向けの昼食を紹介する昼食版と、ご自宅にも職場にも届ける夕食を紹介する夕食版の2本があり、それぞれ横長と、Instagramリール用の縦長をつくりました。映像は Canvas 2D、音は Web Audio API で、すべて JavaScript のコードから生成しています。画像や音声の素材ファイルは使っていません。
 
-書き出し済みの動画（1920×1080、30fps、H.264／AAC）
+書き出し済みの動画（30fps、H.264／AAC）
 
-- 昼食版 `dist/spoon-buzen-60s.mp4`
-- 夕食版 `dist/spoon-buzen-dinner-60s.mp4`
+- 昼食版 横長 1920×1080 `dist/spoon-buzen-60s.mp4`
+- 夕食版 横長 1920×1080 `dist/spoon-buzen-dinner-60s.mp4`
+- 昼食版 リール 1080×1920 `dist/spoon-buzen-reel-60s.mp4`
+- 夕食版 リール 1080×1920 `dist/spoon-buzen-dinner-reel-60s.mp4`
 
 ## 見る
 
-昼食版は `index.html`、夕食版は `dinner.html` を Chrome か Edge で開くと再生できます。画面上部の「昼食・夕食」で行き来できます。書体は Google Fonts（Zen Maru Gothic、Zen Kaku Gothic New、Fredoka）を読み込むので、ネットにつながった状態で開いてください。
+昼食版は `index.html`、夕食版は `dinner.html`、リールはそれぞれ `reel.html` と `dinner-reel.html` を Chrome か Edge で開くと再生できます。画面上部の「昼食・夕食」と「横長・リール」で行き来できます。書体は Google Fonts（Zen Maru Gothic、Zen Kaku Gothic New、Fredoka）を読み込むので、ネットにつながった状態で開いてください。
 
 プレイヤーの下にある構成リストから各場面に飛べます。`index.html?t=32.5` のように開くと、その秒数の画面から始まります。
 
 ## 文言を直す
 
-画面に出る文字と連絡先は、昼食版が `js/copy.js`、夕食版が `js/dinner/copy.js` にまとめてあります。`{9:30}` のように波かっこで囲むと数字用の書体とアクセント色に、`[ちゃんと昼休み]` のように角かっこで囲むと強調（明るい背景では黄色のマーカー、夜の背景では黄色の文字）になります。行の長さは画面幅に合わせてあるので、大きく文字を増やしたときはプレイヤーで見た目を確かめてください。
+画面に出る文字と連絡先は、昼食版が `js/copy.js`、夕食版が `js/dinner/copy.js` にまとめてあります。`{9:30}` のように波かっこで囲むと数字用の書体とアクセント色に、`[ちゃんと昼休み]` のように角かっこで囲むと強調（明るい背景では黄色のマーカー、夜の背景では黄色の文字）になります。`｜` はリールで改行する位置で、横長版では無視されます。行の長さは画面幅に合わせてあるので、大きく文字を増やしたときは横長とリールの両方のプレイヤーで見た目を確かめてください。
 
 場面ごとのタイミングは昼食版が `js/scenes.js`、夕食版が `js/dinner/scenes.js` の `TL` にあります。BGMと効果音の部品は `js/audio.js` で共通、譜面は昼食版が `js/audio.js` の中、夕食版が `js/dinner/score.js` です。効果音の時刻も `TL` を参照しているので、場面をずらすと音も一緒に動きます。
 
@@ -30,9 +32,21 @@ npm install
 npx playwright install chromium   # 初回のみ
 npm run render                    # 昼食版 → dist/spoon-buzen-60s.mp4
 npm run render:dinner             # 夕食版 → dist/spoon-buzen-dinner-60s.mp4
+npm run render:reel               # 昼食版リール → dist/spoon-buzen-reel-60s.mp4
+npm run render:dinner-reel        # 夕食版リール → dist/spoon-buzen-dinner-reel-60s.mp4
 ```
 
-ヘッドレスの Chromium で1コマずつ描画し、ffmpeg で H.264 に圧縮しています。`npm run stills`、`npm run stills:dinner` で確認用の静止画を出せます。ffmpeg は `ffmpeg-static` が入れば自動で使い、入らない環境では `FFMPEG_PATH` に ffmpeg の場所を指定してください。
+ヘッドレスの Chromium で1コマずつ描画し、ffmpeg で H.264 に圧縮しています。`npm run stills`、`npm run stills:dinner`、`npm run stills:reel`、`npm run stills:dinner-reel` で確認用の静止画を出せます。ffmpeg は `ffmpeg-static` が入れば自動で使い、入らない環境では `FFMPEG_PATH` に ffmpeg の場所を指定してください。
+
+## Instagramリール
+
+横長版に上下の帯を足したものではなく、場面ごとに縦長の画面へ組み直しています。秒数と音は横長版とまったく同じなので、BGMと効果音、ナレーション台本、SRT はリールにもそのまま使えます。
+
+リールの画面には、上に「リール」の文字、下にアカウント名やキャプション、右下にいいね・コメントのボタンが重なります。文字はその下に隠れないよう、上から260〜1500pxの範囲に収め、右下（横950px〜、縦1000px〜）にも置いていません。プロフィールの一覧では縦横比3:4に中央が切り抜かれますが、その範囲にも文字は収まっています。
+
+縦長の配置は昼食版が `js/scenes-reel.js`、夕食版が `js/dinner/scenes-reel.js` にあり、横長版の `TL` と文言をそのまま参照しています。Instagram は投稿時に動画を圧縮し直すので、リールは少し高めの画質（CRF 14）で書き出しています。
+
+投稿するときのカバーは、昼食版なら0:20前後のオレンジ地に「SPOON豊前」が出る画面か0:58のエンドカード、夕食版なら0:58のエンドカードが使いやすいと思います。
 
 ## ナレーション
 
@@ -41,6 +55,8 @@ npm run render:dinner             # 夕食版 → dist/spoon-buzen-dinner-60s.mp
 台本の中身は `js/narration.js` と `js/dinner/narration.js` にあり、直したあと `npm run narration`（夕食版は `npm run narration:dinner`）を実行すると、各カットの読む速さ（1秒あたりの拍数）を確かめたうえで表と SRT を作り直します。
 
 ## 構成
+
+リールも同じ秒数です。
 
 昼食版
 

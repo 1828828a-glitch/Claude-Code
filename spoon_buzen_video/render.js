@@ -17,6 +17,7 @@
  *   --no-audio          無音で書き出す
  *   --stills 2,19.5     指定秒の静止画だけPNGで保存する
  *   --page dinner.html  夕食版を書き出す（既定は index.html の昼食版）
+ *                       reel.html と dinner-reel.html はInstagramリール用の縦長（1080×1920）
  *
  * ffmpeg は 環境変数 FFMPEG_PATH → ffmpeg-static → PATH 上の ffmpeg の順で探します。
  */

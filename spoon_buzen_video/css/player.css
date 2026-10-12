@@ -59,11 +59,10 @@ body {
 }
 
 .head { display: grid; gap: 6px; }
+.switches { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
 .versions {
-  justify-self: start;
   display: inline-flex;
   padding: 3px;
-  margin-bottom: 6px;
   border-radius: 999px;
   background: var(--chip);
   border: 1px solid var(--line);
@@ -113,6 +112,10 @@ h1 .brand { font-family: "Fredoka", "Zen Maru Gothic", sans-serif; font-weight: 
 .stage { position: relative; border-radius: 10px; overflow: hidden; background: #F8F6E9; }
 .stage:fullscreen { display: grid; place-items: center; background: #000; border-radius: 0; }
 .stage:fullscreen canvas { width: min(100vw, 177.78vh); height: auto; }
+/* リール（縦長 9:16） */
+.stage.is-reel { display: grid; place-items: center; padding: 14px; background: #1E1A17; }
+.stage.is-reel canvas { width: min(100%, calc(min(78vh, 880px) * 9 / 16)); aspect-ratio: 9 / 16; border-radius: 8px; }
+.stage.is-reel:fullscreen canvas { width: min(100vw, 56.25vh); }
 canvas {
   display: block;
   width: 100%;

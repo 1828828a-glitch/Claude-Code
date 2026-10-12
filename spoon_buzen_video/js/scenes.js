@@ -572,7 +572,7 @@
   function irisIn(ctx, t, t0, color) {
     const p = seg(t, t0, t0 + 0.3);
     if (p <= 0 || t >= 18.02) return;
-    circle(ctx, 960, 540, E.inC(p) * 1150, color);
+    circle(ctx, W / 2, H / 2, E.inC(p) * 1150, color);
   }
   function wipeUp(ctx, t, t0) {
     const p = E.inOutQuart(seg(t, t0, t0 + 0.56));
@@ -619,11 +619,11 @@
     const rOut = E.inC(a) * R;
     const rIn = E.outQuart(b) * R;
     ctx.beginPath();
-    ctx.arc(960, 540, rOut, 0, Math.PI * 2);
-    if (rIn > 0) ctx.arc(960, 540, rIn, 0, Math.PI * 2, true);
+    ctx.arc(W / 2, H / 2, rOut, 0, Math.PI * 2);
+    if (rIn > 0) ctx.arc(W / 2, H / 2, rIn, 0, Math.PI * 2, true);
     ctx.fillStyle = C.orange;
     ctx.fill();
-    if (rIn > 0) ring(ctx, 960, 540, rIn + 8, 16 * (1 - b), C.yellow);
+    if (rIn > 0) ring(ctx, W / 2, H / 2, rIn + 8, 16 * (1 - b), C.yellow);
   }
 
   /* 左上のロゴ表示 */
@@ -668,4 +668,6 @@
   }
 
   SV.render = render;
+  // 縦長版（js/scenes-reel.js）が使う部品
+  SV.kit = { TL, wordmark, node, okazuProg, irisIn, wipeUp, bandWipe, ringIris };
 })();

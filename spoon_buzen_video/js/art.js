@@ -345,7 +345,8 @@
     ctx.save();
     ctx.translate(x, baseY);
     if (o.rot) ctx.rotate(o.rot);
-    ctx.scale(k, k);
+    // flip: 左向き（車体の文字は裏返さない）、sx: 向きを変える途中の横幅
+    ctx.scale((o.flip ? -k : k) * (o.sx == null ? 1 : o.sx), k);
     if (o.alpha != null) ctx.globalAlpha *= o.alpha;
     ctx.fillStyle = 'rgba(40,36,30,0.12)';
     ctx.beginPath(); ctx.ellipse(0, 2, 104, 9, 0, 0, Math.PI * 2); ctx.fill();
@@ -369,7 +370,12 @@
     line(ctx, 36, -92, 36, -24, 3, '#E6DDC9', 'butt');
     ctx.fillStyle = C.orange;
     ctx.font = F.numB(30);
-    ctx.fillText('SPOON', -86, -58);
+    if (o.flip) {
+      ctx.save();
+      ctx.scale(-1, 1);
+      ctx.fillText('SPOON', 86 - ctx.measureText('SPOON').width, -58);
+      ctx.restore();
+    } else ctx.fillText('SPOON', -86, -58);
     fillRR(ctx, -104, -26, 208, 10, 5, '#D8CFBA');
     fillRR(ctx, 90, -40, 10, 8, 3, C.yellow);
     const spin = o.spin || 0;

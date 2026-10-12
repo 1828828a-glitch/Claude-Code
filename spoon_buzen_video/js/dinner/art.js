@@ -41,7 +41,7 @@
   }
   const STARS = (() => {
     const r = mulberry32(99), s = [];
-    for (let i = 0; i < 80; i++) s.push([r() * W, r() * 620, 0.8 + r() * 1.9, r() * 6.28]);
+    for (let i = 0; i < 80; i++) s.push([r() * W, r() * (SV.REEL ? 1100 : 620), 0.8 + r() * 1.9, r() * 6.28]);
     return s;
   })();
   function stars(ctx, t, a) {
@@ -94,14 +94,16 @@
     { x: 1490, w: 160, h: 108, kind: 'house' },
     { x: 1690, w: 170, h: 130, kind: 'house' }
   ];
+  // 横1920・縦1080の画面で設計。縦長では拡大縮小して使う
+  const TW = 1920, TH = 1080;
   function town(ctx, baseY, lights) {
     ctx.fillStyle = D.hill;
     ctx.beginPath();
     ctx.moveTo(0, baseY);
     ctx.lineTo(0, baseY - 120);
     ctx.bezierCurveTo(260, baseY - 260, 560, baseY - 150, 860, baseY - 90);
-    ctx.bezierCurveTo(1160, baseY - 230, 1520, baseY - 270, W, baseY - 110);
-    ctx.lineTo(W, baseY);
+    ctx.bezierCurveTo(1160, baseY - 230, 1520, baseY - 270, TW, baseY - 110);
+    ctx.lineTo(TW, baseY);
     ctx.closePath();
     ctx.fill();
     TOWN.forEach((b, i) => {
@@ -140,7 +142,7 @@
       ctx.globalAlpha = 1;
     });
     ctx.fillStyle = D.sil;
-    ctx.fillRect(0, baseY, W, H - baseY);
+    ctx.fillRect(0, baseY, TW, TH - baseY);
   }
 
   /* ---------- 家 ---------- */

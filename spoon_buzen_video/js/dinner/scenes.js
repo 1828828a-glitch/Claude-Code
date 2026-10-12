@@ -444,7 +444,7 @@
   function irisIn(ctx, t, t0) {
     const p = seg(t, t0, t0 + 0.3);
     if (p <= 0 || t >= 20.02) return;
-    circle(ctx, 960, 540, E.inC(p) * 1150, C.orange);
+    circle(ctx, W / 2, H / 2, E.inC(p) * 1150, C.orange);
   }
   function wipeUp(ctx, t, t0) {
     const p = E.inOutQuart(seg(t, t0, t0 + 0.56));
@@ -536,4 +536,6 @@
   }
 
   SV.render = render;
+  // 縦長版（js/dinner/scenes-reel.js）が使う部品
+  SV.kit = { TL, hourAt, pill, wordmark, scenePrice, contact, irisIn, wipeUp, nightfall, bandWipe };
 })();

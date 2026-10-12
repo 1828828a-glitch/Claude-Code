@@ -7,8 +7,10 @@
 (function () {
   'use strict';
   const SV = (window.SV = window.SV || {});
-  const W = 1920, H = 1080;
-  Object.assign(SV, { W, H, DURATION: 60 });
+  // SV.FORMAT = 'reel' を先に入れておくと、Instagramのリール用の縦長（1080×1920）になる
+  const REEL = SV.FORMAT === 'reel';
+  const W = REEL ? 1080 : 1920, H = REEL ? 1920 : 1080;
+  Object.assign(SV, { W, H, REEL, DURATION: 60 });
 
   /* ---------- 数値 ---------- */
   const clamp = (v, a = 0, b = 1) => (v < a ? a : v > b ? b : v);
@@ -155,6 +157,7 @@
       const col = r.c || color;
       const lsp = (r.ls != null ? r.ls : ls || 0) * fs;
       for (const ch of Array.from(r.s)) {
+        if (ch === '｜') continue; // 縦長で改行する位置のしるし（横長では詰めて表示）
         const w = measure(ctx, fstr, ch);
         let adv = w, dx = 0;
         if (w > fs * 0.8) {
@@ -371,5 +374,7 @@
   SV.textWidth = textWidth;
   SV.digits = digits;
   SV.rich = rich;
+  // '｜' で区切った文言を行に分ける（縦長用）
+  SV.lines = str => String(str).split('｜');
   SV.resetMeasure = resetMeasure;
 })();
