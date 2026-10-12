@@ -1,1 +1,183 @@
-/* 舞台まわりの演出（金屏風・センターマイク・めくり）。stage.js と対 */
+/* 舞台まわりの演出（金屏風・センターマイク・めくり）。stage.js と対
+   --st-* は舞台の絵のためだけの色。金屏風の金（g1〜g4: 光の当たる面→陰の面）、箔の継ぎ目、黒漆の枠、
+   檜の板の間、マイクの金属（m1 明→m4 暗）、めくりの和紙と墨、めくり台の木。
+   暗いテーマでは、照明を落とした寄席の漆と沈んだ金にする。 */
+:root {
+  --st-wall: #2A231C;
+  --st-g1: #E7D29E; --st-g2: #D4B573; --st-g3: #C3A15C; --st-g4: #AD8C49;
+  --st-leaf-hi: #FFF6D8; --st-leaf-lo: #6E4F12; --st-joint: #8E6B25; --st-dusk: #5A410F;
+  --st-frame: #221C17; --st-frame-hi: #57493B; --st-brocade: #33405C;
+  --st-f1: #C9AE80; --st-f2: #E4D0A9; --st-board: #A2865A; --st-lip: #2A231C;
+  --st-m1: #FFFFFF; --st-m2: #C4C9D1; --st-m3: #7B828E; --st-m4: #2A2E35; --st-plate: #A9822F;
+  --st-paper: #FFFDF8; --st-paper-2: #EAE2D1; --st-paper-3: #D6CCB7; --st-sumi: #1A1613; --st-rule: #D3C9B5;
+  --st-wood: #4B3424; --st-wood-hi: #6F4F35; --st-on-wood: #F6EBD3;
+  --st-shadow: rgba(48, 32, 10, 0.32);
+  --st-spot: rgba(255, 251, 236, 0.62); --st-spot-floor: rgba(255, 249, 232, 0.8); --st-beam: rgba(255, 252, 242, 0.2);
+  --st-sheen: rgba(255, 255, 250, 0.55);
+  --st-leaf-o: 1;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --st-wall: #07080B;
+    --st-g1: #6B5328; --st-g2: #54401F; --st-g3: #45341A; --st-g4: #352814;
+    --st-leaf-hi: #D9B262; --st-leaf-lo: #000000; --st-joint: #1C1409; --st-dusk: #000000;
+    --st-frame: #0C0B0A; --st-frame-hi: #2E261E; --st-brocade: #1C2438;
+    --st-f1: #0E0C0A; --st-f2: #1E1915; --st-board: #2F271F; --st-lip: #050404;
+    --st-m1: #E6E9EE; --st-m2: #9AA0AA; --st-m3: #59606B; --st-m4: #15181D; --st-plate: #C9A04F;
+    --st-paper: #DCD4C3; --st-paper-2: #A69E8D; --st-paper-3: #7F786A; --st-sumi: #15120F; --st-rule: #B4AA95;
+    --st-wood: #2F2218; --st-wood-hi: #4B3726; --st-on-wood: #E8D8B6;
+    --st-shadow: rgba(0, 0, 0, 0.6);
+    --st-spot: rgba(255, 214, 140, 0.3); --st-spot-floor: rgba(255, 206, 120, 0.28); --st-beam: rgba(255, 220, 150, 0.1);
+    --st-sheen: rgba(255, 222, 160, 0.16);
+    --st-leaf-o: 0.55;
+  }
+}
+:root[data-theme="dark"] {
+  --st-wall: #07080B;
+  --st-g1: #6B5328; --st-g2: #54401F; --st-g3: #45341A; --st-g4: #352814;
+  --st-leaf-hi: #D9B262; --st-leaf-lo: #000000; --st-joint: #1C1409; --st-dusk: #000000;
+  --st-frame: #0C0B0A; --st-frame-hi: #2E261E; --st-brocade: #1C2438;
+  --st-f1: #0E0C0A; --st-f2: #1E1915; --st-board: #2F271F; --st-lip: #050404;
+  --st-m1: #E6E9EE; --st-m2: #9AA0AA; --st-m3: #59606B; --st-m4: #15181D; --st-plate: #C9A04F;
+  --st-paper: #DCD4C3; --st-paper-2: #A69E8D; --st-paper-3: #7F786A; --st-sumi: #15120F; --st-rule: #B4AA95;
+  --st-wood: #2F2218; --st-wood-hi: #4B3726; --st-on-wood: #E8D8B6;
+  --st-shadow: rgba(0, 0, 0, 0.6);
+  --st-spot: rgba(255, 214, 140, 0.3); --st-spot-floor: rgba(255, 206, 120, 0.28); --st-beam: rgba(255, 220, 150, 0.1);
+  --st-sheen: rgba(255, 222, 160, 0.16);
+  --st-leaf-o: 0.55;
+}
+
+/* ── 舞台の箱。寸法は器の幅で決める（狭い＝スマホ、620px 以上＝広い） ── */
+.stg { container: stg / inline-size; min-width: 0; }
+.stg-box {
+  --mic-x: 68%; --mic-h: 66%; --stand-l: 12px; --fs: 14px; --role-fs: 22px; --bar-h: 20px; --bar-fs: 11px; --pad-y: 10px; --pad-x: 10px;
+  position: relative; height: 256px; overflow: hidden; isolation: isolate;
+  border: 1px solid var(--line); border-radius: var(--r); background: var(--st-wall);
+}
+@container stg (max-width: 339px) {
+  .stg-box { --fs: 13px; --role-fs: 20px; --stand-l: 10px; height: 244px; }
+}
+@container stg (min-width: 460px) {
+  .stg-box { --mic-x: 62%; }
+}
+@container stg (min-width: 620px) {
+  .stg-box { --mic-x: 50%; --mic-h: 69%; --stand-l: 5%; --fs: 16px; --role-fs: 27px; --bar-h: 22px; --bar-fs: 12px; --pad-y: 14px; --pad-x: 12px; height: 300px; }
+  .stg-box .stg-n { display: none; }
+  .stg-box .stg-w { display: block; }
+}
+
+/* 金屏風と板の間（SVG）。stop と図形の色はクラスでトークンから付ける */
+.stg-bg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
+.stg-s-g1 { stop-color: var(--st-g1); }
+.stg-s-g2 { stop-color: var(--st-g2); }
+.stg-s-g3 { stop-color: var(--st-g3); }
+.stg-s-g4 { stop-color: var(--st-g4); }
+.stg-s-dusk { stop-color: var(--st-dusk); }
+.stg-s-f1 { stop-color: var(--st-f1); }
+.stg-s-f2 { stop-color: var(--st-f2); }
+.stg-s-m1 { stop-color: var(--st-m1); }
+.stg-s-m2 { stop-color: var(--st-m2); }
+.stg-s-m3 { stop-color: var(--st-m3); }
+.stg-wall { fill: var(--st-wall); }
+.stg-leaf-tones { opacity: var(--st-leaf-o); }
+.stg-leaf-hi { fill: var(--st-leaf-hi); }
+.stg-leaf-lo { fill: var(--st-leaf-lo); }
+.stg-leaf-joint { fill: none; stroke: var(--st-joint); stroke-width: 0.7; stroke-opacity: 0.2; }
+.stg-seam { fill: none; stroke: var(--st-dusk); stroke-width: 1.2; stroke-opacity: 0.45; }
+.stg-brocade { fill: var(--st-brocade); }
+.stg-frame { fill: var(--st-frame); }
+.stg-frame-hi { fill: none; stroke: var(--st-frame-hi); stroke-width: 1; }
+.stg-board { fill: none; stroke: var(--st-board); stroke-width: 1; stroke-opacity: 0.6; }
+.stg-lip { fill: var(--st-lip); }
+
+/* スポットライト（マイクの位置に合わせて動く）と、金箔に光が走る一瞬 */
+.stg-spot {
+  position: absolute; z-index: 1; top: 0; bottom: 0; left: var(--mic-x); width: 270px; transform: translateX(-50%); pointer-events: none;
+  background:
+    radial-gradient(ellipse 48% 38% at 50% 40%, var(--st-spot), transparent 72%),
+    radial-gradient(ellipse 46% 9% at 50% 91%, var(--st-spot-floor), transparent 78%);
+}
+.stg-spot::before {
+  content: ""; position: absolute; inset: 0 0 7% 0;
+  clip-path: polygon(43% 0, 57% 0, 82% 100%, 18% 100%);
+  background: linear-gradient(var(--st-beam), transparent 92%);
+}
+.stg-sheen { position: absolute; z-index: 1; left: 0; right: 0; top: 8%; bottom: 20.7%; overflow: hidden; pointer-events: none; }
+.stg-sheen i {
+  position: absolute; top: -12%; bottom: -12%; left: 0; width: 34%;
+  transform: translateX(-130%) skewX(-16deg);
+  background: linear-gradient(90deg, transparent, var(--st-sheen) 50%, transparent);
+}
+
+/* センターマイク */
+.stg-mic { position: absolute; z-index: 2; left: var(--mic-x); bottom: 3%; height: var(--mic-h); aspect-ratio: 64 / 210; transform: translateX(-50%); }
+.stg-mic-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.stg-m3 { fill: var(--st-m3); }
+.stg-m4 { fill: var(--st-m4); }
+.stg-m-shadow { fill: var(--st-shadow); }
+.stg-m-rim { stroke: var(--st-m4); stroke-width: 1.3; }
+.stg-mesh { fill: none; stroke: var(--st-m3); stroke-width: 0.55; stroke-opacity: 0.75; }
+.stg-m-band { stroke: var(--st-m4); stroke-width: 1.4; }
+.stg-m-plate { fill: var(--st-plate); }
+.stg-m-glint { fill: var(--st-m1); fill-opacity: 0.8; }
+
+/* めくり台：横木（見出し）→ 和紙の束 → 脚 */
+.stg-stand {
+  position: absolute; z-index: 3; left: var(--stand-l); top: 5%; bottom: 12%;
+  display: flex; flex-direction: column; min-width: 0;
+  max-width: calc(var(--mic-x) - var(--stand-l) - 34px);
+}
+.stg-bar {
+  position: relative; z-index: 2; margin: 0 -6px; padding-inline: 10px;
+  height: var(--bar-h); line-height: var(--bar-h); font-size: var(--bar-fs); font-weight: 700; letter-spacing: 0.08em;
+  color: var(--st-on-wood); background: linear-gradient(var(--st-wood-hi), var(--st-wood)); border-radius: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums;
+}
+.stg-pad { position: relative; flex: none; perspective: 700px; }
+.stg-pad::before {
+  content: ""; position: absolute; inset: 2px -3px -4px 3px; background: var(--st-paper-2);
+  box-shadow: 2px 3px 0 var(--st-paper-3), 3px 8px 14px var(--st-shadow);
+}
+.stg-card {
+  position: relative; writing-mode: vertical-rl; min-width: 100%; max-width: 100%; overflow: hidden;
+  height: calc(var(--fs) * 11 + var(--pad-y) * 2 + 3px); padding: var(--pad-y) var(--pad-x);
+  background: var(--st-paper); color: var(--st-sumi);
+  box-shadow: inset 0 7px 6px -6px var(--st-shadow);
+}
+.stg-role { display: block; font-family: var(--f-display); font-size: var(--role-fs); line-height: 1.1; letter-spacing: 0.18em; }
+.stg-line {
+  display: block; font-family: var(--f-script); font-weight: 700; font-size: var(--fs); line-height: 1.7;
+  white-space: pre-line;
+}
+.stg-role ~ .stg-line { margin-block-start: 8px; padding-block-start: 7px; border-block-start: 1px solid var(--st-rule); }
+.stg-w { display: none; }
+.stg-tcy { text-combine-upright: all; -webkit-text-combine: horizontal; }
+.stg-legs { position: relative; flex: 1 1 auto; min-height: 8px; margin-inline: 14%; border-inline: 4px solid var(--st-wood); }
+.stg-legs::before { content: ""; position: absolute; left: 0; right: 0; top: 58%; height: 3px; background: var(--st-wood); }
+.stg-legs::after {
+  content: ""; position: absolute; left: -22%; right: -22%; bottom: -5px; height: 10px;
+  background: radial-gradient(closest-side, var(--st-shadow), transparent);
+}
+
+/* 開幕の一瞬：明かりが入り、めくりが落ち、金箔に光が走る。どれも見える状態から始まる */
+.is-intro .stg-spot { animation: stg-lights 1100ms ease-out calc(60ms + var(--stg-el, 0ms)) backwards; }
+.is-intro .stg-card { transform-origin: 50% 0; animation: stg-drop 760ms cubic-bezier(0.3, 0.7, 0.35, 1) calc(260ms + var(--stg-el, 0ms)) backwards; }
+.is-intro .stg-sheen i { animation: stg-sweep 1500ms cubic-bezier(0.45, 0.05, 0.25, 1) calc(720ms + var(--stg-el, 0ms)) backwards; }
+@keyframes stg-lights { 0% { opacity: 0.25; } 22% { opacity: 0.85; } 30% { opacity: 0.5; } 52%, 100% { opacity: 1; } }
+@keyframes stg-drop {
+  0% { transform: rotateX(-62deg); filter: brightness(0.86); }
+  55% { transform: rotateX(8deg); filter: brightness(1.02); }
+  78% { transform: rotateX(-2.5deg); filter: brightness(1); }
+  100% { transform: rotateX(0deg); filter: brightness(1); }
+}
+@keyframes stg-sweep { from { transform: translateX(-130%) skewX(-16deg); } to { transform: translateX(330%) skewX(-16deg); } }
+
+/* 小さなマイク（見出し・空の画面用） */
+.stg-ico { display: inline-block; vertical-align: -0.2em; flex: none; overflow: visible; }
+.stg-ico-head { fill: var(--kin); fill-opacity: 0.22; stroke: currentColor; stroke-width: 1.5; }
+.stg-ico-grille { fill: none; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; stroke-opacity: 0.75; }
+.stg-ico-solid { fill: currentColor; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stg-box *, .stg-box *::before, .stg-box *::after { animation: none !important; }
+}
