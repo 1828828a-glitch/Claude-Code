@@ -1,0 +1,1120 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>AI基本方針 解説アニメーション</title>
+<style>
+@font-face{font-family:"NotoJP";font-weight:300;src:url(assets/noto-jp-300.woff2) format("woff2")}
+@font-face{font-family:"NotoJP";font-weight:400;src:url(assets/noto-jp-400.woff2) format("woff2")}
+@font-face{font-family:"NotoJP";font-weight:500;src:url(assets/noto-jp-500.woff2) format("woff2")}
+@font-face{font-family:"NotoJP";font-weight:700;src:url(assets/noto-jp-700.woff2) format("woff2")}
+@font-face{font-family:"NotoJP";font-weight:900;src:url(assets/noto-jp-900.woff2) format("woff2")}
+
+:root{
+  --cyan:#00a9e0; --green:#78be20; --purple:#8031a7; --blue:#005eb8;
+  --ink:#2d2d2d; --gray:#52565a; --mid:#a7a8aa; --line:#e3e6e8; --pale:#f2f2f2;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#fff}
+body{font-family:"Inter","NotoJP",sans-serif;color:var(--ink);font-feature-settings:"palt" 1;-webkit-font-smoothing:antialiased}
+#stage{position:absolute;inset:0;overflow:hidden;background:#fff}
+canvas#bg{position:absolute;inset:0;z-index:0}
+#dark{position:absolute;inset:0;z-index:1;opacity:0;
+  background:
+    radial-gradient(rgba(255,255,255,.07) 1px, transparent 1.4px) 0 0/36px 36px,
+    radial-gradient(1100px 700px at 72% 42%, #2b1d3a 0%, #18191c 62%, #111214 100%)}
+.scene{position:absolute;inset:0;z-index:2;visibility:hidden;opacity:0}
+.full{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:visible}
+.abs{position:absolute}
+.dr{stroke-dasharray:1 1;stroke-dashoffset:1}
+svg text{font-family:"Inter","NotoJP",sans-serif}
+
+/* ---------- 共通クローム ---------- */
+#chrome{position:absolute;inset:0;z-index:5;pointer-events:none}
+#brand{position:absolute;left:140px;top:54px;display:flex;align-items:center;gap:7px;opacity:0}
+#brand .sq{width:10px;height:10px;display:block}
+#brand b{margin-left:12px;font-size:17px;font-weight:600;letter-spacing:.22em}
+#brand em{font-style:normal;margin-left:18px;font-size:15px;font-weight:400;letter-spacing:.08em;opacity:.65}
+#chap{position:absolute;right:140px;top:44px;text-align:right;opacity:0}
+#chapRow{display:flex;justify-content:flex-end;align-items:baseline;gap:10px}
+#chapNum{font-size:34px;font-weight:600;color:var(--cyan);letter-spacing:.02em}
+#chapOf{font-size:17px;font-weight:500;opacity:.55}
+#chapTitle{font-size:17px;font-weight:500;margin-top:2px;letter-spacing:.06em}
+#chapDots{display:flex;gap:5px;justify-content:flex-end;margin-top:10px}
+#chapDots i{display:block;width:11px;height:11px;border:1.5px solid #c9cfd3}
+#capBandL,#capBandD{position:absolute;left:0;right:0;bottom:0;height:260px}
+#capBandL{background:linear-gradient(to bottom,rgba(255,255,255,0),rgba(255,255,255,.92) 45%)}
+#capBandD{background:linear-gradient(to bottom,rgba(17,18,20,0),rgba(17,18,20,.9) 45%);opacity:0}
+#cap{position:absolute;left:0;right:0;bottom:66px;text-align:center}
+#capText{display:inline-block;font-size:34px;font-weight:500;line-height:1.62;letter-spacing:.04em}
+#prog{position:absolute;left:0;bottom:0;height:6px;width:0;background:linear-gradient(90deg,var(--cyan),var(--green) 55%,var(--purple))}
+#fadeW{position:absolute;inset:0;background:#fff;opacity:0;z-index:6}
+
+/* ---------- 汎用パーツ ---------- */
+.lbl{display:flex;align-items:center;gap:16px}
+.lbl i{display:block;width:44px;height:3px;background:var(--cyan)}
+.lbl .en{font-size:18px;font-weight:600;letter-spacing:.2em;color:var(--cyan)}
+.lbl .jp{font-size:22px;font-weight:700;color:var(--gray)}
+.headline{font-size:56px;font-weight:700;line-height:1.38;letter-spacing:.02em}
+.desc{font-size:24px;line-height:1.85;color:var(--gray)}
+
+.hd{position:absolute;left:140px;top:168px;width:600px;--c:var(--cyan)}
+.hd-tag{display:flex;align-items:center;gap:12px;font-size:22px;font-weight:700;color:var(--c)}
+.hd-tag i{display:block;width:14px;height:14px;background:var(--c)}
+.hd-tag em{font-style:normal;font-size:15px;font-weight:600;letter-spacing:.2em;opacity:.8;margin-left:6px}
+.hd-num{height:196px;overflow:hidden;margin-top:6px}
+.hd-num span{display:inline-block;font-size:200px;font-weight:200;line-height:196px;letter-spacing:-.04em;color:var(--c)}
+.hd-title{font-size:56px;font-weight:700;line-height:1.32;margin-top:10px;letter-spacing:.02em}
+.hd-desc{font-size:24px;line-height:1.85;color:var(--gray);margin-top:22px}
+.hd.dark .hd-title{color:#fff}
+.hd.dark .hd-desc{color:#c3c6c9}
+
+.chip{display:inline-flex;align-items:center;justify-content:center;height:56px;padding:0 26px;border-radius:28px;font-size:24px;font-weight:700;white-space:nowrap}
+
+/* ---------- S1 ---------- */
+.s1t .kick{display:flex;align-items:center;gap:18px;font-size:30px;font-weight:500;color:var(--gray);letter-spacing:.06em}
+.s1t .kbar{display:block;width:56px;height:3px;background:var(--cyan)}
+.s1t .mask{overflow:hidden;margin-top:8px}
+.s1t .h1{font-size:150px;font-weight:700;line-height:1.18;letter-spacing:.02em}
+.s1t .h1 .c{color:var(--cyan)}
+.s1t .en{font-size:30px;color:var(--cyan);font-weight:500;letter-spacing:.05em;margin-top:6px}
+.s1t .date{margin-top:44px;padding-top:20px;border-top:1px solid #d8dde0;width:430px;display:flex;gap:14px;align-items:baseline;font-size:24px;color:var(--gray)}
+.s1t .date b{font-size:28px;font-weight:600;color:var(--ink);letter-spacing:.08em}
+
+/* ---------- S2 ---------- */
+.quote{border-left:4px solid var(--cyan);padding-left:40px}
+.quote .ql{font-size:64px;font-weight:700;line-height:1.55;letter-spacing:.03em;white-space:nowrap}
+.quote .ch{display:inline-block}
+.s2sub{display:flex;align-items:center;gap:18px;font-size:32px;font-weight:500;color:var(--gray)}
+.s2sub .arrow{display:block;width:60px;height:2px;background:var(--gray);position:relative}
+.s2sub .arrow:after{content:"";position:absolute;right:-1px;top:-5px;border:6px solid transparent;border-left:10px solid var(--gray);border-right:0}
+
+/* ---------- S3 ---------- */
+.side .ttl{display:flex;align-items:baseline;gap:16px}
+.side .ttl .en{font-size:18px;font-weight:600;letter-spacing:.2em}
+.side .ttl .jp{font-size:44px;font-weight:700}
+.item{display:flex;align-items:center;gap:20px;width:500px;height:88px;padding:0 26px;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 10px 30px rgba(0,40,60,.06);font-size:26px;font-weight:700;margin-top:16px}
+.item svg{flex:none}
+.pill{display:flex;align-items:center;justify-content:center;width:500px;height:66px;border-radius:33px;background:var(--cyan);color:#fff;font-size:26px;font-weight:700}
+.note{font-size:22px;color:var(--gray);line-height:1.7;margin-top:18px;width:500px}
+#aiText{left:860px;top:340px;width:200px;height:200px;display:flex;align-items:center;justify-content:center;font-size:84px;font-weight:700;letter-spacing:-.02em}
+#s3B{left:0;right:0;top:716px;display:flex;justify-content:center;align-items:center;gap:22px}
+#s3B .op{font-size:40px;font-weight:300;color:var(--mid)}
+
+/* ---------- S4 ---------- */
+.rlbl{position:absolute;transform:translate(-50%,-50%);background:#fff;border:1.5px solid var(--cyan);color:var(--ink);font-size:24px;font-weight:700;height:52px;padding:0 22px;border-radius:26px;display:flex;align-items:center;white-space:nowrap;box-shadow:0 8px 24px rgba(0,60,90,.08)}
+#r1t{position:absolute;left:1150px;top:370px;width:200px;height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:30px;font-weight:700;line-height:1.35}
+#r3lbl{background:var(--ink);border-color:var(--ink);color:#fff}
+
+/* ---------- S5 ---------- */
+.tile{position:absolute;width:255px;height:170px;background:#fff;border:1px solid var(--line);box-shadow:0 10px 28px rgba(0,40,60,.06);padding:18px 20px;overflow:hidden}
+.tile .strip{position:absolute;left:0;top:0;right:0;height:6px;transform:scaleX(0);transform-origin:0 50%}
+.tile .n{font-size:40px;font-weight:300;color:var(--mid);line-height:1;letter-spacing:-.02em}
+.tile .t{font-size:23px;font-weight:700;line-height:1.42;margin-top:14px}
+.tile .t small{display:block;font-size:15px;font-weight:600;color:var(--mid);letter-spacing:.04em;margin-top:2px}
+#legend{left:0;right:0;top:680px;display:flex;justify-content:center;gap:40px}
+.lg{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:700}
+.lg i{display:block;width:18px;height:18px}
+.lg span{font-size:18px;font-weight:600;color:var(--mid);letter-spacing:.06em}
+
+/* ---------- S6 ---------- */
+.bar{position:absolute;width:170px;background:linear-gradient(180deg,var(--cyan),#7fd3ef)}
+.blbl{position:absolute;width:220px;margin-left:-25px;text-align:center;font-size:24px;font-weight:700;line-height:1.4}
+.blbl small{display:block;font-size:16px;font-weight:600;color:var(--cyan);letter-spacing:.14em;margin-bottom:4px}
+
+/* ---------- S7 ---------- */
+.gh{position:absolute;left:140px;top:150px;display:flex;align-items:baseline;gap:22px}
+.gh .g1{font-size:48px;font-weight:700}
+.gh .g2{font-size:30px;font-weight:300;color:var(--green);letter-spacing:.04em}
+.gh .g3{font-size:16px;font-weight:600;letter-spacing:.22em;color:var(--green)}
+.card{position:absolute;top:252px;width:400px;height:520px;background:#fff;border:1px solid var(--line);box-shadow:0 16px 40px rgba(0,40,60,.08);padding:30px 32px}
+.card .cbor{position:absolute;inset:-1px;border:2px solid var(--green);opacity:0;pointer-events:none}
+.card .cn{font-size:40px;font-weight:300;color:var(--green);line-height:1}
+.card .ic{display:block;margin:12px auto 6px;overflow:visible}
+.card .ct{font-size:32px;font-weight:700;text-align:center}
+.card ul{list-style:none;margin-top:22px}
+.card li{position:relative;padding-left:22px;font-size:21px;line-height:1.62;color:var(--gray);margin-top:12px}
+.card li:before{content:"";position:absolute;left:0;top:15px;width:10px;height:2px;background:var(--green)}
+.lc{display:flex;align-items:center;gap:6px;margin-top:4px}
+.lc b{font-size:17px;font-weight:700;color:var(--green);border:1.5px solid var(--green);border-radius:4px;padding:2px 8px}
+.lc em{font-style:normal;color:var(--mid);font-size:14px}
+
+/* ---------- S8 ---------- */
+.verbs{display:flex;gap:12px;margin:18px 0 6px}
+.vb{position:relative;font-size:24px;font-weight:700;color:#fff;border:1.5px solid rgba(255,255,255,.55);border-radius:4px;padding:4px 16px}
+.vb i{position:absolute;left:-6px;right:-6px;top:50%;height:3px;margin-top:-1px;background:#c48be6;transform:scaleX(0);transform-origin:0 50%}
+.pr{position:absolute;left:800px;width:1000px;height:92px;display:flex;align-items:center;gap:30px;border-bottom:1px solid rgba(255,255,255,.12)}
+.pr svg{flex:none;overflow:visible}
+.pr .tx{color:#fff;font-size:28px;font-weight:700;line-height:1.35}
+.pr .tx small{display:block;font-size:19px;font-weight:500;color:#a7a8aa;margin-top:4px}
+.fbox{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;font-weight:700;border-radius:8px}
+#fA{left:800px;top:250px;width:260px;height:160px;border:2px dashed rgba(255,255,255,.6);font-size:26px;line-height:1.45}
+#fA b{font-size:42px;color:#c48be6;line-height:1}
+#fB{left:1130px;top:230px;width:330px;height:200px;background:var(--purple);font-size:27px;line-height:1.45;box-shadow:0 0 60px rgba(128,49,167,.55)}
+#fB small{font-size:17px;font-weight:600;letter-spacing:.16em;opacity:.75;margin-bottom:6px}
+#fC1,#fC2{left:1540px;width:260px;height:76px;border:1.5px solid rgba(255,255,255,.7);font-size:26px}
+#fC1{top:232px} #fC2{top:352px}
+.stg{position:absolute;top:556px;transform:translateX(-50%);color:#c3c6c9;font-size:22px;font-weight:700;white-space:nowrap}
+#mk{position:absolute;left:1030px;top:612px;transform:translateX(-50%);background:#c48be6;color:#18191c;font-size:19px;font-weight:700;padding:6px 14px;border-radius:4px;white-space:nowrap}
+#fSup{position:absolute;left:800px;top:720px;width:1000px;height:70px;border-radius:35px;border:1.5px solid rgba(196,139,230,.7);display:flex;align-items:center;gap:18px;padding:0 30px;color:#fff;font-size:26px;font-weight:700}
+
+/* ---------- S9 ---------- */
+.spec{position:absolute;left:900px;top:196px;width:900px;height:560px;background:#fff;border:1px solid var(--line);box-shadow:0 20px 50px rgba(0,40,80,.1)}
+.spec .top{height:64px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 32px}
+.spec .top b{font-size:17px;font-weight:600;letter-spacing:.22em;color:var(--blue)}
+.spec .top span{display:flex;gap:8px}
+.spec .top span i{display:block;width:12px;height:12px;border-radius:50%;background:var(--line)}
+.row{position:relative;height:96px;display:flex;align-items:center;padding:0 32px;border-bottom:1px solid #f0f2f3}
+.row .k{width:330px;font-size:26px;font-weight:700}
+.row .k small{display:block;font-size:15px;font-weight:600;color:var(--mid);letter-spacing:.1em}
+.row .sk{position:relative;width:380px;height:12px;border-radius:6px;background:#eef1f3;overflow:hidden}
+.row .sk i{position:absolute;inset:0;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--cyan));transform:scaleX(0);transform-origin:0 50%}
+.row svg{position:absolute;right:34px;top:26px}
+.node{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:50%;font-weight:700}
+#hAI{left:880px;top:330px;width:190px;height:190px;background:#fff;border:2px solid var(--line);font-size:60px;box-shadow:0 14px 40px rgba(0,40,80,.1)}
+#hHu{left:1230px;top:330px;width:190px;height:190px;background:var(--blue);color:#fff;font-size:22px;box-shadow:0 14px 40px rgba(0,94,184,.3)}
+#hDec{position:absolute;left:1560px;top:355px;width:240px;height:140px;border:2px solid var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:28px;font-weight:700;line-height:1.35;background:#fff}
+#hDec small{font-size:15px;letter-spacing:.18em;color:var(--mid);font-weight:600}
+.alab{position:absolute;font-size:20px;font-weight:700;color:var(--gray);transform:translateX(-50%);white-space:nowrap}
+#hTags{position:absolute;left:880px;top:640px;display:flex;align-items:center;gap:12px}
+#hTags .hl{font-size:20px;font-weight:700;color:var(--mid);margin-right:8px}
+#hTags .chip{height:48px;font-size:22px;padding:0 22px;background:#eaf2fa;color:var(--blue)}
+.tr{position:absolute;left:1450px;width:370px;height:90px;display:flex;align-items:center;gap:18px;font-size:25px;font-weight:700;line-height:1.4;border-bottom:1px solid var(--line)}
+.tr svg{flex:none}
+
+/* ---------- S10 ---------- */
+.sn{position:absolute;width:132px;height:132px;margin:-66px 0 0 -66px;border-radius:50%;background:#fff;border:2px solid var(--cyan);display:flex;align-items:center;justify-content:center;font-size:25px;font-weight:700;box-shadow:0 10px 30px rgba(0,60,90,.1)}
+#snC{position:absolute;left:1270px;top:470px;width:220px;height:220px;margin:-110px 0 0 -110px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--green));color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:24px;font-weight:700;line-height:1.4;text-align:center;box-shadow:0 18px 50px rgba(0,169,224,.35)}
+.sf{display:flex;align-items:center;gap:14px;font-size:24px;font-weight:700;margin-top:14px}
+.sf i{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--cyan);color:#fff;font-style:normal;font-size:16px;font-weight:700}
+
+/* ---------- S11 ---------- */
+.ob{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;text-align:center}
+#oExec{left:1080px;top:150px;width:300px;height:76px;background:var(--ink);color:#fff;font-size:28px;border-radius:4px}
+#oCom{left:760px;top:292px;width:920px;height:186px;background:#fff;border:2px solid var(--cyan);border-radius:6px;box-shadow:0 18px 44px rgba(0,60,90,.1)}
+#oCom .ot{font-size:36px}
+#oCom .ot small{font-size:16px;letter-spacing:.2em;color:var(--cyan);display:block;margin-bottom:4px;font-weight:600}
+#oCom .roles{display:flex;gap:14px;margin-top:18px}
+#oCom .roles span{font-size:21px;background:#e8f6fc;color:#0083ad;padding:8px 18px;border-radius:4px}
+.dep{position:absolute;top:548px;width:170px;height:58px;border:1.5px solid var(--mid);border-radius:4px;background:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font-size:21px;font-weight:700;color:var(--gray)}
+#oTeam{left:900px;top:684px;width:640px;height:96px;background:#fff;border:2px solid var(--green);border-radius:6px;box-shadow:0 14px 36px rgba(60,120,20,.12)}
+#oTeam .ot{font-size:32px}
+#oTeam .ot small{font-size:17px;color:var(--gray);font-weight:500;margin-left:14px}
+.olab{position:absolute;font-size:19px;font-weight:700;color:var(--gray);white-space:nowrap}
+.cyc{position:absolute;width:300px;height:96px;margin:-48px 0 0 -150px;background:#fff;border:1.5px solid var(--line);border-radius:6px;box-shadow:0 12px 32px rgba(0,40,60,.08);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.cyc b{font-size:28px;font-weight:700}
+.cyc span{font-size:17px;color:var(--gray);margin-top:2px}
+#cycC{position:absolute;left:1220px;top:470px;transform:translate(-50%,-50%);text-align:center}
+#cycC small{display:block;font-size:20px;font-weight:700;color:var(--gray)}
+#cycC b{display:block;font-size:72px;font-weight:300;color:var(--cyan);line-height:1.1;letter-spacing:-.02em}
+#cycC b em{font-style:normal;font-size:30px;font-weight:700;color:var(--ink);margin-left:4px}
+#inputs{position:absolute;left:140px;top:690px}
+#inputs .il{font-size:19px;font-weight:700;color:var(--mid);letter-spacing:.06em}
+#inputs .ir{display:flex;gap:10px;margin-top:10px}
+#inputs .ir span{font-size:20px;font-weight:700;border:1.5px solid var(--cyan);color:#0083ad;border-radius:4px;padding:6px 14px}
+
+/* ---------- S12 ---------- */
+.s12t{position:absolute;left:0;right:0;top:648px;text-align:center}
+.s12t .k{font-size:28px;font-weight:500;color:var(--gray);letter-spacing:.08em}
+.s12t .h{font-size:80px;font-weight:700;line-height:1.25;letter-spacing:.02em}
+.s12t .h .c{color:var(--cyan)}
+.s12t .d{font-size:24px;color:var(--gray);margin-top:6px;letter-spacing:.06em}
+#src{position:absolute;left:0;right:0;top:968px;text-align:center;font-size:19px;color:var(--gray);letter-spacing:.03em;opacity:0}
+</style>
+</head>
+<body>
+<div id="stage">
+<canvas id="bg" width="1920" height="1080"></canvas>
+<div id="dark"></div>
+
+<!-- S1 オープニング -->
+<section class="scene" id="s1">
+  <svg class="full" viewBox="0 0 1920 1080">
+    <defs>
+      <clipPath id="clipW1"><circle cx="1380" cy="500" r="324"/></clipPath>
+      <linearGradient id="gScan" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0" stop-color="#00a9e0" stop-opacity="0"/>
+        <stop offset=".5" stop-color="#00a9e0" stop-opacity=".32"/>
+        <stop offset="1" stop-color="#00a9e0" stop-opacity="0"/>
+      </linearGradient>
+      <radialGradient id="gWafer" cx=".38" cy=".32" r=".85">
+        <stop offset="0" stop-color="#ffffff"/>
+        <stop offset=".55" stop-color="#eef7fb"/>
+        <stop offset="1" stop-color="#d6e9f2"/>
+      </radialGradient>
+    </defs>
+    <g id="w1">
+      <circle id="w1ring2" cx="1380" cy="500" r="376" fill="none" stroke="#a7a8aa" stroke-width="1.2" stroke-dasharray="2 9" opacity="0"/>
+      <circle id="w1fill" cx="1380" cy="500" r="330" fill="url(#gWafer)" opacity="0"/>
+      <g id="w1dies" clip-path="url(#clipW1)"></g>
+      <g clip-path="url(#clipW1)"><rect id="w1scan" x="980" y="160" width="240" height="680" fill="url(#gScan)"/></g>
+      <circle class="dr" id="w1ring" cx="1380" cy="500" r="330" pathLength="1" fill="none" stroke="#00a9e0" stroke-width="3"/>
+      <path id="w1notch" d="M1368 830 Q1380 816 1392 830" fill="#fff" stroke="#00a9e0" stroke-width="3" opacity="0"/>
+    </g>
+  </svg>
+  <div class="abs s1t" style="left:160px;top:300px">
+    <div class="kick"><i class="kbar"></i><span>東京エレクトロングループ</span></div>
+    <div class="mask"><h1 class="h1"><span class="c">AI</span>基本方針</h1></div>
+    <div class="en">Tokyo Electron Group AI Basic Policy</div>
+    <div class="date"><b>2026.09.17</b><span>制定</span></div>
+  </div>
+</section>
+
+<!-- S2 基本理念 -->
+<section class="scene" id="s2">
+  <div class="abs lbl" style="left:160px;top:252px"><i></i><span class="en">CORPORATE PHILOSOPHY</span><span class="jp">基本理念</span></div>
+  <div class="abs quote" style="left:160px;top:320px">
+    <div class="ql">最先端の技術と確かなサービスで、</div>
+    <div class="ql">夢のある社会の発展に貢献します</div>
+  </div>
+  <div class="abs s2sub" style="left:204px;top:566px"><span class="arrow"></span><span>その実践として、半導体の技術革新を日々追求</span></div>
+  <svg class="full" viewBox="0 0 1920 1080" id="s2svg">
+    <defs>
+      <linearGradient id="gChip" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#00a9e0" stop-opacity=".18"/>
+        <stop offset="1" stop-color="#78be20" stop-opacity=".22"/>
+      </linearGradient>
+    </defs>
+    <g id="traces" fill="none" stroke="#00a9e0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></g>
+    <g id="pins" stroke="#00a9e0" stroke-width="3" stroke-linecap="round"></g>
+    <rect class="dr" id="chipBody" x="1460" y="230" width="200" height="200" rx="14" pathLength="1" fill="#fff" stroke="#00a9e0" stroke-width="3"/>
+    <rect id="chipCore" x="1500" y="270" width="120" height="120" rx="6" fill="url(#gChip)" opacity="0"/>
+    <text id="chipTxt" x="1560" y="344" text-anchor="middle" font-size="40" font-weight="700" fill="#00a9e0" opacity="0">AI</text>
+    <g id="tnodes" fill="#fff" stroke="#00a9e0" stroke-width="2.5"></g>
+    <g id="tdots" fill="#00a9e0"></g>
+  </svg>
+</section>
+
+<!-- S3 AIの両面 -->
+<section class="scene" id="s3">
+  <svg class="full" viewBox="0 0 1920 1080">
+    <defs>
+      <linearGradient id="gRing" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#00a9e0"/><stop offset="1" stop-color="#8031a7"/>
+      </linearGradient>
+      <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#00384f" flood-opacity=".12"/></filter>
+    </defs>
+    <line class="dr conn connL" x1="836" y1="440" x2="664" y2="440" pathLength="1" stroke="#00a9e0" stroke-width="2"/>
+    <line class="dr conn connR" x1="1084" y1="440" x2="1256" y2="440" pathLength="1" stroke="#8031a7" stroke-width="2"/>
+    <circle class="connDotL" cx="664" cy="440" r="6" fill="#00a9e0" opacity="0"/>
+    <circle class="connDotR" cx="1256" cy="440" r="6" fill="#8031a7" opacity="0"/>
+    <g id="aiNode">
+      <circle cx="960" cy="440" r="104" fill="#fff" filter="url(#soft)"/>
+      <circle id="aiRing" cx="960" cy="440" r="124" fill="none" stroke="url(#gRing)" stroke-width="6" stroke-dasharray="520 260" stroke-linecap="round"/>
+      <circle id="aiRing2" cx="960" cy="440" r="146" fill="none" stroke="#a7a8aa" stroke-width="1.2" stroke-dasharray="3 8"/>
+    </g>
+  </svg>
+  <div class="abs" id="aiText">AI</div>
+  <div class="abs side" id="s3L" style="left:140px;top:228px">
+    <div class="ttl"><span class="jp">可能性</span><span class="en" style="color:var(--cyan)">OPPORTUNITY</span></div>
+    <div class="item">
+      <svg width="44" height="44" viewBox="0 0 44 44" fill="none" stroke="#00a9e0" stroke-width="2.4"><rect x="10" y="10" width="24" height="24" rx="3"/><path d="M16 4v6M22 4v6M28 4v6M16 34v6M22 34v6M28 34v6M4 16h6M4 22h6M4 28h6M34 16h6M34 22h6M34 28h6"/></svg>
+      <span>製品・サービスへのAI機能の拡充</span></div>
+    <div class="item">
+      <svg width="44" height="44" viewBox="0 0 44 44" fill="none" stroke="#00a9e0" stroke-width="2.4"><circle cx="15" cy="15" r="6"/><circle cx="31" cy="15" r="6"/><path d="M4 38c1-8 6-12 11-12s10 4 11 12M20 38c1-8 6-12 11-12s10 4 11 12"/></svg>
+      <span>グループ内でのAI利活用</span></div>
+    <svg width="500" height="58" viewBox="0 0 500 58" style="display:block"><path class="dr arr" pathLength="1" d="M250 8 V48 M240 38 L250 50 L260 38" fill="none" stroke="#00a9e0" stroke-width="2.4"/></svg>
+    <div class="pill">社会課題の解決とサステナブルな社会へ</div>
+  </div>
+  <div class="abs side" id="s3R" style="left:1280px;top:228px">
+    <div class="ttl"><span class="jp">リスク</span><span class="en" style="color:var(--purple)">RISK</span></div>
+    <div class="item" style="height:78px">
+      <svg width="40" height="40" viewBox="0 0 44 44" fill="none" stroke="#8031a7" stroke-width="2.4"><circle cx="22" cy="13" r="7"/><path d="M8 40c1-10 7-15 14-15s13 5 14 15"/></svg><span>人権</span></div>
+    <div class="item" style="height:78px">
+      <svg width="40" height="40" viewBox="0 0 44 44" fill="none" stroke="#8031a7" stroke-width="2.4"><path d="M3 22s7-12 19-12 19 12 19 12-7 12-19 12S3 22 3 22z"/><circle cx="22" cy="22" r="6"/><path d="M6 38L38 6"/></svg><span>プライバシー</span></div>
+    <div class="item" style="height:78px">
+      <svg width="40" height="40" viewBox="0 0 44 44" fill="none" stroke="#8031a7" stroke-width="2.4"><path d="M22 4l16 6v12c0 10-7 16-16 19C13 38 6 32 6 22V10z"/><path d="M22 15v10M22 30v1"/></svg><span>セキュリティ</span></div>
+    <p class="note">AIの活用が意図せずこれらを侵害し、<br>社会に大きな影響を与えるおそれ</p>
+  </div>
+  <div class="abs" id="s3B">
+    <span class="chip" style="border:2px solid var(--purple);color:var(--purple)">リスクの低減</span>
+    <span class="op">＋</span>
+    <span class="chip" style="border:2px solid var(--cyan);color:#0083ad">責任あるAIの活用</span>
+    <span class="op">→</span>
+    <span class="chip" style="background:var(--ink);color:#fff">AI基本方針</span>
+  </div>
+</section>
+
+<!-- S4 適用範囲 -->
+<section class="scene" id="s4">
+  <div class="abs lbl" style="left:140px;top:246px"><i></i><span class="en">SCOPE</span><span class="jp">適用範囲</span></div>
+  <div class="abs headline" id="s4h" style="left:140px;top:296px">すべての人々が<br>指針とする方針</div>
+  <p class="abs desc" id="s4d" style="left:140px;top:480px;width:640px">経営層や従業員だけでなく、<br>事業に関わるサプライヤー、業務委託先、<br>その他のビジネスパートナーまで。</p>
+  <svg class="full" viewBox="0 0 1920 1080">
+    <defs>
+      <radialGradient id="gCore" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#3cc3ec"/><stop offset="1" stop-color="#0090c4"/></radialGradient>
+    </defs>
+    <g id="r3g"><circle id="r3c" cx="1250" cy="470" r="345" fill="none" stroke="#a7a8aa" stroke-width="1.4" stroke-dasharray="4 10"/></g>
+    <g id="r3dots" fill="#78be20"></g>
+    <circle class="dr" id="r2c" cx="1250" cy="470" r="225" pathLength="1" fill="none" stroke="#00a9e0" stroke-width="2.4"/>
+    <circle id="r2fill" cx="1250" cy="470" r="225" fill="#00a9e0" opacity="0"/>
+    <circle id="r1" cx="1250" cy="470" r="108" fill="url(#gCore)"/>
+    <g id="r2nodes" fill="#fff" stroke="#00a9e0" stroke-width="3"></g>
+  </svg>
+  <div id="r1t">経営層<br>従業員</div>
+  <div id="r2lbls"></div>
+  <div class="rlbl" id="r3lbl" style="left:1250px;top:125px">事業に関わるすべての人々</div>
+</section>
+
+<!-- S5 11の原則 -->
+<section class="scene" id="s5">
+  <div class="abs lbl" style="left:140px;top:150px"><i></i><span class="en">OVERVIEW</span><span class="jp">全体像</span></div>
+  <div class="abs headline" id="s5h" style="left:140px;top:184px;font-size:50px">11の原則</div>
+  <div id="tiles"></div>
+  <div class="abs" id="legend"></div>
+</section>
+
+<!-- S6 01 -->
+<section class="scene" id="s6">
+  <div class="hd" style="--c:var(--cyan)">
+    <div class="hd-tag"><i></i>価値をつくる<em>VALUE</em></div>
+    <div class="hd-num"><span>01</span></div>
+    <h2 class="hd-title">高い品質と<br>価値創出</h2>
+    <p class="hd-desc">社会課題の解決に貢献する高品質な<br>製品の開発・製造等を加速するため、<br>積極的にAIの活用を進める。</p>
+  </div>
+  <svg class="full" viewBox="0 0 1920 1080">
+    <line class="dr" id="s6base" x1="940" y1="760" x2="1820" y2="760" pathLength="1" stroke="#a7a8aa" stroke-width="1.5"/>
+    <path class="dr" id="s6trend" pathLength="1" d="M1045 640 L1245 540 L1445 440 L1645 340" fill="none" stroke="#2d2d2d" stroke-width="2.2"/>
+    <g id="s6pts" fill="#fff" stroke="#2d2d2d" stroke-width="2.4"><circle cx="1045" cy="640" r="7"/><circle cx="1245" cy="540" r="7"/><circle cx="1445" cy="440" r="7"/><circle cx="1645" cy="340" r="7"/></g>
+    <circle id="s6goal" cx="1645" cy="340" r="16" fill="none" stroke="#00a9e0" stroke-width="2.4" opacity="0"/>
+  </svg>
+  <div id="s6bars"></div>
+</section>
+
+<!-- S7 守る 02-05 -->
+<section class="scene" id="s7">
+  <div class="gh"><span class="g1">守る</span><span class="g2">02 — 05</span><span class="g3">PROTECT</span></div>
+  <div class="card" style="left:120px">
+    <div class="cbor"></div>
+    <div class="cn">02</div>
+    <svg class="ic" width="120" height="120" viewBox="0 0 120 120" fill="none" stroke="#78be20" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+      <path class="dr" pathLength="1" d="M60 12 L98 26 V58 C98 84 81 100 60 108 C39 100 22 84 22 58 V26 Z"/>
+      <path class="dr" pathLength="1" d="M43 60 L55 72 L79 47"/>
+    </svg>
+    <div class="ct">安全性の確保</div>
+    <ul><li>事前のリスク検証で、<br>重大な問題を未然に防ぐ</li><li>インシデント時は迅速に<br>エスカレーションし是正措置へ</li></ul>
+  </div>
+  <div class="card" style="left:545px">
+    <div class="cbor"></div>
+    <div class="cn">03</div>
+    <svg class="ic" width="120" height="120" viewBox="0 0 120 120" fill="none" stroke="#78be20" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+      <circle class="dr" pathLength="1" cx="60" cy="60" r="46"/>
+      <rect class="dr" pathLength="1" x="46" y="58" width="28" height="22" rx="3"/>
+      <path class="dr" pathLength="1" d="M51 58 V51 a9 9 0 0 1 18 0 V58"/>
+      <g class="lcd" fill="#78be20" stroke="none"><circle cx="60" cy="14" r="6"/><circle cx="106" cy="60" r="6"/><circle cx="60" cy="106" r="6"/><circle cx="14" cy="60" r="6"/></g>
+    </svg>
+    <div class="ct">プライバシーの保護</div>
+    <ul><li>個人情報は社内の基本方針と<br>プライバシーノーティスに従う</li>
+      <li>各段階で<br>プライバシー・バイ・デザイン
+        <div class="lc"><b>収集</b><em>›</em><b>利用</b><em>›</em><b>保管</b><em>›</em><b>廃棄</b></div></li></ul>
+  </div>
+  <div class="card" style="left:970px">
+    <div class="cbor"></div>
+    <div class="cn">04</div>
+    <svg class="ic" width="120" height="120" viewBox="0 0 120 120" fill="none" stroke="#78be20" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+      <path class="dr" pathLength="1" d="M40 54 V40 a20 20 0 0 1 40 0 V54"/>
+      <rect class="dr" pathLength="1" x="26" y="54" width="68" height="54" rx="6"/>
+      <path class="dr" pathLength="1" d="M60 72 V88"/>
+    </svg>
+    <div class="ct">セキュリティの確保</div>
+    <ul><li>AIのセキュリティリスクを<br>認識し、技術面・運用面で対策</li><li>AIの特性を踏まえた<br>教育・啓発・訓練</li></ul>
+  </div>
+  <div class="card" style="left:1395px">
+    <div class="cbor"></div>
+    <div class="cn">05</div>
+    <svg class="ic" width="120" height="120" viewBox="0 0 120 120" fill="none" stroke="#78be20" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+      <path class="dr" pathLength="1" d="M60 16 V104 M38 104 H82"/>
+      <g class="beam"><path class="dr" pathLength="1" d="M20 34 H100"/>
+      <path class="dr" pathLength="1" d="M20 34 L8 66 H32 Z"/>
+      <path class="dr" pathLength="1" d="M100 34 L88 66 H112 Z"/></g>
+    </svg>
+    <div class="ct">人権と公平性の尊重</div>
+    <ul><li>人権方針に基づき、<br>不当な差別を生まない運用</li><li>公平性を損なうバイアスの<br>リスクを特定し、排除に努める</li></ul>
+  </div>
+</section>
+
+<!-- S8 06 禁止対象のAI -->
+<section class="scene" id="s8">
+  <div class="hd dark" style="--c:#c48be6">
+    <div class="hd-tag"><i></i>線を引く<em>BOUNDARY</em></div>
+    <div class="hd-num"><span>06</span></div>
+    <h2 class="hd-title">禁止対象のAI</h2>
+    <p class="hd-desc">以下に該当するAIは</p>
+    <div class="verbs"><span class="vb">開発<i></i></span><span class="vb">導入<i></i></span><span class="vb">販売<i></i></span><span class="vb">運用<i></i></span></div>
+    <p class="hd-desc" style="margin-top:6px">をおこなわないことを基本原則とする</p>
+  </div>
+  <div class="plist" id="plist"></div>
+  <div id="flow">
+    <div class="fbox" id="fA"><b>?</b>該当の疑い<br>ボーダーライン</div>
+    <div class="fbox" id="fB"><small>BEFORE DEVELOPMENT</small>開発前に<br>AIステアリング<br>コミッティへ報告</div>
+    <div class="fbox" id="fC1">開発中止</div>
+    <div class="fbox" id="fC2">代替案の検討</div>
+    <svg class="full" viewBox="0 0 1920 1080" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path class="dr fa1" pathLength="1" d="M1066 330 H1122 M1110 320 L1123 330 L1110 340"/>
+      <path class="dr fa2" pathLength="1" d="M1466 300 H1500 V270 H1532 M1520 260 L1533 270 L1520 280"/>
+      <path class="dr fa2" pathLength="1" d="M1466 360 H1500 V390 H1532 M1520 380 L1533 390 L1520 400"/>
+      <line class="dr" id="fAxis" x1="800" y1="530" x2="1800" y2="530" pathLength="1" stroke="rgba(255,255,255,.5)"/>
+      <g id="fTicks" fill="#fff" stroke="none">
+        <circle cx="880" cy="530" r="6"/><circle cx="1180" cy="530" r="6"/><circle cx="1440" cy="530" r="6"/><circle cx="1700" cy="530" r="6"/>
+      </g>
+      <circle id="fMk" cx="1030" cy="530" r="10" fill="#c48be6" stroke="#18191c" stroke-width="3"/>
+    </svg>
+    <span class="stg" style="left:880px">企画</span><span class="stg" style="left:1180px">開発</span><span class="stg" style="left:1440px">導入・販売</span><span class="stg" style="left:1700px">運用</span>
+    <span id="mk">ここで報告・判断</span>
+    <div id="fSup">
+      <svg width="40" height="40" viewBox="0 0 44 44" fill="none" stroke="#c48be6" stroke-width="2.6" stroke-linecap="round"><path d="M18 26a7 7 0 0 1 0-10l6-6a7 7 0 0 1 10 10l-3 3"/><path d="M26 18a7 7 0 0 1 0 10l-6 6a7 7 0 0 1-10-10l3-3"/></svg>
+      サプライヤーにも同様の遵守を求める
+    </div>
+  </div>
+</section>
+
+<!-- S9a 07 -->
+<section class="scene" id="s9a">
+  <div class="hd" style="--c:var(--blue)">
+    <div class="hd-tag"><i></i>信頼を築く<em>TRUST</em></div>
+    <div class="hd-num"><span>07</span></div>
+    <h2 class="hd-title">AIの能力と<br>限界の明示</h2>
+    <p class="hd-desc">利用者がAIの能力と限界を<br>正しく理解したうえで活用できるようにする。</p>
+  </div>
+  <div class="spec">
+    <div class="top"><b>AI SPECIFICATION</b><span><i></i><i></i><i></i></span></div>
+    <div id="rows"></div>
+  </div>
+</section>
+
+<!-- S9b 08 -->
+<section class="scene" id="s9b">
+  <div class="hd" style="--c:var(--blue)">
+    <div class="hd-tag"><i></i>信頼を築く<em>TRUST</em></div>
+    <div class="hd-num"><span>08</span></div>
+    <h2 class="hd-title">人間の介入</h2>
+    <p class="hd-desc" style="margin-top:4px;font-size:22px;font-weight:600;letter-spacing:.12em;color:var(--blue)">HUMAN-IN-THE-LOOP</p>
+    <p class="hd-desc">重大な影響を及ぼす重要な決定は、<br>人間が最終判断をおこなう。</p>
+  </div>
+  <svg class="full" viewBox="0 0 1920 1080" fill="none">
+    <circle id="hLoop" cx="1325" cy="425" r="128" stroke="#005eb8" stroke-width="2" stroke-dasharray="6 10" opacity="0"/>
+    <path class="dr" id="hA1" pathLength="1" d="M1074 425 H1190 M1176 413 L1192 425 L1176 437" stroke="#2d2d2d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path class="dr" id="hA2" pathLength="1" d="M1458 425 H1550 M1536 413 L1552 425 L1536 437" stroke="#2d2d2d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle id="hDot" cx="1325" cy="297" r="8" fill="#005eb8" opacity="0"/>
+  </svg>
+  <div class="node" id="hAI">AI</div>
+  <div class="node" id="hHu">
+    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.2"><circle cx="32" cy="20" r="11"/><path d="M10 58c2-14 11-21 22-21s20 7 22 21"/></svg>
+    <span style="margin-top:6px">人間</span>
+  </div>
+  <div id="hDec"><small>DECISION</small>最終判断</div>
+  <span class="alab" id="hL1" style="left:1132px;top:380px">判断材料</span>
+  <span class="alab" id="hL0" style="left:1325px;top:258px;color:var(--blue)">事前に正当性・リスクを評価</span>
+  <div id="hTags"><span class="hl">重要な決定の例</span><span class="chip">人命</span><span class="chip">安全</span><span class="chip">雇用</span><span class="chip">与信</span><span class="chip">法的権利・義務</span></div>
+</section>
+
+<!-- S9c 09 -->
+<section class="scene" id="s9c">
+  <div class="hd" style="--c:var(--blue)">
+    <div class="hd-tag"><i></i>信頼を築く<em>TRUST</em></div>
+    <div class="hd-num"><span>09</span></div>
+    <h2 class="hd-title">透明性と<br>説明責任の重視</h2>
+    <p class="hd-desc">AIを用いた意思決定の責任の所在を明確にする。</p>
+  </div>
+  <svg class="full" viewBox="0 0 1920 1080" fill="none">
+    <rect id="bbFill" x="940" y="240" width="420" height="420" rx="10" fill="#2d2d2d"/>
+    <g id="bbNet" stroke="#00a9e0" stroke-width="1.6"></g>
+    <rect id="bbLine" x="940" y="240" width="420" height="420" rx="10" stroke="#005eb8" stroke-width="2.5" opacity="0"/>
+    <text id="bbQ" x="1150" y="478" text-anchor="middle" font-size="120" font-weight="200" fill="#fff">?</text>
+  </svg>
+  <div id="trs"></div>
+</section>
+
+<!-- S10 ステークホルダー -->
+<section class="scene" id="s10">
+  <div class="hd" style="--c:#52565a">
+    <div class="hd-tag"><i></i>対話と仕組み<em>ENGAGEMENT</em></div>
+    <div class="hd-num"><span>10</span></div>
+    <h2 class="hd-title">ステークホルダー<br>エンゲージメント</h2>
+    <div class="sfl" style="margin-top:22px">
+      <div class="sf"><i>1</i>対話・協働を積極的に</div>
+      <div class="sf"><i>2</i>外部の知見を取り入れる</div>
+      <div class="sf"><i>3</i>ベストプラクティスの共有と継続的な改善</div>
+    </div>
+  </div>
+  <svg class="full" viewBox="0 0 1920 1080" id="s10svg">
+    <g id="spokes" stroke="#00a9e0" stroke-width="2"></g>
+    <g id="pulses" fill="#00a9e0"></g>
+  </svg>
+  <div id="snodes"></div>
+  <div id="snC">東京エレクトロン<br>グループ</div>
+</section>
+
+<!-- S11 ガバナンス -->
+<section class="scene" id="s11">
+  <div class="hd" style="--c:#52565a">
+    <div class="hd-tag"><i></i>対話と仕組み<em>GOVERNANCE</em></div>
+    <div class="hd-num"><span>11</span></div>
+    <h2 class="hd-title">ガバナンス体制</h2>
+    <p class="hd-desc">本方針の実効性を確保し、<br>AIの活用がもたらす結果への<br>責任体制を明確にする。</p>
+  </div>
+  <div id="inputs"><div class="il">見直しで踏まえるもの</div><div class="ir"><span>運用状況</span><span>ステークホルダーの意見</span><span>国内外の動向</span></div></div>
+  <div id="s11a">
+    <svg class="full" viewBox="0 0 1920 1080" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path class="dr" id="oUp" pathLength="1" d="M1230 288 V236 M1219 248 L1230 234 L1241 248" stroke="#2d2d2d" stroke-width="2.4"/>
+      <g id="oLines" stroke="#a7a8aa" stroke-width="1.8"></g>
+      <g id="oLines2" stroke="#78be20" stroke-width="2"></g>
+      <g id="oDots" fill="#78be20"></g>
+    </svg>
+    <div class="ob" id="oExec">経営層</div>
+    <span class="olab" id="oUpL" style="left:1256px;top:244px">重要事項の報告</span>
+    <div class="ob" id="oCom">
+      <div class="ot"><small>AI STEERING COMMITTEE</small>AIステアリングコミッティ</div>
+      <div class="roles"><span>全社的な方針の承認</span><span>重要事項の審議・意思決定</span><span>経営層への報告</span></div>
+    </div>
+    <div id="deps"></div>
+    <span class="olab" id="oSelL" style="left:1640px;top:630px">構成員が自部門から<br>担当者を選出</span>
+    <div class="ob" id="oTeam"><div class="ot">AIガバナンスチーム<small>体制の継続的な改善を推進</small></div></div>
+  </div>
+  <div id="s11b">
+    <svg class="full" viewBox="0 0 1920 1080" fill="none">
+      <circle class="dr" id="cycRing" cx="1220" cy="470" r="250" pathLength="1" stroke="#00a9e0" stroke-width="2.4"/>
+      <g id="cycArrows" fill="#00a9e0"></g>
+      <circle id="cycDot" cx="1220" cy="220" r="9" fill="#00a9e0" opacity="0"/>
+    </svg>
+    <div class="cyc" style="left:1220px;top:220px"><b>見直し</b><span>運用状況・意見・動向を踏まえて</span></div>
+    <div class="cyc" style="left:1470px;top:470px"><b>改訂案の策定</b><span>AIガバナンスチーム</span></div>
+    <div class="cyc" style="left:1220px;top:720px"><b>承認</b><span>AIステアリングコミッティ</span></div>
+    <div class="cyc" style="left:970px;top:470px"><b>公表</b><span>改訂した方針を公開</span></div>
+    <div id="cycC"><small>少なくとも</small><b>1<em>回 / 年</em></b></div>
+  </div>
+</section>
+
+<!-- S12 クロージング -->
+<section class="scene" id="s12">
+  <svg class="full" viewBox="0 0 1920 1080">
+    <defs><clipPath id="clipW2"><circle cx="960" cy="380" r="226"/></clipPath></defs>
+    <g id="w2">
+      <circle id="w2fill" cx="960" cy="380" r="232" fill="url(#gWafer)" opacity="0"/>
+      <g id="w2dies" clip-path="url(#clipW2)"></g>
+      <g id="w2hi"></g>
+      <circle class="dr" id="w2ring" cx="960" cy="380" r="232" pathLength="1" fill="none" stroke="#00a9e0" stroke-width="3"/>
+    </g>
+  </svg>
+  <div class="s12t">
+    <div class="k">東京エレクトロングループ</div>
+    <div class="h"><span class="c">AI</span>基本方針</div>
+    <div class="d">2026年9月17日 制定</div>
+  </div>
+</section>
+
+<div id="chrome">
+  <div id="brand"><i class="sq" style="background:var(--cyan)"></i><i class="sq" style="background:var(--green)"></i><i class="sq" style="background:var(--purple)"></i><b>AI BASIC POLICY</b><em>東京エレクトロングループ AI基本方針 解説</em></div>
+  <div id="chap"><div id="chapRow"><span id="chapNum">01</span><span id="chapOf">/ 11</span></div><div id="chapTitle"></div><div id="chapDots"></div></div>
+  <div id="capBandL"></div><div id="capBandD"></div>
+  <div id="cap"><div id="capText"></div></div>
+  <div id="prog"></div>
+  <div id="src">出典　東京エレクトロン株式会社「東京エレクトロングループ AI基本方針」 https://www.tel.co.jp/sustainability/ai/</div>
+</div>
+<div id="fadeW"></div>
+</div>
+
+<script src="assets/gsap.min.js"></script>
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const DUR = 157;
+const C = {cyan:'#00a9e0', green:'#78be20', purple:'#8031a7', blue:'#005eb8', ink:'#2d2d2d', gray:'#52565a', mid:'#a7a8aa'};
+const clamp = (v,a=0,b=1) => Math.max(a, Math.min(b, v));
+const ease = x => x*x*(3-2*x);
+function el(tag, attrs={}, parent){ const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function div(cls, html, parent, style){ const d = document.createElement('div'); if (cls) d.className = cls; if (html!=null) d.innerHTML = html; if (style) d.style.cssText = style; if (parent) parent.appendChild(d); return d; }
+function rng(seed){ let s = seed>>>0; return () => { s = (s*1664525 + 1013904223)>>>0; return s/4294967296; }; }
+
+/* ---------- 生成パーツ ---------- */
+function makeWafer(g, cx, cy, r, size, gap){
+  const out = [], step = size+gap, n = Math.ceil(r/step)+1;
+  for (let i=-n;i<=n;i++) for (let j=-n;j<=n;j++){
+    const x = cx + i*step - size/2, y = cy + j*step - size/2;
+    const ok = [[x,y],[x+size,y],[x,y+size],[x+size,y+size]].every(([px,py]) => Math.hypot(px-cx,py-cy) < r-4);
+    if (!ok) continue;
+    out.push({x, y, d: Math.hypot(x+size/2-cx, y+size/2-cy)});
+  }
+  out.sort((a,b) => a.d-b.d);
+  return out.map(o => { o.el = el('rect', {x:o.x, y:o.y, width:size, height:size, rx:2, fill:'#fff', stroke:C.cyan, 'stroke-opacity':.5, 'stroke-width':1.2}, g); return o; });
+}
+
+const dies1 = makeWafer($('#w1dies'), 1380, 500, 324, 36, 5);
+const hi1 = [];
+{ const r = rng(7), cols = [C.cyan, C.cyan, C.green, C.purple];
+  for (let k=0;k<16;k++){ const o = dies1[Math.floor(r()*dies1.length)]; hi1.push(el('rect',{x:o.x,y:o.y,width:36,height:36,rx:2,fill:cols[k%4],opacity:0}, $('#w1dies'))); } }
+
+// S2 チップ配線
+(function(){
+  const tg = $('#traces'), pg = $('#pins'), ng = $('#tnodes');
+  for (let i=0;i<6;i++){
+    const y = 254 + i*31, x = 1490 + i*28;
+    el('line',{class:'dr pin',x1:1660,y1:y,x2:1684,y2:y,pathLength:1},pg);
+    el('line',{class:'dr pin',x1:1460,y1:y,x2:1436,y2:y,pathLength:1},pg);
+    el('line',{class:'dr pin',x1:x,y1:230,x2:x,y2:206,pathLength:1},pg);
+    el('line',{class:'dr pin',x1:x,y1:430,x2:x,y2:454,pathLength:1},pg);
+  }
+  const paths = [];
+  for (let i=0;i<3;i++){ const y = 254+i*31, kx = 1720 + i*16; paths.push([`M1684 ${y} H${kx} V${y-36-i*14} H1930`, null]); }
+  for (let i=3;i<6;i++){ const y = 254+i*31, kx = 1720 + (5-i)*16; paths.push([`M1684 ${y} H${kx} V${y+36+(5-i)*14} H1930`, null]); }
+  const ends = [1060, 960, 820, 700, 600, 520];
+  for (let i=0;i<6;i++){ const x = 1490+i*28, y1 = 470+i*8, xe = 1380-i*6, ye = x + y1 - xe;
+    paths.push([`M${x} 454 V${y1} L${xe} ${ye} H${ends[i]}`, [ends[i], ye]]); }
+  for (let i=0;i<4;i++){ const y = 254+i*31, ex = 1180-i*60, yh = 120+i*24; paths.push([`M1436 ${y} H${1400-i*14} V${yh} H${ex}`, [ex, yh]]); }
+  paths.forEach(([d,end]) => { el('path',{class:'dr trace',d,pathLength:1},tg); if (end) el('circle',{class:'tnode',cx:end[0],cy:end[1],r:6},ng); });
+  $$('#traces path').forEach((p,i) => { if (i%2===0) el('circle',{class:'tdot',r:3.5,cx:-20,cy:-20},$('#tdots')); });
+})();
+
+// S1/S2 文字分割
+function splitChars(node){ const t = node.textContent; node.textContent=''; for (const ch of t){ const s = document.createElement('span'); s.className='ch'; s.textContent = ch; node.appendChild(s);} return Array.from(node.querySelectorAll('.ch')); }
+const qChars = $$('#s2 .ql').flatMap(splitChars);
+
+// S4 リング
+const r2pos = [[-150,'サプライヤー'],[-30,'業務委託先'],[90,'ビジネスパートナー']];
+r2pos.forEach(([a,label]) => {
+  const rad = a*Math.PI/180, x = 1250 + 225*Math.cos(rad), y = 470 + 225*Math.sin(rad);
+  el('circle',{class:'r2n',cx:x,cy:y,r:11},$('#r2nodes'));
+  const lx = 1250 + 225*Math.cos(rad), ly = 470 + 225*Math.sin(rad) + (a===90? 52 : -48);
+  const d = div('rlbl r2l', label, $('#r2lbls')); d.style.left = lx+'px'; d.style.top = ly+'px';
+});
+const r3d = []; for (let k=0;k<28;k++) r3d.push(el('circle',{r:5.5,cx:-20,cy:-20,opacity:0},$('#r3dots')));
+
+// S5 タイル
+const GROUPS = [
+  {name:'価値をつくる', en:'01', c:C.cyan},
+  {name:'守る', en:'02–05', c:C.green},
+  {name:'線を引く', en:'06', c:C.purple},
+  {name:'信頼を築く', en:'07–09', c:C.blue},
+  {name:'対話と仕組み', en:'10–11', c:C.gray},
+];
+const TILES = [
+  ['01','高い品質と<br>価値創出',0],['02','安全性の確保',1],['03','プライバシーの<br>保護',1],['04','セキュリティの<br>確保',1],['05','人権と<br>公平性の尊重',1],['06','禁止対象のAI',2],
+  ['07','AIの能力と<br>限界の明示',3],['08','人間の介入<small>HUMAN-IN-THE-LOOP</small>',3],['09','透明性と<br>説明責任の重視',3],['10','ステークホルダー<br>エンゲージメント',4],['11','ガバナンス体制',4],
+];
+TILES.forEach(([n,t,g],i) => {
+  const row = i<6?0:1, col = i<6?i:i-6, x0 = row? 278:140;
+  const d = div('tile', `<div class="strip" style="background:${GROUPS[g].c}"></div><div class="n">${n}</div><div class="t">${t}</div>`, $('#tiles'));
+  d.style.left = (x0 + col*277)+'px'; d.style.top = (row? 468:280)+'px';
+});
+GROUPS.forEach(g => div('lg', `<i style="background:${g.c}"></i>${g.name}<span>${g.en}</span>`, $('#legend')));
+
+// S6 棒
+[['STEP 1','AIの<br>積極活用',120],['STEP 2','開発・製造の<br>加速',220],['STEP 3','高品質な<br>製品',320],['GOAL','社会課題の<br>解決',420]].forEach(([s,l,h],i) => {
+  const x = 960 + i*200;
+  const b = div('bar','', $('#s6bars')); b.style.cssText += `left:${x}px;top:${760-h}px;height:${h}px;opacity:${0.55+i*0.15}`;
+  const t = div('blbl', `<small>${s}</small>${l}`, $('#s6bars')); t.style.cssText += `left:${x}px;top:${760-h-112}px`;
+});
+
+// S8 禁止リスト
+const PROH = [
+  ['操作的行動を助長・誘導する、または<br>不正脆弱性の悪用を目的とするAI',''],
+  ['無断で大規模な生体認証監視をおこなうなど、<br>個人の基本的権利を著しく侵害する用途のAI','例　公共空間での常時顔認証による監視'],
+  ['社会的スコアリングをおこない、<br>その結果をサービス提供等に用いるAI',''],
+  ['各国の適用法令により明示的に禁止されるAI','例　EU AI法'],
+  ['経済安全保障上の懸念があるAI',''],
+];
+PROH.forEach(([t,s],i) => {
+  const r = div('pr', `<svg width="58" height="58" viewBox="0 0 58 58" fill="none" stroke="#c48be6" stroke-width="2.6" stroke-linecap="round"><circle class="dr" pathLength="1" cx="29" cy="29" r="26"/><path class="dr" pathLength="1" d="M19 19 L39 39 M39 19 L19 39"/></svg><div class="tx">${t}${s?`<small>${s}</small>`:''}</div>`, $('#plist'));
+  r.style.top = (176 + i*118)+'px'; r.style.height = '112px';
+});
+
+// S9a 仕様行
+[['想定される利用範囲','SCOPE OF USE'],['運用環境','ENVIRONMENT'],['性能に関する指標','PERFORMANCE'],['許容誤差','TOLERANCE'],['想定される誤りの種類','EXPECTED ERRORS']].forEach(([k,e],i) => {
+  div('row', `<div class="k"><small>${e}</small>${k}</div><div class="sk"><i style="width:${[86,70,92,64,78][i]}%"></i></div><svg width="44" height="44" viewBox="0 0 44 44" fill="none" stroke="#005eb8" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle class="dr" pathLength="1" cx="22" cy="22" r="19"/><path class="dr" pathLength="1" d="M13 22 L20 29 L31 16"/></svg>`, $('#rows'));
+});
+
+// S9c ブラックボックスの中身
+(function(){
+  const g = $('#bbNet'), L = [[1010,[320,420,520,600]],[1150,[290,370,450,530,610]],[1290,[360,450,540]]];
+  const nodes = L.map(([x,ys]) => ys.map(y => [x,y]));
+  for (let a=0;a<2;a++) for (const p of nodes[a]) for (const q of nodes[a+1]) el('line',{class:'dr bbE',x1:p[0],y1:p[1],x2:q[0],y2:q[1],pathLength:1,'stroke-opacity':.55},g);
+  for (const col of nodes) for (const p of col) el('circle',{class:'bbN',cx:p[0],cy:p[1],r:11,fill:'#fff',stroke:C.blue,'stroke-width':2.5},g);
+  [['判断理由など<br>適切な情報の提供'],['求めに応じた<br>合理的な範囲での開示'],['責任の所在の明確化'],['原因究明と是正措置']].forEach(([t],i) => {
+    const d = div('tr', `<svg width="40" height="40" viewBox="0 0 44 44" fill="none" stroke="#005eb8" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle class="dr" pathLength="1" cx="22" cy="22" r="19"/><path class="dr" pathLength="1" d="M13 22 L20 29 L31 16"/></svg><span>${t}</span>`, $('#trs'));
+    d.style.top = (262 + i*100)+'px';
+  });
+})();
+
+// S10 ネットワーク
+const SN = ['顧客','取引先','学術機関','業界団体','市民社会','規制当局'];
+const snPos = SN.map((n,i) => { const a = (-90 + i*60)*Math.PI/180; return [1270 + 300*Math.cos(a), 470 + 300*Math.sin(a)]; });
+snPos.forEach(([x,y],i) => {
+  el('line',{class:'dr spoke',x1:1270,y1:470,x2:x,y2:y,pathLength:1},$('#spokes'));
+  const d = div('sn', SN[i], $('#snodes')); d.style.left = x+'px'; d.style.top = y+'px';
+});
+const pulses = []; for (let k=0;k<12;k++) pulses.push(el('circle',{r:5,cx:-20,cy:-20},$('#pulses')));
+
+// S11 部門と線
+const depX = [800, 1010, 1220, 1430];
+depX.forEach((x,i) => {
+  const d = div('dep', `<svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="#52565a" stroke-width="2"><circle cx="11" cy="7" r="4"/><path d="M3 21c1-6 4-8 8-8s7 2 8 8"/></svg>部門 ${'ABCD'[i]}`, $('#deps')); d.style.left = x+'px';
+  el('path',{class:'dr oL',d:`M${x+85} 478 V548`,pathLength:1},$('#oLines'));
+  el('path',{class:'dr oL2',d:`M${x+85} 606 V645 H1220 V684`,pathLength:1},$('#oLines2'));
+});
+const oDots = depX.map(() => el('circle',{r:7,cx:-20,cy:-20,opacity:0},$('#oDots')));
+
+// S11 サイクルの矢印
+[45,135,225,315].forEach(a => {
+  const rad = a*Math.PI/180, x = 1220 + 250*Math.cos(rad), y = 470 + 250*Math.sin(rad);
+  el('path',{class:'cA',d:'M-9 -10 L9 0 L-9 10 Z',transform:`translate(${x} ${y}) rotate(${a+90})`},$('#cycArrows'));
+});
+
+// S12 ウェハ
+const dies2 = makeWafer($('#w2dies'), 960, 380, 226, 28, 4);
+const hi2 = [];
+{ const pick = [0,3,8,14,22,31,40,52,63,77,90]; const gcol = [0,1,1,1,1,2,3,3,3,4,4];
+  pick.forEach((p,i) => { const o = dies2[p]; hi2.push(el('rect',{x:o.x,y:o.y,width:28,height:28,rx:2,fill:GROUPS[gcol[i]].c,opacity:0},$('#w2hi'))); }); }
+
+// クローム
+for (let i=0;i<11;i++) $('#chapDots').appendChild(document.createElement('i'));
+
+/* ---------- タイムライン ---------- */
+gsap.defaults({ease:'power3.out', duration:0.8});
+const tl = gsap.timeline({paused:true});
+const fadeUp = (t, at, o={}) => tl.fromTo(t,{autoAlpha:0,y:o.y??30},{autoAlpha:o.a??1,y:0,duration:o.d??0.8,stagger:o.s??0,ease:o.e??'power3.out'},at);
+const fadeIn = (t, at, o={}) => tl.fromTo(t,{autoAlpha:0},{autoAlpha:o.a??1,duration:o.d??0.8,stagger:o.s??0,ease:o.e??'power2.out'},at);
+const draw = (t, at, o={}) => tl.fromTo(t,{strokeDashoffset:1},{strokeDashoffset:0,duration:o.d??1,stagger:o.s??0,ease:o.e??'power2.inOut'},at);
+const wipe = (t, at, o={}) => tl.fromTo(t,{clipPath:'inset(0% 100% 0% 0%)'},{clipPath:'inset(0% 0% 0% 0%)',duration:o.d??0.9,stagger:o.s??0,ease:o.e??'power3.inOut'},at);
+const pop = (t, at, o={}) => tl.fromTo(t,{autoAlpha:0,scale:o.from??0.6,transformOrigin:'50% 50%'},{autoAlpha:1,scale:1,duration:o.d??0.6,stagger:o.s??0,ease:o.e??'back.out(1.7)'},at);
+function show(id, tin, tout, dOut=0.5){ tl.set('#'+id,{autoAlpha:1},tin); tl.to('#'+id,{autoAlpha:0,duration:dOut,ease:'power2.inOut'},tout); }
+function animHeader(root, at){
+  const r = $(root);
+  fadeUp(r.querySelector('.hd-tag'), at, {y:14, d:.6});
+  tl.fromTo(r.querySelector('.hd-num span'), {yPercent:105}, {yPercent:0, duration:1.0, ease:'power4.out'}, at+0.1);
+  wipe(r.querySelector('.hd-title'), at+0.35, {d:0.9});
+  const rest = Array.from(r.children).filter(c => !c.matches('.hd-tag,.hd-num,.hd-title'));
+  if (rest.length) fadeUp(rest, at+0.75, {y:16, s:0.12, d:0.7});
+}
+
+// S1 0-7
+show('s1', 0, 6.3, 0.7);
+draw('#w1ring', 0.15, {d:1.7});
+tl.to('#w1fill', {opacity:1, duration:1.4, ease:'power1.out'}, 0.5);
+tl.to('#w1notch', {opacity:1, duration:.4}, 1.4);
+tl.to('#w1ring2', {opacity:1, duration:1.2}, 0.9);
+tl.fromTo(dies1.map(d => d.el), {opacity:0}, {opacity:1, duration:.35, stagger:.0055, ease:'power1.out'}, 0.55);
+tl.fromTo('#w1scan', {attr:{x:960}}, {attr:{x:1780}, duration:1.7, ease:'power1.inOut'}, 1.7);
+tl.fromTo(hi1, {opacity:0}, {opacity:.85, duration:.25, stagger:{each:.07, from:'random'}, ease:'none'}, 2.2);
+tl.fromTo('#s1 .kbar', {scaleX:0, transformOrigin:'0 50%'}, {scaleX:1, duration:.7}, 0.8);
+fadeUp('#s1 .kick span', 0.95, {y:14});
+tl.fromTo('#s1 .h1', {yPercent:105}, {yPercent:0, duration:1.15, ease:'power4.out'}, 1.15);
+fadeUp('#s1 .en', 1.7, {y:16});
+fadeUp('#s1 .date', 2.1, {y:16});
+tl.to('#w1', {scale:.94, svgOrigin:'1380 500', duration:.7, ease:'power2.in'}, 6.3);
+
+// S2 7-16
+show('s2', 7, 15.5);
+tl.fromTo('#s2 .lbl i', {scaleX:0, transformOrigin:'0 50%'}, {scaleX:1, duration:.6}, 7.1);
+fadeUp('#s2 .lbl span', 7.2, {y:12, s:.1});
+tl.fromTo('#s2 .quote', {borderLeftColor:'rgba(0,169,224,0)'}, {borderLeftColor:'rgba(0,169,224,1)', duration:.6}, 7.3);
+fadeUp(qChars, 7.45, {y:26, s:.034, d:.7});
+draw('#chipBody', 7.9, {d:1.0});
+draw('.pin', 8.3, {d:.3, s:.012});
+tl.to('#chipCore', {opacity:1, duration:.8}, 8.6);
+tl.to('#chipTxt', {opacity:1, duration:.6}, 8.9);
+draw('.trace', 8.6, {d:1.3, s:.05, e:'power2.out'});
+pop('.tnode', 9.6, {s:.05, from:.2});
+fadeUp('#s2 .s2sub', 11.9, {y:14});
+tl.to('#s2svg', {x:-30, duration:8.5, ease:'none'}, 7);
+
+// S3 16-28
+show('s3', 16, 27.5);
+pop('#aiNode', 16.15, {from:.5, d:.9, e:'back.out(1.4)'});
+fadeUp('#aiText', 16.4, {y:10});
+draw('.connL', 16.9, {d:.6});
+tl.to('.connDotL', {opacity:1, duration:.3}, 17.4);
+fadeUp('#s3L .ttl', 17.0, {y:16});
+fadeUp('#s3L .item', 17.4, {s:.28, y:22});
+draw('#s3L .arr', 18.3, {d:.5});
+pop('#s3L .pill', 18.7, {from:.85});
+draw('.connR', 22.2, {d:.6});
+tl.to('.connDotR', {opacity:1, duration:.3}, 22.7);
+fadeUp('#s3R .ttl', 22.3, {y:16});
+fadeUp('#s3R .item', 22.65, {s:.22, y:22});
+fadeUp('#s3R .note', 23.6, {y:12});
+fadeUp('#s3B > *', 24.7, {s:.16, y:16});
+
+// S4 28-37
+show('s4', 28, 36.5);
+tl.fromTo('#s4 .lbl i', {scaleX:0, transformOrigin:'0 50%'}, {scaleX:1, duration:.6}, 28.15);
+fadeUp('#s4 .lbl span', 28.2, {y:12, s:.1});
+wipe('#s4h', 28.45, {d:1});
+fadeUp('#s4d', 29.2, {y:14});
+pop('#r1', 28.55, {from:.3, d:.9, e:'back.out(1.3)'});
+fadeUp('#r1t', 28.9, {y:10});
+draw('#r2c', 29.0, {d:1.1});
+tl.to('#r2fill', {opacity:.05, duration:.8}, 29.5);
+pop('.r2n', 29.7, {s:.18, from:.2});
+fadeUp('.r2l', 29.85, {s:.18, y:12});
+tl.fromTo('#r3g', {autoAlpha:0, scale:.82, svgOrigin:'1250 470'}, {autoAlpha:1, scale:1, svgOrigin:'1250 470', duration:1.1, ease:'power3.out'}, 31.0);
+tl.fromTo(r3d, {opacity:0}, {opacity:.9, duration:.3, stagger:.04}, 31.3);
+pop('#r3lbl', 31.9, {from:.8});
+
+// S5 37-46
+show('s5', 37, 45.5);
+tl.fromTo('#s5 .lbl i', {scaleX:0, transformOrigin:'0 50%'}, {scaleX:1, duration:.6}, 37.1);
+fadeUp('#s5 .lbl span', 37.15, {y:12, s:.1});
+wipe('#s5h', 37.3, {d:.8});
+fadeUp('.tile', 37.6, {s:.075, y:36, d:.7});
+tl.to('.tile .strip', {scaleX:1, duration:.6, stagger:.05, ease:'power2.inOut'}, 41.3);
+$$('.tile .n').forEach((n,i) => tl.to(n, {color:GROUPS[TILES[i][2]].c, fontWeight:400, duration:.4}, 41.3 + i*.05));
+fadeUp('.lg', 42.0, {s:.12, y:14});
+
+// S6 46-54
+show('s6', 46, 53.6);
+animHeader('#s6 .hd', 46.2);
+draw('#s6base', 46.6, {d:.8});
+tl.fromTo('#s6 .bar', {scaleY:0, transformOrigin:'50% 100%'}, {scaleY:1, stagger:.25, duration:.9, ease:'power3.out'}, 47.0);
+fadeUp('#s6 .blbl', 47.35, {s:.25, y:14});
+draw('#s6trend', 48.3, {d:1.2, e:'power1.inOut'});
+pop('#s6pts circle', 48.3, {s:.3, from:0, e:'back.out(3)'});
+
+// S7 54-80
+show('s7', 54, 79.6);
+fadeUp('#s7 .gh > *', 54.05, {s:.1, y:16});
+const cards = $$('#s7 .card');
+tl.fromTo(cards, {autoAlpha:0, y:50}, {autoAlpha:.4, y:0, stagger:.12, duration:.8}, 54.15);
+tl.set($$('#s7 .card ul'), {autoAlpha:0}, 0);
+const actT = [54.7, 60.3, 66.3, 73.3];
+cards.forEach((c,i) => {
+  const t = actT[i];
+  tl.to(c, {autoAlpha:1, y:-14, duration:.6}, t);
+  tl.to(c.querySelector('.cbor'), {opacity:1, duration:.4}, t);
+  draw(c.querySelectorAll('.ic .dr'), t+0.1, {d:.9, s:.18});
+  fadeUp(c.querySelector('ul'), t+0.45, {y:14, d:.6});
+  if (i < 3){ tl.to(c, {autoAlpha:.4, y:0, duration:.6}, actT[i+1]); tl.to(c.querySelector('.cbor'), {opacity:0, duration:.4}, actT[i+1]); }
+});
+pop(cards[1].querySelectorAll('.lcd circle'), 60.7, {s:.15, from:0});
+fadeUp(cards[1].querySelectorAll('.lc b'), 61.2, {s:.18, y:8, d:.5});
+tl.fromTo(cards[3].querySelector('.beam'), {rotation:-10, svgOrigin:'60 34'}, {rotation:0, svgOrigin:'60 34', duration:1.6, ease:'elastic.out(1,0.4)'}, 74.0);
+tl.to(cards, {autoAlpha:1, y:0, duration:.6}, 78.7);
+tl.to(cards[3].querySelector('.cbor'), {opacity:0, duration:.4}, 78.7);
+
+// S8 80-98 （ダーク）
+tl.to('#dark', {opacity:1, duration:.9, ease:'power2.inOut'}, 79.6);
+tl.to('#dark', {opacity:0, duration:.8, ease:'power2.inOut'}, 97.5);
+show('s8', 80, 97.3);
+animHeader('#s8 .hd', 80.35);
+tl.to('#s8 .vb i', {scaleX:1, stagger:.12, duration:.35, ease:'power2.in'}, 82.6);
+fadeUp('#s8 .pr', 81.1, {s:.5, y:20});
+draw('#s8 .pr .dr', 81.3, {d:.6, s:.25});
+tl.to('#plist', {autoAlpha:0, x:-40, duration:.5, ease:'power2.in'}, 86.8);
+fadeUp('#fA', 87.3, {y:16});
+draw('.fa1', 87.8, {d:.4});
+pop('#fB', 88.05, {from:.85});
+draw('.fa2', 88.7, {d:.5, s:.1});
+fadeUp('#fC1, #fC2', 89.05, {s:.15, y:10});
+draw('#fAxis', 89.6, {d:.9});
+pop('#fTicks circle', 89.9, {s:.12, from:0});
+fadeUp('#s8 .stg', 90.0, {s:.12, y:8});
+pop('#fMk', 90.7, {from:0, e:'back.out(3)'});
+fadeUp('#mk', 90.9, {y:8});
+tl.set('#fSup', {autoAlpha:0}, 0);
+fadeUp('#fSup', 93.2, {y:16});
+
+// S9 98-118
+show('s9a', 98, 103.8);
+animHeader('#s9a .hd', 98.15);
+fadeUp('#s9a .spec', 98.5, {y:30});
+fadeUp('#s9a .row', 98.9, {s:.32, y:12, d:.5});
+tl.to('#s9a .row .sk i', {scaleX:1, stagger:.32, duration:.7, ease:'power2.out'}, 99.1);
+draw('#s9a .row .dr', 99.45, {s:.16, d:.4});
+
+show('s9b', 104, 110.8);
+animHeader('#s9b .hd', 104.15);
+pop('#hAI', 104.55, {from:.7});
+draw('#hA1', 105.1, {d:.5});
+fadeUp('#hL1', 105.3, {y:8});
+pop('#hHu', 105.5, {from:.7});
+tl.to('#hLoop', {opacity:1, duration:.6}, 105.9);
+tl.to('#hDot', {opacity:1, duration:.3}, 106.0);
+draw('#hA2', 106.3, {d:.5});
+pop('#hDec', 106.65, {from:.85});
+fadeUp('#hL0', 107.2, {y:8});
+fadeUp('#hTags > *', 107.5, {s:.12, y:12, d:.5});
+
+show('s9c', 111, 117.6);
+animHeader('#s9c .hd', 111.15);
+pop('#bbFill', 111.5, {from:.85, e:'back.out(1.2)'});
+fadeIn('#bbQ', 111.7, {d:.5});
+tl.to('#bbQ', {opacity:0, duration:.4}, 112.6);
+tl.to('#bbFill', {fillOpacity:.04, duration:.9, ease:'power2.inOut'}, 112.6);
+tl.to('#bbLine', {opacity:1, duration:.6}, 112.7);
+draw('.bbE', 112.8, {d:.7, s:.01});
+pop('.bbN', 112.9, {s:.03, from:0});
+fadeUp('#trs .tr', 113.3, {s:.45, y:14, d:.6});
+draw('#trs .dr', 113.5, {s:.22, d:.4});
+
+// S10 118-127
+show('s10', 118, 126.6);
+animHeader('#s10 .hd', 118.15);
+pop('#snC', 118.6, {from:.5, e:'back.out(1.5)'});
+draw('.spoke', 119.0, {s:.08, d:.6});
+pop('.sn', 119.3, {s:.1, from:.5});
+
+// S11 127-147
+show('s11', 127, 146.6);
+animHeader('#s11 .hd', 127.15);
+fadeUp('#oExec', 127.4, {y:-14});
+pop('#oCom', 127.9, {from:.92, e:'power3.out', d:.8});
+fadeUp('#oCom .roles span', 128.6, {s:.18, y:10, d:.5});
+draw('#oUp', 130.4, {d:.5});
+fadeUp('#oUpL', 130.6, {y:8});
+draw('.oL', 134.2, {s:.08, d:.5});
+fadeUp('.dep', 134.5, {s:.1, y:12, d:.5});
+fadeUp('#oSelL', 135.0, {y:10});
+draw('.oL2', 135.3, {s:.06, d:.8});
+pop('#oTeam', 136.0, {from:.9, e:'power3.out', d:.8});
+tl.to('#s11a', {autoAlpha:0, duration:.5, ease:'power2.in'}, 139.8);
+tl.set('#s11b', {autoAlpha:0}, 0);
+tl.set('#s11b', {autoAlpha:1}, 140.2);
+draw('#cycRing', 140.3, {d:1.2});
+pop('.cyc', 140.5, {s:.25, from:.8});
+pop('.cA', 141.2, {s:.15, from:0});
+fadeUp('#cycC', 140.9, {y:12});
+tl.to('#cycDot', {opacity:1, duration:.3}, 141.4);
+tl.set('#inputs', {autoAlpha:0}, 0);
+fadeUp('#inputs', 141.6, {y:12});
+
+// S12 147-157
+show('s12', 147, 160, 0.1);
+draw('#w2ring', 147.15, {d:1.4});
+tl.to('#w2fill', {opacity:1, duration:1.2}, 147.4);
+tl.fromTo(dies2.map(d => d.el), {opacity:0}, {opacity:1, duration:.3, stagger:.006, ease:'power1.out'}, 147.5);
+tl.fromTo(hi2, {opacity:0, scale:.3, transformOrigin:'50% 50%'}, {opacity:.92, scale:1, duration:.4, stagger:.12, ease:'back.out(2)'}, 148.4);
+fadeUp('.s12t > *', 149.4, {s:.15, y:20});
+tl.set('#src', {autoAlpha:0}, 0);
+fadeUp('#src', 154.1, {y:8});
+tl.to('#fadeW', {opacity:1, duration:1.0, ease:'power1.in'}, 156.0);
+tl.set({}, {}, DUR);
+
+/* ---------- 時間で決まる動き ---------- */
+const dyn = [];
+// S2 配線を流れる光
+const tdots = $$('#tdots circle'), tpaths = $$('#traces path').filter((p,i) => i%2===0), tlen = tpaths.map(p => p.getTotalLength());
+dyn.push(t => { const on = t > 9.6 && t < 15.6; tdots.forEach((d,i) => {
+  if (!on){ d.setAttribute('opacity',0); return; }
+  const f = ((t-9.6)*0.42 + i*0.137) % 1, p = tpaths[i].getPointAtLength(f*tlen[i]);
+  d.setAttribute('cx',p.x); d.setAttribute('cy',p.y); d.setAttribute('opacity', clamp((t-9.6)/0.5)*Math.sin(f*Math.PI)); }); });
+// S1/S3/S4 回転
+dyn.push(t => {
+  $('#w1ring2').setAttribute('transform', `rotate(${t*6} 1380 500)`);
+  $('#aiRing').setAttribute('transform', `rotate(${t*40} 960 440)`);
+  $('#aiRing2').setAttribute('transform', `rotate(${-t*10} 960 440)`);
+  $('#r3c').setAttribute('transform', `rotate(${t*4} 1250 470)`);
+  r3d.forEach((d,k) => { const a = (k/28)*Math.PI*2 + t*0.08; d.setAttribute('cx', 1250+345*Math.cos(a)); d.setAttribute('cy', 470+345*Math.sin(a)); });
+});
+// S9b ループ
+dyn.push(t => {
+  $('#hLoop').setAttribute('transform', `rotate(${t*18} 1325 425)`);
+  const a = -Math.PI/2 + (t-106)*1.6; $('#hDot').setAttribute('cx', 1325+128*Math.cos(a)); $('#hDot').setAttribute('cy', 425+128*Math.sin(a));
+});
+// S10 パルス
+dyn.push(t => { const on = t > 119.6 && t < 126.6; pulses.forEach((p,k) => {
+  if (!on){ p.setAttribute('opacity',0); return; }
+  const i = k%6, out = k<6, f = ((t-119.6)*0.55 + k*0.173) % 1, ff = out? f : 1-f;
+  const [x,y] = snPos[i], sx = 1270 + (x-1270)*(0.37 + ff*0.42), sy = 470 + (y-470)*(0.37 + ff*0.42);
+  p.setAttribute('cx',sx); p.setAttribute('cy',sy); p.setAttribute('fill', out? C.cyan : C.green);
+  p.setAttribute('opacity', clamp((t-119.6)/0.5)*Math.sin(f*Math.PI)); }); });
+// S11 担当者がチームへ集まる
+dyn.push(t => { oDots.forEach((d,i) => {
+  const s = 135.6 + i*0.12, f = clamp((t-s)/1.1);
+  if (t < s || t > 139.8){ d.setAttribute('opacity',0); return; }
+  const x0 = depX[i]+85, e = ease(f);
+  let x, y; if (e < .35){ x = x0; y = 606 + (645-606)*(e/.35); } else if (e < .8){ x = x0 + (1220-x0)*((e-.35)/.45); y = 645; } else { x = 1220; y = 645 + 39*((e-.8)/.2); }
+  d.setAttribute('cx',x); d.setAttribute('cy',y); d.setAttribute('opacity', f < 1 ? 1 : 0); }); });
+// S6 ゴールの波紋
+dyn.push(t => { const g = $('#s6goal'); if (t < 49.5){ g.setAttribute('opacity',0); return; }
+  const f = ((t-49.5)/1.6) % 1; g.setAttribute('r', 10 + f*30); g.setAttribute('opacity', (1-f)*0.9); });
+// S11 サイクル上の点
+dyn.push(t => { const a = -Math.PI/2 + (t-141.4)*0.9; $('#cycDot').setAttribute('cx', 1220+250*Math.cos(a)); $('#cycDot').setAttribute('cy', 470+250*Math.sin(a)); });
+
+/* ---------- 背景 ---------- */
+const cv = $('#bg'), cx = cv.getContext('2d');
+const parts = (() => { const r = rng(42), a = []; for (let i=0;i<34;i++) a.push({x:r()*1920, y:r()*1180, v:6+r()*14, s:1.2+r()*2.4, p:r()*6.28, c:r()<.7?'0,169,224':'120,190,32'}); return a; })();
+function drawBg(t){
+  const g = cx.createLinearGradient(0,0,1920,1080); g.addColorStop(0,'#ffffff'); g.addColorStop(1,'#eef4f7');
+  cx.fillStyle = g; cx.fillRect(0,0,1920,1080);
+  const sp = 36, off = (t*5) % sp;
+  for (let x = -sp + off; x < 1920+sp; x += sp) for (let y = -sp + off*0.6; y < 1080+sp; y += sp){
+    const w = clamp((x/1920)*0.9 + (y/1080)*0.5 - 0.35);
+    if (w <= 0.02) continue;
+    cx.fillStyle = `rgba(120,150,165,${0.22*w})`; cx.fillRect(x, y, 2, 2);
+  }
+  for (const p of parts){
+    const y = ((p.y - t*p.v) % 1180 + 1180) % 1180 - 50, x = p.x + Math.sin(t*0.35 + p.p)*24;
+    cx.fillStyle = `rgba(${p.c},${0.16 + 0.1*Math.sin(t*0.8+p.p)})`; cx.beginPath(); cx.arc(x, y, p.s, 0, 6.283); cx.fill();
+  }
+}
+
+/* ---------- 字幕と章表示 ---------- */
+const CAPS = [
+  [2.4, 6.5, '2026年9月17日、東京エレクトロングループは<br>AI基本方針を制定しました。'],
+  [7.6, 11.6, '出発点は基本理念。<br>最先端の技術と確かなサービスで、夢のある社会の発展に貢献する。'],
+  [11.9, 15.6, 'その実践として、半導体の技術革新を日々追求しています。'],
+  [16.5, 22.0, '社会課題を解決していくうえで、製品へのAI機能の拡充と<br>グループ内でのAI利活用は欠かせません。'],
+  [22.3, 27.6, '一方でAIは、人権やプライバシー、セキュリティを<br>意図せず侵害するおそれもある。だから指針が要ります。'],
+  [28.5, 36.5, 'この方針は社内だけのものではありません。<br>サプライヤーや業務委託先を含め、事業に関わるすべての人々が対象です。'],
+  [37.5, 45.5, '方針は11項目。<br>役割の近いものをまとめると、全体の見通しがよくなります。'],
+  [46.5, 53.6, '最初に置かれているのは、守りではなく攻めの項目です。<br>高品質な製品の開発・製造を加速するため、AIを積極的に使っていく。'],
+  [54.4, 59.9, '安全性。使う前にリスクを検証し、インシデントが起きたら<br>すぐに関係各所へエスカレーション。是正措置まで講じます。'],
+  [60.2, 65.9, 'プライバシー。データの収集から廃棄までのすべての段階で、<br>プライバシー・バイ・デザインの原則を取り入れます。'],
+  [66.2, 72.9, 'セキュリティ。AI特有のリスクを踏まえ、技術と運用の両面から<br>不正アクセスや情報漏洩を防ぐ。教育や訓練もここに含まれます。'],
+  [73.2, 79.5, '人権と公平性。不当な差別を生まないこと。<br>公平性を損なうバイアスはリスクとして特定し、排除に努めます。'],
+  [80.6, 86.7, '06は明確な線引きです。開発も、導入も、販売も、運用もしない。<br>そう定めたAIが5つ挙げられています。'],
+  [87.1, 92.8, '該当するか迷う案件、ボーダーラインの案件は、開発前の段階で<br>AIステアリングコミッティへ報告。中止か代替案かを検討します。'],
+  [93.1, 97.3, 'この線引きは、サプライヤーにも同じように求められます。'],
+  [98.5, 103.7, 'AIにできることと、できないこと。利用範囲や運用環境、<br>許容誤差を含む性能指標を明示し、正しく理解して使えるようにします。'],
+  [104.3, 110.7, '人命、安全、雇用、与信。人に重大な影響を与える重要な決定では、<br>十分なリスク評価を経たうえで、人間が最終判断を下します。'],
+  [111.2, 117.5, '判断に至った理由を示し、求めがあれば合理的な範囲で開示する。<br>責任の所在を明確にし、問題が起きれば原因究明と是正へ。'],
+  [118.5, 126.5, '顧客、学術機関、業界団体、規制当局。多様なステークホルダーとの対話で<br>外部の知見を取り込み、AI倫理の改善を続けていきます。'],
+  [127.5, 133.8, 'そして、方針を実際に機能させるための体制。全社方針の承認や<br>重要事項の意思決定を担うのが、AIステアリングコミッティです。'],
+  [134.2, 139.6, 'コミッティの構成員は、それぞれの部門から担当者を選出。<br>そのメンバーでAIガバナンスチームを組みます。'],
+  [140.2, 146.5, '方針の見直しは少なくとも年1回。改訂が必要ならチームが案をつくり、<br>コミッティの承認を得て公表します。'],
+  [147.8, 153.8, 'AIを積極的に使う。<br>だからこそ、守るべき線と確かめる仕組みを先に決めておく。'],
+];
+const CHAPS = [
+  [7,16,'INTRO','基本理念',0],[16,28,'INTRO','AIの両面',0],[28,37,'INTRO','適用範囲',0],[37,46,'OVERVIEW','11の原則',0],
+  [46,54,'01','高い品質と価値創出',1],[54,60.2,'02','安全性の確保',2],[60.2,66.2,'03','プライバシーの保護',3],[66.2,73.2,'04','セキュリティの確保',4],[73.2,79.8,'05','人権と公平性の尊重',5],
+  [79.8,97.8,'06','禁止対象のAI',6],[97.8,104,'07','AIの能力と限界の明示',7],[104,111,'08','人間の介入',8],[111,118,'09','透明性と説明責任の重視',9],
+  [118,127,'10','ステークホルダーエンゲージメント',10],[127,146.8,'11','ガバナンス体制',11],
+];
+let lastCap = null, lastChap = null;
+const capEl = $('#capText'), chapDots = $$('#chapDots i');
+function mix(a, b, k){ const pa = a.match(/\w\w/g).map(h => parseInt(h,16)), pb = b.match(/\w\w/g).map(h => parseInt(h,16)); return `rgb(${pa.map((v,i) => Math.round(v+(pb[i]-v)*k)).join(',')})`; }
+function chrome(t){
+  const dk = +gsap.getProperty('#dark','opacity');
+  const ink = mix('2d2d2d','ffffff',dk);
+  $('#capBandL').style.opacity = 1-dk; $('#capBandD').style.opacity = dk;
+  capEl.style.color = ink; $('#brand').style.color = ink; $('#chapTitle').style.color = ink; $('#chapOf').style.color = ink;
+  $('#brand').style.opacity = clamp((t-7)/0.6) * clamp((146.8-t)/0.6);
+  const c = CAPS.find(c => t >= c[0] && t < c[1]);
+  if (c !== lastCap){ capEl.innerHTML = c ? c[2] : ''; lastCap = c; }
+  if (c){ const a = clamp((t-c[0])/0.35) * clamp((c[1]-t)/0.35); capEl.style.opacity = a; capEl.style.transform = `translateY(${(1-clamp((t-c[0])/0.35))*12}px)`; }
+  else capEl.style.opacity = 0;
+  const h = CHAPS.find(h => t >= h[0] && t < h[1]);
+  if (h){
+    if (h !== lastChap){
+      const isNum = /^\d+$/.test(h[2]);
+      $('#chapNum').textContent = h[2]; $('#chapNum').style.fontSize = isNum? '34px':'20px'; $('#chapNum').style.letterSpacing = isNum? '.02em':'.2em';
+      $('#chapOf').style.display = isNum? '':'none'; $('#chapTitle').textContent = h[3];
+      chapDots.forEach((d,i) => { const k = i+1; d.style.background = k < h[4] ? 'rgba(0,169,224,.35)' : k === h[4] ? C.cyan : 'transparent'; d.style.borderColor = k <= h[4] ? C.cyan : (dk>.5?'#55595e':'#c9cfd3'); });
+      lastChap = h;
+    }
+    $('#chap').style.opacity = clamp((t-h[0])/0.3) * clamp((h[1]-t)/0.3);
+  } else $('#chap').style.opacity = 0;
+  $('#prog').style.width = (clamp(t/DUR)*1920)+'px';
+}
+
+window.seek = function(t){
+  tl.totalTime(Math.min(t, DUR));
+  for (const f of dyn) f(t);
+  chrome(t);
+  drawBg(t);
+};
+window.DURATION = DUR;
+Promise.all([300,400,500,700,900].map(w => document.fonts.load(`${w} 40px NotoJP`, 'あ漢'))).then(() => document.fonts.ready).then(() => { window.seek(0); window.__ready = true; });
+</script>
+</body>
+</html>

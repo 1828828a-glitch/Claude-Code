@@ -1,0 +1,5 @@
+assets/
+frames/
+*.wav
+video_noaudio.mp4
+render.log
