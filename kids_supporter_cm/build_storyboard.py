@@ -1,4 +1,4 @@
-"""build/key_*.jpg を埋め込んだ絵コンテ storyboard.html を作る（1ファイルで完結）。"""
+"""build/cm30/key_*.jpg と build/reel/key_*.jpg を埋め込んだ絵コンテ storyboard.html を作る（1ファイルで完結）。"""
 import base64
 import html
 import os
@@ -6,8 +6,8 @@ import os
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
-def img(t):
-    p = os.path.join(HERE, 'build', f'key_{t:.1f}.jpg')
+def img(t, name='cm30'):
+    p = os.path.join(HERE, 'build', name, f'key_{t:.1f}.jpg')
     with open(p, 'rb') as f:
         return 'data:image/jpeg;base64,' + base64.b64encode(f.read()).decode()
 
@@ -85,8 +85,15 @@ def scene_html(s):
 </article>'''
 
 
+REEL = [
+    (1.8, '0:00', 'つかみ'), (3.9, '0:02', '資格不要'), (6.6, '0:04', 'お手伝い4つ'), (9.0, '0:07', 'はじめ方'),
+    (10.0, '0:09', '笑顔'), (11.9, '0:10', 'メインコピー'), (14.9, '0:12', 'エンドカード'),
+]
+
+
 def main():
     scenes = ''.join(scene_html(s) for s in SCENES)
+    reel = ''.join(f'<figure><img src="{img(t, "reel")}" alt="リール版 {esc(lab)}" loading="lazy"><figcaption><b>{tm}</b> {esc(lab)}</figcaption></figure>' for t, tm, lab in REEL)
     facts = ''.join(f'<dt>{esc(a)}</dt><dd>{esc(b)}</dd>' for a, b in FACTS)
     page = f'''<!doctype html>
 <html lang="ja">
@@ -129,6 +136,13 @@ dd{{min-width:0}}
 .facts dl{{margin-top:0;font-size:16px}}
 .src{{font-size:14px;color:var(--sub);margin-top:12px;word-break:break-all}}
 .src a{{color:var(--accent)}}
+.reel{{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;margin-top:18px}}
+.reel figure{{margin:0}}
+.reel img{{width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:10px;display:block;border:1px solid var(--line)}}
+.reel figcaption{{font-size:13px;color:var(--sub);margin-top:4px;line-height:1.4}}
+.reel figcaption b{{color:var(--ink);font-variant-numeric:tabular-nums}}
+video.v916{{width:min(360px,100%);aspect-ratio:9/16;margin:20px auto 0}}
+@media (max-width:720px){{.reel{{grid-template-columns:repeat(4,minmax(0,1fr))}}}}
 .script{{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 22px;font-size:16px}}
 .script p{{display:grid;grid-template-columns:7.5em 1fr;gap:12px;padding:6px 0;border-bottom:1px dashed var(--line)}}
 .script p:last-child{{border-bottom:0}}
@@ -148,6 +162,12 @@ dd{{min-width:0}}
 
 <h2>カット割り</h2>
 {scenes}
+
+<h2>リール版 15秒・1080×1920</h2>
+<p class="lead">Instagramリール向けに縦9:16で組み直した15秒版です。タイトルだけのカットは省き、2.4秒目から画面上部に「神奈川県 キッズサポーター募集」の名札を出し続けて、途中で離脱されても何の投稿か分かるようにしました。お手伝い4つは1画面の2×2、はじめ方は3点に絞っています。文字はすべて上270px・下670px・左右65pxを避けた中央の帯に入れてあり、プロフィールグリッドの3:4表示でも欠けません。</p>
+<div class="reel">{reel}</div>
+<video class="v916" src="kids_supporter_reel.mp4" controls playsinline preload="metadata"></video>
+<p class="note">カバー画像は kids_supporter_reel_cover.jpg です。キャプション内のURLはリンクにならないので、誘導は動画内の検索と、プロフィールのリンクに任せます。</p>
 
 <h2>ナレーション原稿</h2>
 <div class="script">

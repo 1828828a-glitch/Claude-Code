@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>キッズサポーター リール版</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/MotionPathPlugin.min.js"></script>
+<style>
+:root{
+  --cream:#FFF6E8; --paper:#FFFBF5; --ink:#4E3A2E;
+  --coral:#F47C5C; --coral-d:#E0603F; --peach:#FFD9C7;
+  --sun:#FFC94A; --sun-l:#FFE7A3; --sun-d:#EE9B00;
+  --mint:#7CCBA2; --mint-l:#C9EDD7; --mint-d:#3E9F73;
+  --sky:#86C2EC; --sky-l:#D4E9F8; --sky-d:#3B88C7;
+  --lilac:#B9A3E3; --lilac-d:#8A6CCB;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#2A211C}
+body{font-family:"Zen Maru Gothic",sans-serif;color:var(--ink);overflow:hidden}
+#viewport{position:fixed;left:0;right:0;top:0;bottom:64px;display:flex;align-items:center;justify-content:center}
+#stage{position:relative;flex:none;width:1080px;height:1920px;overflow:hidden;background:var(--cream);transform-origin:50% 50%}
+body.render #viewport{bottom:0;align-items:flex-start;justify-content:flex-start}
+body.render #ui,body.render #safeBtn{display:none}
+
+.scene{position:absolute;inset:0;visibility:hidden;overflow:hidden}
+#s1{visibility:visible}
+.txt{position:absolute;font-weight:900;line-height:1.2;white-space:nowrap}
+.center{left:0;right:0;text-align:center}
+.ch{display:inline-block}
+.full{position:absolute;left:0;top:0;width:1080px;height:1920px;overflow:visible}
+.blob{position:absolute;border-radius:50%}
+.deco{position:absolute;overflow:visible}
+.kid{position:absolute}
+.kid svg{width:100%;height:100%;display:block;overflow:visible}
+.dots{background:var(--paper) radial-gradient(circle,rgba(78,58,46,.09) 3px,transparent 3.6px) 0 0/48px 48px}
+
+.bubble{position:absolute;background:#fff;border-radius:999px;padding:20px 44px 24px;font-size:54px;font-weight:700;white-space:nowrap;box-shadow:0 12px 0 rgba(78,58,46,.10)}
+.bubble::after{content:"";position:absolute;width:44px;height:44px;background:#fff;left:72px;bottom:-14px;transform:rotate(45deg);border-radius:6px}
+.bubble.r::after{left:auto;right:72px}
+.pill{display:inline-block;background:var(--ink);color:var(--cream);font-weight:900;border-radius:999px;padding:8px 40px 12px;font-size:44px;white-space:nowrap}
+.ribbon{display:inline-block;background:var(--coral);color:#fff;font-weight:900;line-height:1.15;clip-path:polygon(0 0,100% 0,95% 50%,100% 100%,0 100%,5% 50%)}
+
+#tag{position:absolute;left:0;right:0;top:292px;text-align:center;z-index:40}
+
+/* S2 */
+#s2{background:var(--coral);color:#fff}
+#s2 .txt{text-shadow:0 7px 0 rgba(120,40,20,.16)}
+#s2-mark{position:absolute;left:120px;top:806px;width:840px;height:60px;background:var(--sun);border-radius:30px}
+.badge{position:absolute;width:250px;height:250px;border-radius:50%;background:var(--sun);color:var(--ink);display:flex;align-items:center;justify-content:center;text-align:center;font-size:50px;font-weight:900;line-height:1.08;box-shadow:0 12px 0 rgba(120,40,20,.18)}
+.badge::before{content:"";position:absolute;inset:12px;border:5px dashed rgba(78,58,46,.35);border-radius:50%}
+.confetti{position:absolute;border-radius:50%}
+#bars{position:absolute;inset:0;z-index:50;pointer-events:none}
+#bars i{position:absolute;top:-80px;bottom:-80px;left:-30%;width:160%;transform:skewX(-10deg)}
+
+/* S4 */
+.cell{position:absolute;width:410px;height:350px;border-radius:36px;overflow:hidden;box-shadow:0 12px 0 rgba(78,58,46,.08)}
+.cell svg{position:absolute;left:65px;top:10px;width:280px;height:280px;overflow:visible}
+.cell .lab{position:absolute;left:0;right:0;bottom:20px;text-align:center;font-size:42px;font-weight:900;white-space:nowrap}
+.cell .no{position:absolute;left:18px;top:18px;width:62px;height:62px;border-radius:50%;background:var(--ink);color:var(--cream);font-size:30px;font-weight:900;display:flex;align-items:center;justify-content:center}
+
+/* S5 */
+.ic{position:absolute;width:132px;height:132px;border-radius:50%;background:#fff;border:9px solid var(--c);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 0 rgba(78,58,46,.08)}
+.ic svg{width:94px;height:94px;overflow:visible}
+.row{position:absolute;left:385px;font-weight:900;font-size:58px;line-height:1.15;white-space:nowrap}
+.row small{display:block;font-size:34px;font-weight:700;opacity:.78;margin-top:6px}
+#s5-mark{position:absolute;left:122px;top:486px;width:836px;height:28px;background:var(--sun);border-radius:14px}
+
+/* S6, S7 */
+#s6{background:#FFD66B}
+.burst{position:absolute;left:-1460px;top:-1040px;width:4000px;height:4000px;border-radius:50%}
+#s6-burst{background:repeating-conic-gradient(#FFCD52 0deg 8deg,#FFDA75 10deg 18deg,#FFCD52 20deg)}
+#copy{position:absolute;left:0;right:0;top:470px;height:660px}
+.em{color:var(--coral);font-size:1.16em}
+#e-title .ch{text-shadow:0 7px 0 rgba(78,58,46,.12)}
+.chip{display:inline-block;margin:0 9px;padding:8px 30px 11px;border-radius:999px;font-size:36px;font-weight:900;color:#fff}
+#search{position:absolute;left:100px;top:890px;width:880px;height:100px;background:#fff;border:5px solid var(--ink);border-radius:50px;display:flex;align-items:center;padding-left:30px;box-shadow:0 10px 0 rgba(78,58,46,.10)}
+#q{font-size:44px;font-weight:700;margin-left:16px;white-space:nowrap;display:flex;align-items:center}
+#caret{display:inline-block;width:4px;height:50px;background:var(--ink);margin-left:5px;border-radius:2px}
+#sbtn{position:absolute;right:8px;top:8px;bottom:8px;width:170px;border-radius:44px;background:var(--coral);color:#fff;font-size:44px;font-weight:900;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#ripple{position:absolute;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.7);left:35px;top:-8px}
+#cursor{position:absolute;left:880px;top:930px;width:58px;height:74px;z-index:20}
+
+#grain{position:absolute;inset:0;pointer-events:none;z-index:100;opacity:.07;mix-blend-mode:multiply}
+/* 安全領域の確認用（書き出しには出ない） */
+#safe{position:absolute;inset:0;z-index:200;pointer-events:none;display:none}
+#safe.on{display:block}
+#safe i{position:absolute;left:0;right:0;background:rgba(220,40,40,.22)}
+
+#ui{position:fixed;left:0;right:0;bottom:0;height:64px;display:flex;align-items:center;gap:10px;padding:0 16px;background:#1E1814;color:#F3E6D6;font-family:"Zen Maru Gothic",sans-serif}
+#ui button{background:#3A2E27;color:#F3E6D6;border:0;border-radius:10px;height:40px;min-width:44px;padding:0 12px;font:700 15px "Zen Maru Gothic",sans-serif;cursor:pointer}
+#ui button:hover{background:#4A3B32}
+#ui button:disabled{opacity:.5;cursor:default}
+#seek{flex:1;min-width:60px;accent-color:#F47C5C}
+#time{font-variant-numeric:tabular-nums;font-size:14px;min-width:84px;text-align:right}
+@media (max-width:560px){#btnSound{display:none}#time{min-width:0}}
+</style>
+</head>
+<body>
+<div id="viewport">
+<div id="stage">
+
+  <!-- S1 フック 0–2.4 -->
+  <section class="scene" id="s1">
+    <div class="blob" id="s1-b1" style="left:-220px;top:-170px;width:600px;height:600px;background:var(--peach)"></div>
+    <div class="blob" id="s1-b2" style="right:-200px;top:1020px;width:540px;height:540px;background:var(--mint-l)"></div>
+    <div class="blob" id="s1-b3" style="left:800px;top:330px;width:140px;height:140px;background:var(--sun-l)"></div>
+    <div class="blob" id="s1-b4" style="left:110px;top:1300px;width:96px;height:96px;background:var(--sky-l)"></div>
+    <div class="txt center" id="s1-q1" style="top:400px;font-size:210px">子ども、</div>
+    <div class="txt center" id="s1-q2" style="top:640px;font-size:230px">好き<span style="color:var(--coral)">？</span></div>
+    <svg class="full" viewBox="0 0 1080 1920">
+      <path id="s1-arc" class="draw" d="M300 966 Q540 1126 780 966" fill="none" stroke="#F47C5C" stroke-width="22" stroke-linecap="round"/>
+      <circle id="s1-dot" cx="0" cy="0" r="26" fill="#F47C5C"/>
+    </svg>
+    <div class="bubble" id="s1-bub" style="left:236px;top:1110px">ちょっと、気になる。</div>
+    <div id="s1-kids"></div>
+  </section>
+
+  <!-- S2 資格がなくても 2.4–4.3 -->
+  <section class="scene" id="s2">
+    <div class="txt center" id="s2-l1" style="top:410px;font-size:64px;font-weight:700">保育士の資格が、なくても。</div>
+    <div class="txt center" id="s2-l2" style="top:520px;font-size:140px">保育の現場を</div>
+    <div id="s2-mark"></div>
+    <div class="txt center" id="s2-l3" style="top:700px;font-size:140px">体験できる。</div>
+    <div class="badge" id="s2-bd2" style="left:220px;top:955px;font-size:62px">資格<br>不要</div>
+    <div class="badge" id="s2-bd1" style="left:610px;top:955px">高校生も<br>OK！</div>
+  </section>
+
+  <!-- S4 お手伝い 4.3–7.3 -->
+  <section class="scene dots" id="s4">
+    <div class="txt center" id="s4-head" style="top:396px;font-size:58px">たとえば、こんなお手伝い</div>
+    <div class="cell" id="c1" style="left:115px;top:490px;background:#FFE6A0">
+      <svg viewBox="40 40 760 760">
+        <ellipse cx="400" cy="690" rx="330" ry="24" fill="#4E3A2E" opacity=".07"/>
+        <line x1="80" y1="676" x2="720" y2="676" stroke="#E5BF62" stroke-width="10" stroke-linecap="round"/>
+        <g id="c1-b1"><rect x="150" y="476" width="200" height="200" rx="28" fill="#86C2EC"/><text x="250" y="618" font-size="124" text-anchor="middle" fill="#fff" font-weight="900">あ</text></g>
+        <g id="c1-b2"><rect x="372" y="506" width="170" height="170" rx="26" fill="#F47C5C"/><text x="457" y="627" font-size="106" text-anchor="middle" fill="#fff" font-weight="900">そ</text></g>
+        <g id="c1-b3"><path d="M164 462 L336 462 L250 326 Z" fill="#7CCBA2" stroke="#7CCBA2" stroke-width="22" stroke-linejoin="round"/></g>
+        <g id="c1-ball"><circle cx="644" cy="616" r="60" fill="#B9A3E3"/><path d="M586 600 Q644 640 702 600" stroke="#fff" stroke-width="13" fill="none" stroke-linecap="round"/><path d="M644 556 Q620 616 644 676" stroke="#fff" stroke-width="13" fill="none" stroke-linecap="round"/></g>
+        <g transform="translate(470 90) scale(1.15)"><g id="c1-kid"></g></g>
+      </svg>
+      <div class="no">01</div><div class="lab">あそびの見守り</div>
+    </div>
+    <div class="cell" id="c2" style="left:555px;top:490px;background:#C2EBD3">
+      <svg viewBox="40 40 760 760">
+        <path d="M70 668 Q130 640 190 668 T310 668 T430 668 T550 668 T670 668 T790 668 V726 Q430 760 70 726Z" fill="#86C2EC" opacity=".55"/>
+        <g id="c2-duck">
+          <path d="M126 470 Q96 392 168 410 Q176 452 204 470Z" fill="#FFC94A"/>
+          <ellipse cx="330" cy="560" rx="218" ry="118" fill="#FFC94A"/>
+          <circle cx="474" cy="388" r="102" fill="#FFC94A"/>
+          <path d="M566 390 Q630 376 642 410 Q610 446 560 434Z" fill="#F4844C"/>
+          <circle cx="502" cy="368" r="13" fill="#4E3A2E"/>
+          <ellipse cx="460" cy="424" rx="18" ry="11" fill="#FF9EA0" opacity=".75"/>
+          <path d="M250 540 Q330 610 410 540" stroke="#EE9B00" stroke-width="13" fill="none" stroke-linecap="round"/>
+        </g>
+        <g id="c2-spray">
+          <rect x="650" y="190" width="116" height="176" rx="24" fill="#fff"/>
+          <rect x="650" y="246" width="116" height="62" fill="#7CCBA2"/>
+          <rect x="672" y="148" width="72" height="46" rx="8" fill="#fff"/>
+          <path d="M620 116 L748 116 Q760 116 760 128 L760 150 L620 150 Q608 150 608 138 L608 128 Q608 116 620 116Z" fill="#F47C5C"/>
+          <rect x="676" y="150" width="20" height="54" rx="8" fill="#F47C5C" transform="rotate(14 686 150)"/>
+        </g>
+        <g><circle class="c2-m" cx="600" cy="132" r="15" fill="#fff"/><circle class="c2-m" cx="600" cy="132" r="12" fill="#fff"/><circle class="c2-m" cx="600" cy="132" r="17" fill="#fff"/><circle class="c2-m" cx="600" cy="132" r="11" fill="#fff"/><circle class="c2-m" cx="600" cy="132" r="14" fill="#fff"/></g>
+        <g transform="translate(200 300)"><path class="c2-sp" d="M0 -44 C6 -9 9 -6 44 0 C9 6 6 9 0 44 C-6 9 -9 6 -44 0 C-9 -6 -6 -9 0 -44Z" fill="#fff"/></g>
+        <g transform="translate(130 650)"><path class="c2-sp" d="M0 -34 C5 -7 7 -5 34 0 C7 5 5 7 0 34 C-5 7 -7 5 -34 0 C-7 -5 -5 -7 0 -34Z" fill="#FFC94A"/></g>
+        <g transform="translate(640 520)"><path class="c2-sp" d="M0 -38 C5 -8 8 -5 38 0 C8 5 5 8 0 38 C-5 8 -8 5 -38 0 C-8 -5 -5 -8 0 -38Z" fill="#fff"/></g>
+      </svg>
+      <div class="no">02</div><div class="lab">おもちゃの消毒</div>
+    </div>
+    <div class="cell" id="c3" style="left:115px;top:870px;background:#CFE6F8">
+      <svg viewBox="40 40 760 760">
+        <g id="c3-paper">
+          <rect x="132" y="184" width="540" height="460" rx="20" fill="#4E3A2E" opacity=".08"/>
+          <rect x="120" y="170" width="540" height="460" rx="20" fill="#fff"/>
+          <path id="c3-fill" d="M390 330 C330 240 190 280 230 400 C250 460 330 510 390 560 C450 510 530 460 550 400 C590 280 450 240 390 330Z" fill="#FFC4B0"/>
+          <path id="c3-heart" class="draw" d="M390 330 C330 240 190 280 230 400 C250 460 330 510 390 560 C450 510 530 460 550 400 C590 280 450 240 390 330Z" fill="none" stroke="#F47C5C" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+          <g id="c3-crayon"><g transform="rotate(35)">
+            <path d="M0 0 L-15 -40 L15 -40 Z" fill="#E0603F"/>
+            <rect x="-17" y="-200" width="34" height="164" rx="7" fill="#F47C5C"/>
+            <rect x="-17" y="-150" width="34" height="18" fill="#fff" opacity=".7"/>
+            <rect x="-17" y="-100" width="34" height="18" fill="#fff" opacity=".7"/>
+          </g></g>
+        </g>
+        <rect class="c3-st" x="140" y="676" width="300" height="46" rx="12" fill="#7CCBA2" transform="rotate(-6 290 699)"/>
+        <rect class="c3-st" x="200" y="712" width="300" height="46" rx="12" fill="#FFC94A" transform="rotate(4 350 735)"/>
+        <g id="c3-sc">
+          <g id="c3-bl1"><path d="M640 690 L770 600" stroke="#9AA6B2" stroke-width="20" stroke-linecap="round"/><circle cx="600" cy="726" r="34" fill="none" stroke="#F47C5C" stroke-width="16"/></g>
+          <g id="c3-bl2"><path d="M640 690 L780 700" stroke="#B8C2CC" stroke-width="20" stroke-linecap="round"/><circle cx="596" cy="660" r="34" fill="none" stroke="#F47C5C" stroke-width="16"/></g>
+          <circle cx="640" cy="690" r="8" fill="#4E3A2E"/>
+        </g>
+      </svg>
+      <div class="no">03</div><div class="lab">制作の準備</div>
+    </div>
+    <div class="cell" id="c4" style="left:555px;top:870px;background:#FFD6C2">
+      <svg viewBox="40 40 760 760">
+        <g id="c4-tray"><rect x="80" y="520" width="640" height="170" rx="44" fill="#DDA273"/><rect x="106" y="540" width="588" height="130" rx="32" fill="#EDBE95"/></g>
+        <path class="c4-steam" d="M226 400 q-24 -34 0 -66 q24 -34 0 -68" fill="none" stroke="#fff" stroke-width="15" stroke-linecap="round"/>
+        <path class="c4-steam" d="M286 410 q-24 -34 0 -66 q24 -34 0 -68" fill="none" stroke="#fff" stroke-width="15" stroke-linecap="round"/>
+        <path class="c4-steam" d="M476 420 q-24 -34 0 -66 q24 -34 0 -68" fill="none" stroke="#fff" stroke-width="15" stroke-linecap="round"/>
+        <g id="c4-rice">
+          <path d="M160 488 Q172 414 256 410 Q340 414 352 488Z" fill="#FFFDF8"/>
+          <path d="M150 484 L362 484 Q356 612 256 612 Q156 612 150 484Z" fill="#86C2EC"/>
+          <path d="M176 530 Q256 556 336 530" stroke="#fff" stroke-width="10" fill="none" stroke-linecap="round" opacity=".8"/>
+        </g>
+        <g id="c4-soup">
+          <path d="M384 494 L568 494 Q562 606 476 606 Q390 606 384 494Z" fill="#F47C5C"/>
+          <ellipse cx="476" cy="494" rx="92" ry="22" fill="#F9C66A"/>
+          <circle cx="450" cy="490" r="8" fill="#7CCBA2"/><circle cx="492" cy="498" r="7" fill="#7CCBA2"/><circle cx="510" cy="486" r="6" fill="#fff"/>
+        </g>
+        <g id="c4-cup">
+          <path d="M670 470 q46 0 46 44 q0 44 -46 44" fill="none" stroke="#7CCBA2" stroke-width="16"/>
+          <rect x="596" y="446" width="90" height="150" rx="18" fill="#7CCBA2"/>
+          <rect x="608" y="470" width="66" height="14" rx="7" fill="#fff" opacity=".7"/>
+        </g>
+        <g transform="translate(540 100) scale(1.1)"><g id="c4-kid"></g></g>
+      </svg>
+      <div class="no">04</div><div class="lab">給食の配膳</div>
+    </div>
+    <div id="s4-kids"></div>
+  </section>
+
+  <!-- S5 はじめ方 7.3–9.4 -->
+  <section class="scene dots" id="s5">
+    <div id="s5-mark"></div>
+    <div class="txt center" id="s5-head" style="top:400px;font-size:76px">はじめ方は、カンタン。</div>
+    <svg class="full" viewBox="0 0 1080 1920">
+      <path id="s5-guide" d="M290 556 L290 934" fill="none" stroke="#4E3A2E" stroke-opacity=".22" stroke-width="9" stroke-linecap="round" stroke-dasharray="0 22"/>
+      <path id="s5-track" class="draw" d="M290 556 L290 934" fill="none" stroke="#F47C5C" stroke-width="12" stroke-linecap="round"/>
+      <g id="s5-dot"><circle r="24" fill="#fff"/><circle r="17" fill="#F47C5C"/></g>
+    </svg>
+    <div id="s5-rows"></div>
+    <div id="s5-kids"></div>
+  </section>
+
+  <!-- S6 笑顔 9.4–12.2 / S7 エンドカード 12.2–15 -->
+  <section class="scene" id="s6">
+    <div class="burst" id="s6-burst"></div>
+    <div id="s6-kids"></div>
+    <div class="bubble" id="s6-bub1" style="left:110px;top:430px;font-size:50px">せんせい、あそぼ！</div>
+    <div class="bubble r" id="s6-bub2" style="left:520px;top:1150px;font-size:50px">ありがとう！</div>
+
+    <div id="copy">
+      <div class="txt center" id="c-l1" style="top:0;font-size:92px">子どもの<span class="em">笑顔</span>に、</div>
+      <div class="txt center" id="c-l2" style="top:150px;font-size:170px">出会える</div>
+      <div class="txt center" id="c-l3" style="top:350px;font-size:170px">チャンス。</div>
+      <svg class="full" viewBox="0 0 1080 1920">
+        <path id="c-arc" class="draw" d="M300 610 Q540 714 780 610" fill="none" stroke="#F47C5C" stroke-width="20" stroke-linecap="round"/>
+      </svg>
+      <div id="c-hearts"></div>
+    </div>
+
+    <div id="end">
+      <div class="txt center" id="e-title" style="top:540px;font-size:104px">キッズサポーター</div>
+      <div class="txt center" style="top:678px"><span class="ribbon" id="e-rib" style="font-size:58px;padding:2px 74px 9px">募集中！</span></div>
+      <div class="txt center" id="e-chips" style="top:800px"><span class="chip" style="background:var(--mint-d)">中学生以上</span><span class="chip" style="background:var(--sky-d)">資格不要</span><span class="chip" style="background:var(--coral-d)">住所不問</span></div>
+      <div id="search">
+        <svg width="50" height="50" viewBox="0 0 62 62"><circle cx="26" cy="26" r="18" fill="none" stroke="#4E3A2E" stroke-width="7"/><path d="M40 40 L56 56" stroke="#4E3A2E" stroke-width="8" stroke-linecap="round"/></svg>
+        <div id="q"><span id="qtext">神奈川県 キッズサポーター</span><span id="caret"></span></div>
+        <div id="sbtn"><div id="ripple"></div><span style="position:relative">検索</span></div>
+      </div>
+      <svg id="cursor" viewBox="0 0 70 90"><path d="M6 4 L6 70 L22 56 L34 84 L46 78 L34 52 L56 52 Z" fill="#fff" stroke="#4E3A2E" stroke-width="5" stroke-linejoin="round"/></svg>
+      <div class="txt center" id="e-spon" style="top:1022px"><div style="font-size:30px;font-weight:700;opacity:.8">子どもの笑顔応援プロジェクト</div><div style="font-size:58px;line-height:1.15">神奈川県</div></div>
+    </div>
+  </section>
+
+  <div id="tag"><span class="pill" id="tag-pill" style="font-size:40px">神奈川県 キッズサポーター募集</span></div>
+  <div id="bars"><i style="background:var(--sun)"></i><i style="background:var(--mint)"></i><i style="background:var(--sky)"></i></div>
+  <div id="grain"></div>
+  <div id="safe"><i style="top:0;height:270px"></i><i style="bottom:0;height:670px"></i><b style="position:absolute;left:0;top:270px;bottom:670px;width:65px;background:rgba(220,40,40,.15)"></b><b style="position:absolute;right:0;top:270px;bottom:670px;width:65px;background:rgba(220,40,40,.15)"></b></div>
+</div>
+</div>
+
+<div id="ui">
+  <button id="btnPlay" aria-label="再生・一時停止">❚❚</button>
+  <button id="btnRestart" aria-label="最初から">↺</button>
+  <input id="seek" type="range" min="0" max="15" step="0.01" value="0" aria-label="再生位置">
+  <span id="time">0.0 / 15.0</span>
+  <button id="btnSafe">安全領域</button>
+  <button id="btnSound">音声オフ</button>
+</div>
+
+<script>
+gsap.registerPlugin(MotionPathPlugin);
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const RENDER = new URLSearchParams(location.search).has('render');
+if (RENDER) document.body.classList.add('render');
+const DUR = 15;
+window.STAGE = { name: 'reel', w: 1080, h: 1920, dur: DUR, fps: 30, keys: [1.8, 3.9, 6.6, 9.0, 10.0, 11.9, 14.9], cover: { t: 14.9, hide: ['#cursor'] } };
+const CUES = []; window.CUES = CUES;
+const cue = (t, type, p = 1, g = 1) => CUES.push({ t: +t.toFixed(3), type, p, g });
+
+const STAR = 'M0 -30 C4 -6 6 -4 30 0 C6 4 4 6 0 30 C-4 6 -6 4 -30 0 C-6 -4 -4 -6 0 -30Z';
+const HEART = 'M0 20 C-34 -4 -32 -30 -14 -32 C-5 -33 0 -25 0 -20 C0 -25 5 -33 14 -32 C32 -30 34 -4 0 20Z';
+
+function split(root) {
+  const walk = node => {
+    [...node.childNodes].forEach(n => {
+      if (n.nodeType === 3) {
+        const frag = document.createDocumentFragment();
+        [...n.textContent].forEach(c => {
+          if (/\s/.test(c)) { if (c === ' ') frag.appendChild(document.createTextNode(' ')); return; }
+          const s = document.createElement('span'); s.className = 'ch'; s.textContent = c; frag.appendChild(s);
+        });
+        n.replaceWith(frag);
+      } else if (n.nodeType === 1 && n.tagName !== 'BR') walk(n);
+    });
+  };
+  walk(root);
+  return [...root.querySelectorAll('.ch')];
+}
+
+function kidInner(o) {
+  const skin = o.skin || '#FFDCC0', hair = o.hair || '#5A3E2B', ink = '#4E3A2E';
+  let h;
+  switch (o.style) {
+    case 'bob': h = `<path d="M36 124 C28 56 68 30 100 30 C132 30 172 56 164 124 C158 100 150 88 140 82 C122 94 80 94 60 82 C50 88 42 100 36 124Z" fill="${hair}"/>`; break;
+    case 'pig': h = `<circle cx="30" cy="96" r="24" fill="${hair}"/><circle cx="170" cy="96" r="24" fill="${hair}"/><path d="M42 106 C40 56 72 38 100 38 C128 38 160 56 158 106 C144 86 124 76 100 78 C76 76 56 86 42 106Z" fill="${hair}"/>`; break;
+    case 'tuft': h = `<path d="M46 98 C48 60 72 44 100 44 C128 44 152 60 154 98 C138 82 120 76 100 78 C80 76 62 82 46 98Z" fill="${hair}"/><path d="M94 48 C88 30 102 18 118 22 C108 28 106 38 110 48Z" fill="${hair}"/>`; break;
+    default: h = `<path d="M40 104 C38 56 70 36 100 36 C134 36 164 58 160 104 C150 86 130 72 106 76 C98 64 86 62 76 66 C66 76 52 86 40 104Z" fill="${hair}"/>`;
+  }
+  const eyes = o.eyes === 'dot'
+    ? `<circle cx="78" cy="114" r="7.5" fill="${ink}"/><circle cx="122" cy="114" r="7.5" fill="${ink}"/>`
+    : `<path d="M68 117 Q78 103 88 117" fill="none" stroke="${ink}" stroke-width="6.5" stroke-linecap="round"/><path d="M112 117 Q122 103 132 117" fill="none" stroke="${ink}" stroke-width="6.5" stroke-linecap="round"/>`;
+  const mouth = o.mouth === 'smile'
+    ? `<path d="M84 136 Q100 154 116 136" fill="none" stroke="${ink}" stroke-width="6.5" stroke-linecap="round"/>`
+    : `<path d="M82 132 Q100 164 118 132 Z" fill="#E0605A" stroke="${ink}" stroke-width="4" stroke-linejoin="round"/>`;
+  const bow = o.bow ? `<g transform="translate(142 50) rotate(18)"><path d="M0 0 L-24 -15 L-24 15 Z M0 0 L24 -15 L24 15 Z" fill="${o.bow}"/><circle r="8" fill="${o.bow}"/></g>` : '';
+  return `<circle cx="40" cy="118" r="13" fill="${skin}"/><circle cx="160" cy="118" r="13" fill="${skin}"/><circle cx="100" cy="114" r="62" fill="${skin}"/>${h}${eyes}<ellipse cx="64" cy="135" rx="11" ry="7" fill="#FF9EA0" opacity=".8"/><ellipse cx="136" cy="135" rx="11" ry="7" fill="#FF9EA0" opacity=".8"/>${mouth}${bow}`;
+}
+const kidSVG = o => `<svg viewBox="0 0 200 200">${kidInner(o)}</svg>`;
+function addKid(parent, o, cx, cy, size) {
+  const d = document.createElement('div');
+  d.className = 'kid';
+  d.style.cssText = `left:${cx - size / 2}px;top:${cy - size / 2}px;width:${size}px;height:${size}px`;
+  d.innerHTML = kidSVG(o);
+  parent.appendChild(d);
+  return d;
+}
+function addDeco(parent, d, color, cx, cy, size) {
+  const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  s.setAttribute('viewBox', '-34 -34 68 68');
+  s.setAttribute('class', 'deco');
+  s.style.cssText = `left:${cx - size / 2}px;top:${cy - size / 2}px;width:${size}px;height:${size}px`;
+  s.innerHTML = `<path d="${d}" fill="${color}"/>`;
+  parent.appendChild(s);
+  return s;
+}
+const KIDS = [
+  { style: 'bob', skin: '#FFDCC0', hair: '#5A3E2B', bow: '#F47C5C' },
+  { style: 'tuft', skin: '#F3C29B', hair: '#2E2420' },
+  { style: 'pig', skin: '#FFE2CC', hair: '#8A5A3B', eyes: 'dot' },
+  { style: 'short', skin: '#E9B38A', hair: '#3B2A22', mouth: 'smile' },
+  { style: 'bob', skin: '#F7CDA8', hair: '#2E2420', eyes: 'dot', bow: '#7CCBA2' },
+  { style: 'tuft', skin: '#FFDCC0', hair: '#6B4630', mouth: 'smile' },
+  { style: 'pig', skin: '#EDB892', hair: '#2E2420' },
+  { style: 'short', skin: '#FFE2CC', hair: '#8A5A3B', eyes: 'dot' },
+];
+
+// 紙の質感（シード固定のノイズを1枚だけ作って敷き詰める）
+{
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d'), im = g.createImageData(256, 256);
+  let s = 7;
+  for (let i = 0; i < im.data.length; i += 4) {
+    s = (s * 1103515245 + 12345) & 0x7fffffff;
+    const v = 128 + ((s >> 16) % 128) - 64;
+    im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255;
+  }
+  g.putImageData(im, 0, 0);
+  $('#grain').style.background = `url(${c.toDataURL()}) repeat`;
+}
+
+$('#c1-kid').innerHTML = kidInner(KIDS[1]);
+$('#c4-kid').innerHTML = kidInner(KIDS[0]);
+
+const tl = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } });
+const show = (id, t) => tl.set(id, { visibility: 'visible' }, t);
+const hide = (id, t) => tl.set(id, { visibility: 'hidden' }, t);
+
+// ===== S1 0–2.4 フック =====
+{
+  tl.to('#s1-b1', { x: 40, y: 40, duration: 2.5, ease: 'sine.inOut' }, 0);
+  tl.to('#s1-b2', { x: -40, y: -30, duration: 2.5, ease: 'sine.inOut' }, 0);
+  tl.to('#s1-b3', { y: 40, duration: 2.5, ease: 'sine.inOut' }, 0);
+
+  gsap.set('#s1-dot', { x: 300, y: -60 });
+  tl.to('#s1-dot', { y: 966, duration: .5, ease: 'bounce.out' }, .02);
+  cue(.2, 'boing', 1, .8);
+  tl.to('#s1-arc', { strokeDashoffset: 0, duration: .5, ease: 'power1.inOut' }, .52);
+  tl.to('#s1-dot', { duration: .5, ease: 'power1.inOut', motionPath: { path: '#s1-arc' } }, .52);
+  cue(.52, 'scribble', 1.3, .5);
+
+  const q1 = split($('#s1-q1')), q2 = split($('#s1-q2'));
+  gsap.set([...q1, ...q2], { y: 90, opacity: 0, scale: .5, transformOrigin: '50% 100%' });
+  tl.to(q1, { y: 0, opacity: 1, scale: 1, duration: .42, ease: 'back.out(2.2)', stagger: .045 }, 0);
+  tl.to(q2, { y: 0, opacity: 1, scale: 1, duration: .5, ease: 'back.out(2.6)', stagger: .08 }, .5);
+  cue(.02, 'pop', 1); cue(.5, 'pop', 1.2);
+  tl.fromTo(q2[2], { rotation: 0 }, { rotation: 14, duration: .12, yoyo: true, repeat: 3, ease: 'sine.inOut' }, .95);
+
+  const s1 = $('#s1');
+  const sp = [[150, 470, 60, '#FFC94A'], [930, 640, 56, '#F47C5C'], [880, 560, 34, '#7CCBA2'], [190, 780, 40, '#86C2EC']]
+    .map(([x, y, s, c]) => addDeco(s1, STAR, c, x, y, s));
+  gsap.set(sp, { scale: 0, rotation: -60 });
+  tl.to(sp, { scale: 1, rotation: 0, duration: .45, ease: 'back.out(3)', stagger: .06 }, .85);
+  cue(.87, 'sparkle', 1, .6);
+
+  gsap.set('#s1-bub', { scale: 0, rotation: -6, transformOrigin: '12% 100%' });
+  tl.to('#s1-bub', { scale: 1, rotation: -3, duration: .45, ease: 'back.out(2)' }, 1.2);
+  cue(1.2, 'pop', .8);
+
+  const kids = [[200, 1860, 300], [540, 1880, 320], [880, 1860, 300]].map(([x, y, s], i) => addKid($('#s1-kids'), KIDS[i + 2], x, y, s));
+  gsap.set(kids, { y: 340 });
+  tl.to(kids, { y: 0, duration: .5, ease: 'back.out(1.7)', stagger: .07 }, 1.4);
+  cue(1.42, 'boing', 1.2, .5);
+
+  tl.to('#s1-dot', { scale: 1.35, duration: .14, yoyo: true, repeat: 1, ease: 'sine.inOut', transformOrigin: '50% 50%' }, 1.8);
+  show('#s2', 2.05);
+  gsap.set('#s2', { clipPath: 'circle(26px at 780px 966px)' });
+  tl.to('#s2', { clipPath: 'circle(2300px at 780px 966px)', duration: .4, ease: 'power2.in' }, 2.05);
+  cue(2.05, 'whoosh', 1, .9);
+  hide('#s1', 2.5);
+}
+
+// 画面上部の名札（S2〜S5）
+gsap.set('#tag-pill', { y: -40, opacity: 0 });
+tl.to('#tag-pill', { y: 0, opacity: 1, duration: .35 }, 2.45);
+tl.to('#tag-pill', { opacity: 0, duration: .2 }, 9.15);
+
+// ===== S2 2.4–4.3 資格がなくても =====
+{
+  const s2 = $('#s2');
+  const conf = [[120, 180, 24], [420, 1300, 18], [930, 150, 20], [980, 520, 16], [90, 690, 14], [700, 1420, 22], [240, 1560, 30], [900, 1700, 18], [560, 1250, 14]]
+    .map(([x, y, r], i) => {
+      const d = document.createElement('div'); d.className = 'confetti';
+      d.style.cssText = `left:${x - r}px;top:${y - r}px;width:${r * 2}px;height:${r * 2}px;background:${['#fff', '#FFE7A3', '#FFD9C7'][i % 3]};opacity:.55`;
+      s2.insertBefore(d, s2.firstChild); return d;
+    });
+  conf.forEach((d, i) => tl.to(d, { y: i % 2 ? -50 : 40, x: i % 3 ? 20 : -20, duration: 2.4, ease: 'sine.inOut' }, 2.1));
+
+  const l1 = split($('#s2-l1')), l2 = split($('#s2-l2')), l3 = split($('#s2-l3'));
+  gsap.set(l1, { y: 50, opacity: 0 });
+  gsap.set([...l2, ...l3], { y: 120, opacity: 0, rotation: 10 });
+  tl.to(l1, { y: 0, opacity: 1, duration: .35, stagger: .018 }, 2.4);
+  tl.to(l2, { y: 0, opacity: 1, rotation: 0, duration: .42, stagger: .035, ease: 'back.out(1.8)' }, 2.62);
+  tl.to(l3, { y: 0, opacity: 1, rotation: 0, duration: .42, stagger: .04, ease: 'back.out(1.8)' }, 2.9);
+  cue(2.62, 'pop', .9); cue(2.9, 'pop', 1.1);
+  gsap.set('#s2-mark', { scaleX: 0, transformOrigin: '0% 50%' });
+  tl.to('#s2-mark', { scaleX: 1, duration: .35, ease: 'power2.inOut' }, 3.2);
+  gsap.set('.badge', { scale: 0, rotation: -40 });
+  tl.to('#s2-bd2', { scale: 1, rotation: -8, duration: .5, ease: 'back.out(2.5)' }, 3.35);
+  tl.to('#s2-bd1', { scale: 1, rotation: 8, duration: .5, ease: 'back.out(2.5)' }, 3.5);
+  cue(3.35, 'pop', 1.25); cue(3.5, 'pop', 1.45);
+
+  gsap.set('#bars i', { xPercent: 115 });
+  tl.to('#bars i', { xPercent: 0, duration: .3, ease: 'power3.in', stagger: .06 }, 3.88);
+  cue(3.88, 'whoosh', 1.25, .8);
+  show('#s4', 4.3); hide('#s2', 4.32);
+  tl.to('#bars i', { xPercent: -120, duration: .38, ease: 'power3.out', stagger: .06 }, 4.3);
+}
+
+// ===== S4 4.3–7.3 お手伝い =====
+{
+  const hd = split($('#s4-head'));
+  gsap.set(hd, { y: 50, opacity: 0 });
+  tl.to(hd, { y: 0, opacity: 1, duration: .35, stagger: .02, ease: 'back.out(1.8)' }, 4.38);
+  const cells = ['#c1', '#c2', '#c3', '#c4'];
+  const CT = [4.5, 4.72, 4.94, 5.16];
+  gsap.set(cells, { scale: 0, rotation: i => (i % 2 ? 6 : -6), transformOrigin: '50% 50%' });
+  cells.forEach((c, i) => { tl.to(c, { scale: 1, rotation: 0, duration: .45, ease: 'back.out(1.9)' }, CT[i]); cue(CT[i], 'pop', 1 + i * .12, .8); });
+
+  let t0 = CT[0] + .15;
+  gsap.set(['#c1-b1', '#c1-b2', '#c1-b3'], { y: -760 });
+  tl.to('#c1-b1', { y: 0, duration: .45, ease: 'bounce.out' }, t0);
+  tl.to('#c1-b2', { y: 0, duration: .45, ease: 'bounce.out' }, t0 + .12);
+  tl.to('#c1-b3', { y: 0, duration: .45, ease: 'bounce.out' }, t0 + .24);
+  gsap.set('#c1-ball', { x: 460, y: -340, transformOrigin: '50% 50%' });
+  tl.to('#c1-ball', { x: 0, duration: .8, ease: 'power1.out' }, t0 + .25);
+  tl.to('#c1-ball', { y: 0, duration: .8, ease: 'bounce.out' }, t0 + .25);
+  tl.to('#c1-ball', { rotation: -400, duration: .8, ease: 'power1.out' }, t0 + .25);
+  gsap.set('#c1-kid', { scale: 0, transformOrigin: '50% 60%' });
+  tl.to('#c1-kid', { scale: 1, duration: .4, ease: 'back.out(2.5)' }, t0 + .3);
+  tl.to('#c1-kid', { rotation: 10, duration: .2, yoyo: true, repeat: 5, ease: 'sine.inOut' }, t0 + .75);
+
+  t0 = CT[1] + .15;
+  gsap.set('#c2-duck', { scale: 0, transformOrigin: '50% 100%' });
+  tl.to('#c2-duck', { scale: 1, duration: .45, ease: 'back.out(2)' }, t0);
+  tl.to('#c2-duck', { rotation: -4, duration: .28, yoyo: true, repeat: 5, ease: 'sine.inOut' }, t0 + .45);
+  gsap.set('#c2-spray', { x: 240, opacity: 0, transformOrigin: '50% 100%' });
+  tl.to('#c2-spray', { x: 0, opacity: 1, duration: .3 }, t0 + .1);
+  tl.to('#c2-spray', { rotation: -12, duration: .1, yoyo: true, repeat: 3, ease: 'sine.inOut' }, t0 + .4);
+  cue(t0 + .41, 'spray', 1, .6);
+  $$('.c2-m').forEach((m, i) => {
+    gsap.set(m, { opacity: 0, scale: .3, transformOrigin: '50% 50%' });
+    tl.to(m, { x: -(90 + i * 40), y: (i % 3 - 1) * 40 + i * 12, opacity: .95, scale: 1, duration: .32, ease: 'power2.out' }, t0 + .42 + i * .035);
+    tl.to(m, { opacity: 0, scale: 1.4, duration: .3 }, t0 + .74 + i * .035);
+  });
+  gsap.set('.c2-sp', { scale: 0, transformOrigin: '50% 50%' });
+  tl.to('.c2-sp', { scale: 1, rotation: 90, duration: .4, ease: 'back.out(3)', stagger: .07 }, t0 + .7);
+  tl.to('.c2-sp', { scale: .55, duration: .3, yoyo: true, repeat: 3, stagger: .07 }, t0 + 1.1);
+  cue(t0 + .72, 'sparkle', 1.1, .5);
+
+  t0 = CT[2] + .15;
+  gsap.set('#c3-crayon', { x: 390, y: 330, opacity: 0 });
+  tl.to('#c3-crayon', { opacity: 1, duration: .1 }, t0);
+  tl.to('#c3-heart', { strokeDashoffset: 0, duration: .65, ease: 'power1.inOut' }, t0 + .08);
+  tl.to('#c3-crayon', { duration: .65, ease: 'power1.inOut', motionPath: { path: '#c3-heart' } }, t0 + .08);
+  cue(t0 + .08, 'scribble', 1, .7);
+  gsap.set('#c3-fill', { scale: 0, transformOrigin: '50% 50%' });
+  tl.to('#c3-fill', { scale: 1, duration: .38, ease: 'back.out(2.2)' }, t0 + .72);
+  tl.to('#c3-crayon', { x: '+=140', y: '-=140', opacity: 0, duration: .3, ease: 'power2.in' }, t0 + .76);
+  gsap.set('.c3-st', { x: 380, opacity: 0 });
+  tl.to('.c3-st', { x: 0, opacity: 1, duration: .35, ease: 'back.out(1.6)', stagger: .08 }, t0 + .15);
+  gsap.set('#c3-sc', { x: 260, opacity: 0 });
+  tl.to('#c3-sc', { x: 0, opacity: 1, duration: .35 }, t0 + .25);
+  tl.to('#c3-bl1', { rotation: 16, svgOrigin: '640 690', duration: .1, yoyo: true, repeat: 3, ease: 'sine.inOut' }, t0 + .9);
+  tl.to('#c3-bl2', { rotation: -16, svgOrigin: '640 690', duration: .1, yoyo: true, repeat: 3, ease: 'sine.inOut' }, t0 + .9);
+  cue(t0 + .92, 'snip', 1, .5);
+
+  t0 = CT[3] + .15;
+  gsap.set('#c4-tray', { x: -760 });
+  tl.to('#c4-tray', { x: 0, duration: .4 }, t0);
+  gsap.set(['#c4-rice', '#c4-soup', '#c4-cup'], { scale: 0, transformOrigin: '50% 100%' });
+  tl.to(['#c4-rice', '#c4-soup', '#c4-cup'], { scale: 1, duration: .38, ease: 'back.out(2.4)', stagger: .1 }, t0 + .22);
+  gsap.set('.c4-steam', { opacity: 0, y: 30 });
+  tl.to('.c4-steam', { opacity: .95, y: -10, duration: .5, stagger: .1, ease: 'sine.out' }, t0 + .6);
+  tl.to('.c4-steam', { opacity: 0, y: -60, duration: .45, stagger: .1, ease: 'sine.in' }, t0 + 1.15);
+  gsap.set('#c4-kid', { scale: 0, transformOrigin: '50% 60%' });
+  tl.to('#c4-kid', { scale: 1, duration: .4, ease: 'back.out(2.5)' }, t0 + .4);
+  tl.to('#c4-kid', { rotation: -10, duration: .2, yoyo: true, repeat: 3, ease: 'sine.inOut' }, t0 + .9);
+
+  cells.forEach((c, i) => tl.to(c, { y: -12, duration: .22, yoyo: true, repeat: 1, ease: 'sine.inOut' }, 6.55 + i * .07));
+
+  const kids = [[150, 1500, 230], [930, 1560, 250]].map(([x, y, s], i) => addKid($('#s4-kids'), KIDS[i + 5], x, y, s));
+  gsap.set(kids, { scale: 0 });
+  tl.to(kids, { scale: 1, duration: .45, ease: 'back.out(2)', stagger: .1 }, 5.5);
+  kids.forEach((k, i) => tl.to(k, { rotation: i ? -10 : 10, duration: .3, yoyo: true, repeat: 3, ease: 'sine.inOut' }, 5.95));
+
+  show('#s5', 7.02);
+  gsap.set('#s5', { yPercent: 100 });
+  tl.to('#s5', { yPercent: 0, duration: .36, ease: 'power3.inOut' }, 7.02);
+  tl.to('#s4', { yPercent: -40, duration: .36, ease: 'power3.inOut' }, 7.02);
+  cue(7.02, 'whoosh', .9, .8);
+  hide('#s4', 7.42);
+}
+
+// ===== S5 7.3–9.4 はじめ方 =====
+{
+  const hd = split($('#s5-head'));
+  gsap.set(hd, { y: 50, opacity: 0 });
+  tl.to(hd, { y: 0, opacity: 1, duration: .35, stagger: .025, ease: 'back.out(1.8)' }, 7.32);
+  gsap.set('#s5-mark', { scaleX: 0, transformOrigin: '0% 50%' });
+  tl.to('#s5-mark', { scaleX: 1, duration: .35, ease: 'power2.inOut' }, 7.6);
+
+  const ROWS = [
+    { y: 600, c: '#F47C5C', t: 'スマホで研修', s: 'オンライン・約1時間',
+      icon: `<svg viewBox="0 0 150 150"><rect x="38" y="10" width="74" height="130" rx="16" fill="#4E3A2E"/><rect x="45" y="24" width="60" height="100" rx="6" fill="#FFE7A3"/><path d="M66 58 L90 74 L66 90Z" fill="#F47C5C"/><rect x="52" y="108" width="46" height="7" rx="3.5" fill="#fff"/><rect class="n-bar" x="52" y="108" width="46" height="7" rx="3.5" fill="#F47C5C"/></svg>` },
+    { y: 766, c: '#3B88C7', t: '日にちを相談', s: '施設といっしょに決める',
+      icon: `<svg viewBox="0 0 150 150"><rect x="16" y="26" width="118" height="108" rx="16" fill="#fff" stroke="#4E3A2E" stroke-width="7"/><rect x="16" y="26" width="118" height="30" rx="14" fill="#86C2EC"/><rect x="44" y="14" width="10" height="26" rx="5" fill="#4E3A2E"/><rect x="96" y="14" width="10" height="26" rx="5" fill="#4E3A2E"/>${[0,1,2,3].map(c=>[0,1].map(r=>`<circle cx="${40+c*24}" cy="${80+r*28}" r="6" fill="#4E3A2E" opacity=".35"/>`).join('')).join('')}<circle class="n-circ draw" cx="88" cy="108" r="17" fill="none" stroke="#F47C5C" stroke-width="7" transform="rotate(-90 88 108)"/></svg>` },
+    { y: 932, c: '#EE9B00', t: '修了証がもらえる', s: '働くきっかけにも',
+      icon: `<svg viewBox="0 0 150 150"><rect x="14" y="20" width="98" height="116" rx="10" fill="#fff" stroke="#4E3A2E" stroke-width="7"/><rect x="30" y="42" width="66" height="9" rx="4.5" fill="#4E3A2E" opacity=".35"/><rect x="30" y="62" width="50" height="9" rx="4.5" fill="#4E3A2E" opacity=".35"/><rect x="30" y="82" width="58" height="9" rx="4.5" fill="#4E3A2E" opacity=".35"/><g class="n-medal"><path d="M96 104 L88 142 L104 132 L114 146 L116 108Z" fill="#F47C5C"/><path d="M124 104 L132 142 L116 132 L108 146 L104 108Z" fill="#3B88C7"/><circle cx="110" cy="96" r="26" fill="#FFC94A" stroke="#EE9B00" stroke-width="5"/><path d="M110 82 L114 92 L124 93 L116 100 L119 110 L110 104 L101 110 L104 100 L96 93 L106 92Z" fill="#fff"/></g></svg>` },
+  ];
+  const wrap = $('#s5-rows');
+  const els = ROWS.map(r => {
+    const ic = document.createElement('div'); ic.className = 'ic';
+    ic.style.cssText = `left:${290 - 66}px;top:${r.y - 66}px;--c:${r.c}`; ic.innerHTML = r.icon;
+    const tx = document.createElement('div'); tx.className = 'row';
+    tx.style.top = `${r.y - 64}px`; tx.innerHTML = `${r.t}<small>${r.s}</small>`;
+    wrap.appendChild(ic); wrap.appendChild(tx); return { ic, tx };
+  });
+  // 縦の線を点が下りていき、着いた順にアイコンが開く
+  const A = 7.55, B = 8.75, y0 = 556, y1 = 934;
+  gsap.set('#s5-guide', { opacity: 0 });
+  tl.to('#s5-guide', { opacity: 1, duration: .25 }, 7.35);
+  gsap.set('#s5-dot', { x: 290, y: y0, scale: 0, transformOrigin: '50% 50%' });
+  tl.to('#s5-dot', { scale: 1, duration: .25, ease: 'back.out(3)' }, 7.4);
+  tl.to('#s5-track', { strokeDashoffset: 0, duration: B - A, ease: 'none' }, A);
+  tl.to('#s5-dot', { y: y1, duration: B - A, ease: 'none' }, A);
+  els.forEach(({ ic, tx }, i) => {
+    const t = A + (B - A) * (ROWS[i].y - y0) / (y1 - y0) - .1;
+    gsap.set(ic, { scale: 0, rotation: -25 });
+    gsap.set(tx, { x: 40, opacity: 0 });
+    tl.to(ic, { scale: 1, rotation: 0, duration: .42, ease: 'back.out(2.4)' }, t);
+    tl.to(tx, { x: 0, opacity: 1, duration: .35 }, t + .06);
+    cue(t, 'pop', [1, 1.18, 1.4][i]);
+  });
+  const [r1, r2, r3] = els.map(e => e.ic);
+  gsap.set(r1.querySelector('.n-bar'), { scaleX: 0, transformOrigin: '0% 50%' });
+  tl.to(r1.querySelector('.n-bar'), { scaleX: 1, duration: 1.2, ease: 'none' }, 7.75);
+  tl.to(r2.querySelector('.n-circ'), { strokeDashoffset: 0, duration: .4, ease: 'power2.inOut' }, 8.3);
+  tl.to(r3.querySelector('.n-medal'), { rotation: 360, transformOrigin: '50% 40%', duration: .6, ease: 'back.out(1.6)' }, 8.8);
+  cue(8.82, 'sparkle', 1.3, .8);
+  const s5 = $('#s5');
+  Array.from({ length: 8 }, (_, i) => {
+    const a = i / 8 * Math.PI * 2;
+    const el = addDeco(s5, i % 2 ? STAR : HEART, ['#F47C5C', '#FFC94A', '#7CCBA2', '#86C2EC'][i % 4], 290, 932, 40);
+    gsap.set(el, { scale: 0 });
+    tl.to(el, { x: Math.cos(a) * 130, y: Math.sin(a) * 130, scale: 1, rotation: 180, duration: .5 }, 8.8);
+    tl.to(el, { opacity: 0, scale: .4, duration: .25 }, 9.2);
+  });
+  const kids = [[230, 1480, 240], [560, 1560, 260], [880, 1470, 230]].map(([x, y, s], i) => addKid($('#s5-kids'), KIDS[(i + 3) % 8], x, y, s));
+  gsap.set(kids, { y: 500 });
+  tl.to(kids, { y: 0, duration: .5, ease: 'back.out(1.6)', stagger: .08 }, 7.6);
+  kids.forEach((k, i) => tl.to(k, { y: -24, duration: .25, yoyo: true, repeat: 3, ease: 'sine.inOut' }, 8.3 + i * .06));
+
+  show('#s6', 9.12);
+  gsap.set('#s6', { clipPath: 'circle(0px at 290px 932px)' });
+  tl.to('#s6', { clipPath: 'circle(2400px at 290px 932px)', duration: .38, ease: 'power2.in' }, 9.12);
+  cue(9.12, 'whoosh', 1, .9);
+  hide('#s5', 9.55);
+}
+
+// ===== S6 9.4–12.2 笑顔があふれる → メインコピー =====
+{
+  tl.fromTo('#s6-burst', { rotation: 0 }, { rotation: 30, duration: 3, ease: 'none' }, 9.2);
+  // [x, y, 大きさ, 額縁の位置 or 退場方向]
+  const BLOOM = [
+    [250, 330, 230, [130, 160, 170]],
+    [780, 300, 250, [950, 160, 170]],
+    [520, 560, 260, null, [0, -900]],
+    [170, 790, 220, null, [-500, 0]],
+    [880, 760, 240, null, [500, -100]],
+    [430, 990, 300, null, [-600, 300]],
+    [820, 1110, 240, null, [500, 300]],
+    [190, 1290, 250, [170, 1440, 230]],
+    [620, 1360, 270, [540, 1400, 250]],
+    [320, 1600, 240, [330, 1720, 230]],
+    [850, 1580, 260, [910, 1440, 230]],
+    [600, 1820, 240, [750, 1730, 230]],
+  ];
+  const order = [5, 2, 8, 6, 3, 4, 0, 1, 7, 9, 10, 11];
+  const kids = BLOOM.map(([x, y, s], i) => addKid($('#s6-kids'), KIDS[i % KIDS.length], x, y, s));
+  gsap.set(kids, { scale: 0, rotation: -30 });
+  order.forEach((k, j) => {
+    const t = 9.42 + j * .045;
+    tl.to(kids[k], { scale: 1, rotation: 0, duration: .5, ease: 'back.out(2.2)' }, t);
+    if (j % 2 === 0) cue(t + .02, 'pop', .9 + j * .06, .5);
+  });
+  ['#s6-bub1', '#s6-bub2'].forEach((b, i) => {
+    gsap.set(b, { scale: 0, transformOrigin: i ? '88% 100%' : '12% 100%' });
+    tl.to(b, { scale: 1, duration: .38, ease: 'back.out(2.3)' }, 9.72 + i * .2);
+    tl.to(b, { scale: 0, duration: .2, ease: 'power2.in' }, 10.32);
+    cue(9.72 + i * .2, 'pop', 1.25 + i * .12, .8);
+  });
+  kids.forEach((k, i) => {
+    const [x, y, s, frame, out] = BLOOM[i];
+    if (frame) tl.to(k, { x: frame[0] - x, y: frame[1] - y, scale: frame[2] / s, rotation: i % 2 ? 8 : -8, duration: .6, ease: 'power3.inOut' }, 10.32);
+    else tl.to(k, { x: out[0], y: out[1], scale: .5, opacity: 0, duration: .5, ease: 'power3.in' }, 10.32);
+  });
+  cue(10.32, 'whoosh', 1.3, .6);
+  tl.to('#s6', { backgroundColor: '#FFF6E8', duration: .5, ease: 'power2.inOut' }, 10.35);
+  tl.to('#s6-burst', { opacity: 0, duration: .5 }, 10.35);
+
+  const c1 = split($('#c-l1')), c2 = split($('#c-l2')), c3 = split($('#c-l3'));
+  gsap.set([...c1, ...c2, ...c3], { y: 90, opacity: 0, scale: .6, transformOrigin: '50% 100%' });
+  tl.to(c1, { y: 0, opacity: 1, scale: 1, duration: .45, stagger: .035, ease: 'back.out(2)' }, 10.55);
+  tl.to(c2, { y: 0, opacity: 1, scale: 1, duration: .45, stagger: .05, ease: 'back.out(2)' }, 10.8);
+  tl.to(c3, { y: 0, opacity: 1, scale: 1, duration: .45, stagger: .05, ease: 'back.out(2)' }, 11.0);
+  cue(10.55, 'pop', 1, .7); cue(10.8, 'pop', 1.15, .7); cue(11.0, 'pop', 1.3, .7);
+  tl.to('#c-arc', { strokeDashoffset: 0, duration: .45, ease: 'power2.inOut' }, 11.35);
+  cue(11.35, 'scribble', 1.4, .5);
+  const hearts = [[110, 60, 60, '#F47C5C'], [960, 120, 54, '#FFC94A'], [980, 420, 44, '#F47C5C'], [100, 400, 40, '#7CCBA2']]
+    .map(([x, y, s, c], i) => addDeco($('#c-hearts'), i % 2 ? STAR : HEART, c, x, y, s));
+  gsap.set(hearts, { scale: 0 });
+  tl.to(hearts, { scale: 1, rotation: 15, duration: .45, ease: 'back.out(3)', stagger: .06 }, 11.5);
+  cue(11.52, 'sparkle', 1, 1);
+}
+
+// ===== S7 12.2–15.0 エンドカード =====
+{
+  tl.to('#copy', { y: -174, scale: .36, duration: .5, ease: 'power3.inOut', transformOrigin: '50% 0%' }, 12.15);
+  tl.to(['#c-arc', '#c-hearts'], { opacity: 0, duration: .25 }, 12.15);
+  cue(12.15, 'whoosh', 1.4, .5);
+
+  const et = split($('#e-title'));
+  const cols = ['#F47C5C', '#3E9F73', '#3B88C7', '#EE9B00', '#8A6CCB', '#F47C5C', '#3E9F73', '#3B88C7'];
+  et.forEach((c, i) => c.style.color = cols[i]);
+  gsap.set(et, { y: 90, opacity: 0, scale: .4, transformOrigin: '50% 100%' });
+  tl.to(et, { y: 0, opacity: 1, scale: 1, duration: .42, stagger: .035, ease: 'back.out(2.4)' }, 12.45);
+  cue(12.5, 'sparkle', 1.5, .7);
+  gsap.set('#e-rib', { scale: 0, rotation: -12 });
+  tl.to('#e-rib', { scale: 1, rotation: -2, duration: .42, ease: 'back.out(2.4)' }, 12.8);
+  cue(12.8, 'pop', .95);
+  const chips = $$('.chip');
+  gsap.set(chips, { y: 36, opacity: 0, scale: .7 });
+  tl.to(chips, { y: 0, opacity: 1, scale: 1, duration: .35, stagger: .08, ease: 'back.out(2)' }, 12.98);
+  chips.forEach((c, i) => cue(12.98 + i * .08, 'tap', 1.2 + i * .1, .5));
+  gsap.set('#search', { y: 60, opacity: 0 });
+  tl.to('#search', { y: 0, opacity: 1, duration: .38 }, 13.18);
+  gsap.set('#e-spon', { y: 26, opacity: 0 });
+  tl.to('#e-spon', { y: 0, opacity: 1, duration: .4 }, 13.3);
+  const qc = split($('#qtext'));
+  gsap.set(qc, { display: 'none' });
+  qc.forEach((c, i) => { tl.set(c, { display: 'inline-block' }, 13.42 + i * .05); cue(13.42 + i * .05, 'type', 1 + (i % 3) * .08, .5); });
+  for (let t = 14.1; t < 14.95; t += .4) { tl.set('#caret', { opacity: 0 }, t + .2); tl.set('#caret', { opacity: 1 }, t + .4); }
+
+  gsap.set('#cursor', { x: 200, y: 260, opacity: 0 });
+  tl.to('#cursor', { opacity: 1, duration: .12 }, 14.0);
+  tl.to('#cursor', { x: 0, y: 0, duration: .3, ease: 'power2.out' }, 14.0);
+  tl.to('#cursor', { scale: .82, duration: .06, yoyo: true, repeat: 1, transformOrigin: '10% 5%' }, 14.32);
+  tl.to('#sbtn', { scale: .92, duration: .06, yoyo: true, repeat: 1 }, 14.32);
+  gsap.set('#ripple', { scale: 0, opacity: .8 });
+  tl.to('#ripple', { scale: 3, opacity: 0, duration: .45, ease: 'power2.out' }, 14.34);
+  cue(14.32, 'click', 1, 1); cue(14.38, 'ding', 1, 1);
+  tl.to(et, { y: -18, duration: .15, yoyo: true, repeat: 1, stagger: .03, ease: 'sine.out' }, 14.45);
+  const s6 = $('#s6');
+  const fin = [[90, 590, 46, '#FFC94A'], [990, 580, 52, '#F47C5C'], [1000, 730, 30, '#7CCBA2'], [80, 740, 34, '#86C2EC']]
+    .map(([x, y, s, c]) => addDeco(s6, STAR, c, x, y, s));
+  gsap.set(fin, { scale: 0 });
+  tl.to(fin, { scale: 1, rotation: 90, duration: .4, ease: 'back.out(3)', stagger: .05 }, 14.45);
+  cue(14.46, 'sparkle', 1.2, .6);
+}
+
+$$('.draw').forEach(el => {
+  const L = Math.ceil(el.getTotalLength()) + 2;
+  el.style.strokeDasharray = `${L} ${L}`;
+  el.style.strokeDashoffset = L;
+});
+tl.set({}, {}, DUR);
+
+// ---------- 再生まわり ----------
+const stage = $('#stage');
+function fit() {
+  if (RENDER) { stage.style.transform = 'none'; return; }
+  const vw = innerWidth, vh = innerHeight - 64;
+  stage.style.transform = `scale(${Math.min(vw / 1080, vh / 1920)})`;
+}
+addEventListener('resize', fit); fit();
+window.__seek = t => { tl.seek(t, false); };
+
+async function ready() {
+  const text = stage.textContent;
+  try {
+    await Promise.all(['500', '700', '900'].map(w => document.fonts.load(`${w} 40px "Zen Maru Gothic"`, text)));
+    await document.fonts.ready;
+  } catch (e) {}
+  window.__ready = true;
+  if (!RENDER) startPlayer();
+}
+
+function startPlayer() {
+  const btnPlay = $('#btnPlay'), btnRestart = $('#btnRestart'), seek = $('#seek'), time = $('#time'), btnSound = $('#btnSound');
+  $('#btnSafe').onclick = () => $('#safe').classList.toggle('on');
+  const audio = new Audio('kids_supporter_reel_audio.m4a');
+  audio.preload = 'auto';
+  let sound = false, audioOk = true;
+  audio.addEventListener('error', () => { audioOk = false; btnSound.disabled = true; btnSound.textContent = '音声なし'; });
+  const syncAudio = () => {
+    if (!sound || !audioOk) return;
+    audio.currentTime = tl.time();
+    if (!tl.paused() && tl.time() < DUR) audio.play().catch(() => {}); else audio.pause();
+  };
+  const ui = () => {
+    seek.value = tl.time();
+    time.textContent = `${tl.time().toFixed(1)} / ${DUR.toFixed(1)}`;
+    btnPlay.textContent = tl.paused() || tl.progress() === 1 ? '▶' : '❚❚';
+  };
+  tl.eventCallback('onUpdate', ui);
+  // リールはループ再生されるので、プレーヤーも最後まで行ったら頭に戻す
+  tl.eventCallback('onComplete', () => { tl.restart(); syncAudio(); });
+  btnPlay.onclick = () => { tl.paused(!tl.paused()); syncAudio(); ui(); };
+  btnRestart.onclick = () => { tl.restart(); syncAudio(); ui(); };
+  seek.oninput = () => { tl.seek(+seek.value, false); syncAudio(); ui(); };
+  btnSound.onclick = () => {
+    sound = !sound; btnSound.textContent = sound ? '音声オン' : '音声オフ';
+    if (sound) syncAudio(); else audio.pause();
+  };
+  tl.play(0); ui();
+}
+ready();
+</script>
+</body>
+</html>

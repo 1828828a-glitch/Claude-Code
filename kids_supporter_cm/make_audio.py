@@ -1,18 +1,20 @@
-"""キッズサポーター募集CMのBGMと効果音を合成して build/audio.wav に書き出す。
+"""キッズサポーター募集CMのBGMと効果音を合成して build/<name>/audio.wav に書き出す。
 
-BGMはこのCMのために書いたオリジナル曲（96BPM・Fメジャー・12小節=30秒）。
-効果音は render.cjs が書き出す build/cues.json のタイミングに合わせて置く。
+使い方: python3 make_audio.py cm30   … 30秒・16:9版（12小節）
+        python3 make_audio.py reel   … 15秒・リール版（6小節）
+
+BGMはこのCMのために書いたオリジナル曲（96BPM・Fメジャー、1小節=2.5秒）。
+効果音は render.cjs が書き出す build/<name>/cues.json のタイミングに合わせて置く。
 外部の音源素材は使っていないので、権利処理は不要。
 """
 import json
 import os
+import sys
 import wave
 
 import numpy as np
 
 SR = 44100
-DUR = 30.0
-N = int(SR * DUR)
 BEAT = 60 / 96
 BAR = BEAT * 4
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -42,16 +44,17 @@ def bandpass(sig, lo, hi):
 
 
 class Bus:
-    def __init__(self):
-        self.buf = np.zeros((2, N))
+    def __init__(self, n):
+        self.n = n
+        self.buf = np.zeros((2, n))
 
     def add(self, t, sig, gain=1.0, pan=0.0):
         i = int(round(t * SR))
-        if i >= N or i + len(sig) <= 0:
+        if i >= self.n or i + len(sig) <= 0:
             return
         if i < 0:
             sig, i = sig[-i:], 0
-        j = min(N, i + len(sig))
+        j = min(self.n, i + len(sig))
         seg = sig[: j - i] * gain
         self.buf[0, i:j] += seg * np.cos((pan + 1) * np.pi / 4)
         self.buf[1, i:j] += seg * np.sin((pan + 1) * np.pi / 4)
@@ -248,7 +251,6 @@ SFX = dict(pop=(sfx_pop, .30), boing=(sfx_boing, .30), tap=(sfx_tap, .22), whoos
 
 # ---------------- 曲 ----------------
 F, C, DM, BB, C7 = 'F', 'C', 'Dm', 'Bb', 'C7'
-PROG = [F, C, DM, BB, F, C, BB, C, DM, BB, C7, F]
 VOICE = {F: [65, 69, 72, 77], C: [64, 67, 72, 76], DM: [62, 65, 69, 74], BB: [62, 65, 70, 74], C7: [64, 67, 70, 72]}
 ROOT = {F: 41, C: 48, DM: 50, BB: 46, C7: 48}
 # (拍, MIDI, 長さ[拍])
@@ -268,21 +270,31 @@ MELODY = [
 ]
 STRUM = [(0, 'D', 1.0), (1, 'D', .7), (1.5, 'U', .5), (2.5, 'U', .55), (3, 'D', .75), (3.5, 'U', .5)]
 
+# 版ごとの曲の組み立て。小節番号は0始まり。
+#   strum: ストロークが入る（小節, 拍）  quiet: リズムを抜く小節  high: メロディを1オクターブ上で重ねる小節から
+SPECS = {
+    'cm30': dict(dur=30.0, prog=[F, C, DM, BB, F, C, BB, C, DM, BB, C7, F], melody=list(range(12)),
+                 strum=(1, 2), bass=2, shaker=3, drums=4, quiet={9}, high=8, pad=8, end=11),
+    'reel': dict(dur=15.0, prog=[F, C, DM, BB, C7, F], melody=[0, 1, 8, 9, 10, 11],
+                 strum=(1, 0), bass=1, shaker=1, drums=2, quiet={4}, high=2, pad=3, end=5),
+}
 
-def build_music():
-    mus = Bus()
-    for bi, chord in enumerate(PROG):
+
+def build_music(sp):
+    mus = Bus(int(SR * sp['dur']))
+    end = sp['end']
+    for bi, chord in enumerate(sp['prog']):
         t0 = bi * BAR
-        quiet = bi == 9  # メインコピーの小節はリズムを抜いて静かにする
+        quiet = bi in sp['quiet']  # メインコピーの小節はリズムを抜いて静かにする
         # メロディ（オルゴール）
-        for beat, m, ln in MELODY[bi]:
+        for beat, m, ln in MELODY[sp['melody'][bi]]:
             mus.add(t0 + beat * BEAT, musicbox(mtof(m), dur=max(1.2, ln * BEAT + .9)), .20, pan=.15)
-            if bi >= 8:  # サビは1オクターブ上を薄く重ねる
+            if bi >= sp['high']:  # サビは1オクターブ上を薄く重ねる
                 mus.add(t0 + beat * BEAT + .004, musicbox(mtof(m + 12), dur=1.0), .05, pan=-.2)
-        # ウクレレ風ストローク（S2の始まり=2小節目の3拍目から）
-        if bi >= 1 and bi < 11:
+        # ウクレレ風ストローク（S2の始まりから）
+        if bi >= sp['strum'][0] and bi < end:
             for beat, d, acc in STRUM:
-                if bi == 1 and beat < 2:
+                if (bi, beat) < sp['strum']:
                     continue
                 if quiet and beat not in (0, 2.5):
                     continue
@@ -291,27 +303,25 @@ def build_music():
                 for k, m in enumerate(notes):
                     mus.add(t0 + beat * BEAT + k * gap, pluck(mtof(m), dur=1.2), .085 * acc, pan=-.25 + k * .05)
         # ベース
-        if bi >= 2 and bi < 11:
+        if bi >= sp['bass'] and bi < end:
             for beat in ((0,) if quiet else (0, 2, 3.5)):
                 mus.add(t0 + beat * BEAT, bass(mtof(ROOT[chord])), .30 if beat != 3.5 else .18)
-        # シェイカー（S3から）
-        if bi >= 3 and bi < 11 and not quiet:
+        # シェイカー
+        if bi >= sp['shaker'] and bi < end and not quiet:
             for s in range(16):
-                if bi == 3 and s < 0:
-                    continue
                 mus.add(t0 + s * BEAT / 4, shaker(1.0 if s % 2 == 0 else .55), .07, pan=.35)
-        # キックとクラップ（S4から）
-        if bi >= 4 and bi < 11 and not quiet:
+        # キックとクラップ
+        if bi >= sp['drums'] and bi < end and not quiet:
             for beat in (0, 2):
                 mus.add(t0 + beat * BEAT, kick(), .42)
             for beat in (1, 3):
                 mus.add(t0 + beat * BEAT, clap(), .10, pan=-.1)
-        # パッド（S6〜）
-        if bi >= 8:
-            ln = BAR + .9 if bi < 11 else 2.6
+        # パッド（笑顔のシーンから）
+        if bi >= sp['pad']:
+            ln = BAR + .9 if bi < end else 2.6
             mus.add(t0, pad([m - 12 for m in VOICE[chord]], ln), .07)
     # ラスト：Fの全弦ストロークを伸ばす
-    t0 = 11 * BAR
+    t0 = end * BAR
     for k, m in enumerate([53, 60, 65, 69, 72, 77]):
         mus.add(t0 + k * .018, pluck(mtof(m), dur=2.5, decay=.9985), .09, pan=-.25 + k * .1)
     mus.add(t0, bass(mtof(41), dur=2.4), .32)
@@ -319,8 +329,8 @@ def build_music():
     return mus.buf
 
 
-def build_sfx(cues):
-    sfx = Bus()
+def build_sfx(cues, n):
+    sfx = Bus(n)
     for c in cues:
         fn, g = SFX[c['type']]
         sfx.add(c['t'], fn(c.get('p', 1)), g * c.get('g', 1), pan=float(np.clip((c['t'] * 7.3) % 1.2 - .6, -.4, .4)))
@@ -341,17 +351,20 @@ def reverb(x, wet, sec=1.4, tau=.32):
     return out
 
 
-def main():
-    cues = json.load(open(os.path.join(HERE, 'build', 'cues.json'), encoding='utf-8'))
-    music = reverb(build_music(), .35)
-    sfx = reverb(build_sfx(cues), .18, sec=.9, tau=.18)
+def main(name):
+    sp = SPECS[name]
+    n = int(SR * sp['dur'])
+    base = os.path.join(HERE, 'build', name)
+    cues = json.load(open(os.path.join(base, 'cues.json'), encoding='utf-8'))
+    music = reverb(build_music(sp), .35)
+    sfx = reverb(build_sfx(cues, n), .18, sec=.9, tau=.18)
     mix = music + sfx
-    t = tt(N)
-    mix *= np.clip((DUR - t) / .45, 0, 1)
+    t = tt(n)
+    mix *= np.clip((sp['dur'] - t) / .45, 0, 1)
     mix = np.tanh(mix * 1.1) / 1.1
     mix *= .89 / np.abs(mix).max()
     pcm = (mix.T * 32767).astype(np.int16)
-    out = os.path.join(HERE, 'build', 'audio.wav')
+    out = os.path.join(base, 'audio.wav')
     with wave.open(out, 'wb') as w:
         w.setnchannels(2)
         w.setsampwidth(2)
@@ -361,4 +374,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1] if len(sys.argv) > 1 else 'cm30')
