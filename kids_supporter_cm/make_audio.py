@@ -1,7 +1,7 @@
 """キッズサポーター募集CMのBGMと効果音を合成して build/<name>/audio.wav に書き出す。
 
 使い方: python3 make_audio.py cm30   … 30秒・16:9版（12小節）
-        python3 make_audio.py reel   … 15秒・リール版（6小節）
+        python3 make_audio.py reel   … 60秒・リール版（24小節）
 
 BGMはこのCMのために書いたオリジナル曲（96BPM・Fメジャー、1小節=2.5秒）。
 効果音は render.cjs が書き出す build/<name>/cues.json のタイミングに合わせて置く。
@@ -267,16 +267,21 @@ MELODY = [
     [(0, 77, 1.5), (1.5, 74, .5), (2, 70, 1), (3, 74, .5), (3.5, 77, .5)],
     [(0, 76, 1), (1, 79, 1), (2, 84, 1), (3, 82, .5), (3.5, 79, .5)],
     [(0, 81, 1.5), (1.5, 79, .5), (2, 77, 2)],
+    [(0, 65, .5), (.5, 69, .5), (1, 72, .5), (1.5, 77, 2.5)],  # 終わりのアルペジオ
 ]
 STRUM = [(0, 'D', 1.0), (1, 'D', .7), (1.5, 'U', .5), (2.5, 'U', .55), (3, 'D', .75), (3.5, 'U', .5)]
 
 # 版ごとの曲の組み立て。小節番号は0始まり。
 #   strum: ストロークが入る（小節, 拍）  quiet: リズムを抜く小節  high: メロディを1オクターブ上で重ねる小節から
+#   pad_bars: pad より前でもパッドを敷く小節
 SPECS = {
     'cm30': dict(dur=30.0, prog=[F, C, DM, BB, F, C, BB, C, DM, BB, C7, F], melody=list(range(12)),
                  strum=(1, 2), bass=2, shaker=3, drums=4, quiet={9}, high=8, pad=8, end=11),
-    'reel': dict(dur=15.0, prog=[F, C, DM, BB, C7, F], melody=[0, 1, 8, 9, 10, 11],
-                 strum=(1, 0), bass=1, shaker=1, drums=2, quiet={4}, high=2, pad=3, end=5),
+    'reel': dict(dur=60.0,
+                 prog=[F, C, DM, BB, F, C, BB, C, F, C, DM, BB, F, C, BB, C, F, C, BB, DM, BB, C7, F, F],
+                 melody=[0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 4, 5, 6, 8, 9, 10, 11, 12],
+                 strum=(3, 0), bass=3, shaker=6, drums=8, quiet={20}, high=19, pad=19, end=23,
+                 pad_bars={0, 1, 2}),
 }
 
 
@@ -317,7 +322,7 @@ def build_music(sp):
             for beat in (1, 3):
                 mus.add(t0 + beat * BEAT, clap(), .10, pan=-.1)
         # パッド（笑顔のシーンから）
-        if bi >= sp['pad']:
+        if bi >= sp['pad'] or bi in sp.get('pad_bars', ()):
             ln = BAR + .9 if bi < end else 2.6
             mus.add(t0, pad([m - 12 for m in VOICE[chord]], ln), .07)
     # ラスト：Fの全弦ストロークを伸ばす
