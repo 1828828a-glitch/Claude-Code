@@ -44,7 +44,11 @@ body.render #ui{display:none}
 .pill{display:inline-block;background:var(--ink);color:var(--cream);font-weight:900;border-radius:999px;padding:8px 40px 12px;font-size:44px;white-space:nowrap}
 .ribbon{display:inline-block;background:var(--coral);color:#fff;font-weight:900;line-height:1.15;clip-path:polygon(0 0,100% 0,95% 50%,100% 100%,0 100%,5% 50%)}
 
-#tag{position:absolute;left:0;right:0;top:292px;text-align:center;z-index:40}
+/* 全編に固定するロゴ：上に神奈川県（KIシンボル基本形 B-1-1）、下に MIRAI CANVAS */
+#ki{position:absolute;left:50%;top:278px;transform:translateX(-50%);z-index:45;background:#fff;border-radius:22px;padding:11px 22px;box-shadow:0 6px 0 rgba(78,58,46,.10);line-height:0}
+#ki img{height:100px;width:auto;display:block}
+#mirai{position:absolute;left:0;right:0;top:1283px;text-align:center;z-index:45;line-height:0}
+#mirai img{width:440px;height:auto}
 
 /* S2 */
 #s2{background:var(--coral);color:#fff}
@@ -76,7 +80,7 @@ body.render #ui{display:none}
 .ic svg{width:88px;height:88px;overflow:visible}
 .row{position:absolute;left:380px;font-weight:900;font-size:54px;line-height:1.15;white-space:nowrap}
 .row small{display:block;font-size:32px;font-weight:700;opacity:.78;margin-top:6px}
-#s5-mark{position:absolute;left:122px;top:486px;width:836px;height:28px;background:var(--sun);border-radius:14px}
+#s5-mark{position:absolute;left:122px;top:506px;width:836px;height:28px;background:var(--sun);border-radius:14px}
 
 /* S6, S7 */
 #s6{background:#FFD66B}
@@ -85,12 +89,12 @@ body.render #ui{display:none}
 .em{color:var(--coral);font-size:1.16em}
 #e-title .ch{text-shadow:0 7px 0 rgba(78,58,46,.12)}
 .chip{display:inline-block;margin:0 9px;padding:8px 30px 11px;border-radius:999px;font-size:36px;font-weight:900;color:#fff}
-#search{position:absolute;left:100px;top:890px;width:880px;height:100px;background:#fff;border:5px solid var(--ink);border-radius:50px;display:flex;align-items:center;padding-left:30px;box-shadow:0 10px 0 rgba(78,58,46,.10)}
+#search{position:absolute;left:100px;top:965px;width:880px;height:100px;background:#fff;border:5px solid var(--ink);border-radius:50px;display:flex;align-items:center;padding-left:30px;box-shadow:0 10px 0 rgba(78,58,46,.10)}
 #q{font-size:44px;font-weight:700;margin-left:16px;white-space:nowrap;display:flex;align-items:center}
 #caret{display:inline-block;width:4px;height:50px;background:var(--ink);margin-left:5px;border-radius:2px}
 #sbtn{position:absolute;right:8px;top:8px;bottom:8px;width:170px;border-radius:44px;background:var(--coral);color:#fff;font-size:44px;font-weight:900;display:flex;align-items:center;justify-content:center;overflow:hidden}
 #ripple{position:absolute;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.7);left:35px;top:-8px}
-#cursor{position:absolute;left:880px;top:930px;width:58px;height:74px;z-index:20}
+#cursor{position:absolute;left:880px;top:1005px;width:58px;height:74px;z-index:20}
 
 #grain{position:absolute;inset:0;pointer-events:none;z-index:100;opacity:.07;mix-blend-mode:multiply}
 /* 安全領域の確認用（書き出しには出ない） */
@@ -117,14 +121,14 @@ body.render #ui{display:none}
     <div class="blob" id="s1-b2" style="right:-200px;top:1020px;width:540px;height:540px;background:var(--mint-l)"></div>
     <div class="blob" id="s1-b3" style="left:800px;top:300px;width:140px;height:140px;background:var(--sun-l)"></div>
     <div class="blob" id="s1-b4" style="left:110px;top:1330px;width:96px;height:96px;background:var(--sky-l)"></div>
-    <div class="txt center" id="s1-q1" style="top:340px;font-size:210px">子ども、</div>
-    <div class="txt center" id="s1-q2" style="top:575px;font-size:230px">好き<span style="color:var(--coral)">？</span></div>
+    <div class="txt center" id="s1-q1" style="top:400px;font-size:190px">子ども、</div>
+    <div class="txt center" id="s1-q2" style="top:615px;font-size:210px">好き<span style="color:var(--coral)">？</span></div>
     <svg class="full" viewBox="0 0 1080 1920">
-      <path id="s1-arc" class="draw" d="M300 900 Q540 1060 780 900" fill="none" stroke="#F47C5C" stroke-width="22" stroke-linecap="round"/>
+      <path id="s1-arc" class="draw" d="M300 905 Q540 1050 780 905" fill="none" stroke="#F47C5C" stroke-width="22" stroke-linecap="round"/>
       <circle id="s1-dot" cx="0" cy="0" r="26" fill="#F47C5C"/>
     </svg>
-    <div class="bubble" id="s1-bub" style="left:120px;top:1010px">ちょっと、気になる。</div>
-    <div class="bubble r" id="s1-bub2" style="left:440px;top:1140px">でも、資格ないし…</div>
+    <div class="bubble" id="s1-bub" style="left:120px;top:1000px">ちょっと、気になる。</div>
+    <div class="bubble r" id="s1-bub2" style="left:440px;top:1125px">でも、資格ないし…</div>
     <div id="s1-kids"></div>
   </section>
 
@@ -141,7 +145,6 @@ body.render #ui{display:none}
   <!-- S3 タイトル 15–20 -->
   <section class="scene" id="s3">
     <div class="burst" id="s3-burst"></div>
-    <div class="txt center" style="top:390px"><span class="pill" id="s3-pref" style="font-size:52px">神奈川県</span></div>
     <div class="txt center" id="s3-t1" style="top:500px;font-size:200px">キッズ</div>
     <div class="txt center" id="s3-t2" style="top:735px;font-size:176px">サポーター</div>
     <div class="txt center" style="top:990px"><span class="ribbon" id="s3-rib" style="font-size:96px;padding:2px 100px 12px">募集中！</span></div>
@@ -270,7 +273,7 @@ body.render #ui{display:none}
   <!-- S5 はじめ方 37.5–47.5 -->
   <section class="scene dots" id="s5">
     <div id="s5-mark"></div>
-    <div class="txt center" id="s5-head" style="top:400px;font-size:76px">はじめ方は、カンタン。</div>
+    <div class="txt center" id="s5-head" style="top:420px;font-size:76px">はじめ方は、カンタン。</div>
     <svg class="full" viewBox="0 0 1080 1920">
       <path id="s5-guide" d="M290 560 L290 1042" fill="none" stroke="#4E3A2E" stroke-opacity=".22" stroke-width="9" stroke-linecap="round" stroke-dasharray="0 22"/>
       <path id="s5-track" class="draw" d="M290 560 L290 1042" fill="none" stroke="#F47C5C" stroke-width="12" stroke-linecap="round"/>
@@ -299,20 +302,21 @@ body.render #ui{display:none}
     </div>
 
     <div id="end">
-      <div class="txt center" id="e-title" style="top:540px;font-size:104px">キッズサポーター</div>
-      <div class="txt center" style="top:678px"><span class="ribbon" id="e-rib" style="font-size:58px;padding:2px 74px 9px">募集中！</span></div>
-      <div class="txt center" id="e-chips" style="top:800px"><span class="chip" style="background:var(--mint-d)">中学生以上</span><span class="chip" style="background:var(--sky-d)">資格不要</span><span class="chip" style="background:var(--coral-d)">住所不問</span></div>
+      <div class="txt center" id="e-title" style="top:640px;font-size:104px">キッズサポーター</div>
+      <div class="txt center" style="top:775px"><span class="ribbon" id="e-rib" style="font-size:58px;padding:2px 74px 9px">募集中！</span></div>
+      <div class="txt center" id="e-chips" style="top:885px"><span class="chip" style="background:var(--mint-d)">中学生以上</span><span class="chip" style="background:var(--sky-d)">資格不要</span><span class="chip" style="background:var(--coral-d)">住所不問</span></div>
       <div id="search">
         <svg width="50" height="50" viewBox="0 0 62 62"><circle cx="26" cy="26" r="18" fill="none" stroke="#4E3A2E" stroke-width="7"/><path d="M40 40 L56 56" stroke="#4E3A2E" stroke-width="8" stroke-linecap="round"/></svg>
         <div id="q"><span id="qtext">神奈川県 キッズサポーター</span><span id="caret"></span></div>
         <div id="sbtn"><div id="ripple"></div><span style="position:relative">検索</span></div>
       </div>
       <svg id="cursor" viewBox="0 0 70 90"><path d="M6 4 L6 70 L22 56 L34 84 L46 78 L34 52 L56 52 Z" fill="#fff" stroke="#4E3A2E" stroke-width="5" stroke-linejoin="round"/></svg>
-      <div class="txt center" id="e-spon" style="top:1022px"><div style="font-size:30px;font-weight:700;opacity:.8">子どもの笑顔応援プロジェクト</div><div style="font-size:58px;line-height:1.15">神奈川県</div></div>
+      <div class="txt center" id="e-spon" style="top:1090px"><div style="font-size:30px;font-weight:700;opacity:.8">子どもの笑顔応援プロジェクト</div><div style="font-size:58px;line-height:1.15">神奈川県</div></div>
     </div>
   </section>
 
-  <div id="tag"><span class="pill" id="tag-pill" style="font-size:40px">神奈川県 キッズサポーター募集</span></div>
+  <div id="ki"><img src="assets/ki_symbol_b-1-1.png" alt="神奈川県"></div>
+  <div id="mirai"><img src="assets/mirai_canvas_logo.png" alt="MIRAI CANVAS"></div>
   <div id="bars"><i style="background:var(--sun)"></i><i style="background:var(--mint)"></i><i style="background:var(--sky)"></i></div>
   <div id="grain"></div>
   <div id="safe"><i style="left:0;right:0;top:0;height:270px"></i><i style="left:0;right:0;bottom:0;height:670px"></i><b style="left:0;top:270px;bottom:670px;width:65px"></b><b style="right:0;top:270px;bottom:670px;width:65px"></b></div>
@@ -447,14 +451,14 @@ const drift = (el, t, d, x, y) => tl.to(el, { x, y, duration: d, ease: 'sine.inO
   tl.fromTo(q2[2], { rotation: 0 }, { rotation: 12, duration: .25, yoyo: true, repeat: 3, ease: 'sine.inOut' }, 2.0);
 
   gsap.set('#s1-dot', { x: 300, y: -60 });
-  tl.to('#s1-dot', { y: 900, duration: .9, ease: 'bounce.out' }, 1.3);
+  tl.to('#s1-dot', { y: 905, duration: .9, ease: 'bounce.out' }, 1.3);
   cue(1.62, 'boing', 1, .7);
   tl.to('#s1-arc', { strokeDashoffset: 0, duration: 1.1, ease: 'power1.inOut' }, 2.3);
   tl.to('#s1-dot', { duration: 1.1, ease: 'power1.inOut', motionPath: { path: '#s1-arc' } }, 2.3);
   cue(2.3, 'scribble', 1.2, .5);
 
   const s1 = $('#s1');
-  const sp = [[150, 420, 60, '#FFC94A'], [930, 580, 56, '#F47C5C'], [880, 500, 34, '#7CCBA2'], [190, 720, 40, '#86C2EC']]
+  const sp = [[150, 480, 60, '#FFC94A'], [930, 640, 56, '#F47C5C'], [880, 560, 34, '#7CCBA2'], [190, 760, 40, '#86C2EC']]
     .map(([x, y, s, c]) => addDeco(s1, STAR, c, x, y, s));
   gsap.set(sp, { scale: 0, rotation: -60 });
   tl.to(sp, { scale: 1, rotation: 0, duration: .6, ease: 'back.out(3)', stagger: .1 }, 3.3);
@@ -476,18 +480,11 @@ const drift = (el, t, d, x, y) => tl.to(el, { x, y, duration: d, ease: 'sine.inO
 
   tl.to('#s1-dot', { scale: 1.35, duration: .25, yoyo: true, repeat: 1, ease: 'sine.inOut', transformOrigin: '50% 50%' }, 6.4);
   show('#s2', 6.9);
-  gsap.set('#s2', { clipPath: 'circle(26px at 780px 900px)' });
-  tl.to('#s2', { clipPath: 'circle(2300px at 780px 900px)', duration: .65, ease: 'power2.in' }, 6.9);
+  gsap.set('#s2', { clipPath: 'circle(26px at 780px 905px)' });
+  tl.to('#s2', { clipPath: 'circle(2300px at 780px 905px)', duration: .65, ease: 'power2.in' }, 6.9);
   cue(6.9, 'whoosh', .9, .9);
   hide('#s1', 7.6);
 }
-
-// 画面上部の名札（S2 と S4〜S5）
-gsap.set('#tag-pill', { y: -40, opacity: 0 });
-tl.to('#tag-pill', { y: 0, opacity: 1, duration: .5 }, 7.9);
-tl.to('#tag-pill', { opacity: 0, duration: .3 }, 14.2);
-tl.to('#tag-pill', { opacity: 1, duration: .5 }, 20.3);
-tl.to('#tag-pill', { opacity: 0, duration: .3 }, 46.9);
 
 // ===== S2 7.5–15 資格がなくても =====
 {
@@ -527,8 +524,6 @@ tl.to('#tag-pill', { opacity: 0, duration: .3 }, 46.9);
 // ===== S3 15–20 タイトル =====
 {
   tl.fromTo('#s3-burst', { rotation: 0 }, { rotation: 30, duration: 5.4, ease: 'none' }, 15.0);
-  gsap.set('#s3-pref', { y: -50, opacity: 0 });
-  tl.to('#s3-pref', { y: 0, opacity: 1, duration: .6 }, 15.4);
   const t1 = split($('#s3-t1')), t2 = split($('#s3-t2'));
   const cols = ['#F47C5C', '#3E9F73', '#3B88C7', '#EE9B00', '#8A6CCB', '#F47C5C', '#3E9F73', '#3B88C7'];
   [...t1, ...t2].forEach((c, i) => c.style.color = cols[i % cols.length]);
@@ -757,10 +752,10 @@ const PT = [21.6, 25.6, 29.6, 33.6];
     [430, 990, 300, null, [-600, 300]],
     [820, 1110, 240, null, [500, 300]],
     [190, 1290, 250, [170, 1440, 230]],
-    [620, 1360, 270, [540, 1400, 250]],
-    [320, 1600, 240, [330, 1720, 230]],
+    [620, 1360, 270, [540, 1560, 250]],
+    [320, 1600, 240, [300, 1780, 220]],
     [850, 1580, 260, [910, 1440, 230]],
-    [600, 1820, 240, [750, 1730, 230]],
+    [600, 1820, 240, [780, 1780, 220]],
   ];
   const order = [5, 2, 8, 6, 3, 4, 0, 1, 7, 9, 10, 11];
   const kids = BLOOM.map(([x, y, s], i) => addKid($('#s6-kids'), KIDS[i % KIDS.length], x, y, s));
@@ -803,7 +798,7 @@ const PT = [21.6, 25.6, 29.6, 33.6];
 
 // ===== S7 54.5–60 エンドカード =====
 {
-  tl.to('#copy', { y: -174, scale: .36, duration: .8, ease: 'power3.inOut', transformOrigin: '50% 0%' }, 54.6);
+  tl.to('#copy', { y: -55, scale: .33, duration: .8, ease: 'power3.inOut', transformOrigin: '50% 0%' }, 54.6);
   tl.to(['#c-arc', '#c-hearts'], { opacity: 0, duration: .4 }, 54.6);
   cue(54.6, 'whoosh', 1.4, .5);
 
@@ -839,7 +834,7 @@ const PT = [21.6, 25.6, 29.6, 33.6];
   cue(58.8, 'click', 1, 1); cue(58.86, 'ding', 1, 1);
   tl.to(et, { y: -18, duration: .2, yoyo: true, repeat: 1, stagger: .04, ease: 'sine.out' }, 59.0);
   const s6 = $('#s6');
-  const fin = [[90, 590, 46, '#FFC94A'], [990, 580, 52, '#F47C5C'], [1000, 730, 30, '#7CCBA2'], [80, 740, 34, '#86C2EC']]
+  const fin = [[90, 690, 46, '#FFC94A'], [990, 680, 52, '#F47C5C'], [1000, 830, 30, '#7CCBA2'], [80, 840, 34, '#86C2EC']]
     .map(([x, y, s, c]) => addDeco(s6, STAR, c, x, y, s));
   gsap.set(fin, { scale: 0 });
   tl.to(fin, { scale: 1, rotation: 90, duration: .5, ease: 'back.out(3)', stagger: .06 }, 59.0);
