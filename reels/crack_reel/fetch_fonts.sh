@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 mkdir -p fonts
-CSS_URL='https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Zen+Kaku+Gothic+New:wght@300;400&family=Noto+Serif+JP:wght@200;300;500;700&family=Shippori+Mincho+B1:wght@700;800&family=Jost:wght@300;400;500&display=swap'
+CSS_URL='https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Zen+Kaku+Gothic+New:wght@300;400;500;700;900&family=Noto+Serif+JP:wght@200;300;500;700&family=Shippori+Mincho+B1:wght@700;800&family=Jost:wght@300;400;500&display=swap'
 curl -sS -A 'curl/8' "$CSS_URL" > fonts/fonts.css
 python3 - <<'PY'
 import re, subprocess

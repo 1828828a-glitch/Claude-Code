@@ -1,7 +1,8 @@
 """2本のリール用 BGM をつくる。
 
 MIDI を組み立てて FluidSynth（FluidR3_GM）で鳴らし、残響と効果音を足して
-out/bgm_chic.wav（落ち着いた版）と out/bgm_mojicut.wav（文字カット版）を書き出す。
+out/bgm_chic.wav（落ち着いた版）、out/bgm_mojicut.wav（文字カット版）、
+out/bgm_motion.wav（モーショングラフィックス版）を書き出す。
 
     python3 music.py            # 両方
     python3 music.py chic       # 片方だけ
@@ -567,9 +568,313 @@ def mojicut():
     write(loudnorm(x, -15.0), OUT / "bgm_mojicut.wav")
 
 
+# ---------------------------------------------------------------------------
+# モーショングラフィックス版：BPM120（1小節 = 2秒）。場面の境目はすべて小節の頭
+# 書き換わる瞬間（42秒）でドラムとコードが一気に入る
+# ---------------------------------------------------------------------------
+def motion():
+    cuts = json.loads((OUT / "motion_cuts.json").read_text())
+    total = cuts["total"]
+    s = Song()
+    MAR, VIB, EP, BASS, PAD, STR, GLK, PIZZ, DR = 0, 1, 2, 3, 4, 5, 6, 7, 9
+    for ch, prog, vol in [(MAR, 12, 100), (VIB, 11, 96), (EP, 4, 88), (BASS, 38, 92), (PAD, 89, 80),
+                          (STR, 48, 84), (GLK, 9, 74), (PIZZ, 45, 96)]:
+        s.program(ch, prog)
+        s.cc(ch, 0, 7, vol)
+    s.cc(DR, 0, 7, 100)
+    Bt = lambda bar, beat=0.0: (bar - 1) * 2.0 + beat * 0.5   # 小節・拍 → 秒
+
+    chords = {
+        1: "A2 E3 G3 B3 C4", 2: "A2 E3 G3 B3 C4", 3: "A2 E3 G3 B3 C4",
+        4: "A2 E3 A3 C4", 5: "F2 C3 E3 A3", 6: "G2 D3 F3 B3",
+        7: "C3 E3 G3 B3", 8: "B2 E3 G3 B3", 9: "A2 E3 A3 C4", 10: "F2 C3 F3 A3",
+        11: "F2 C3 F3 A3", 12: "G2 D3 G3 B3", 13: "E2 B2 E3 G3", 14: "A2 E3 A3 C4",
+        15: "F2 C3 F3 A3", 16: "G2 D3 G3 B3", 17: "A2 E3 A3 C4", 18: "E2 C3 E3 G3", 19: "G2 D3 F3 C4",
+        20: "G2 D3 G3 C4", 21: "G2 D3 G3 B3",
+        22: "C3 G3 C4 E4", 23: "G2 D3 G3 B3", 24: "A2 E3 A3 C4", 25: "F2 C3 F3 A3", 26: "D3 A3 C4 F4", 27: "G2 D3 G3 B3",
+        28: "C3 G3 D4 E4", 29: "F2 C3 E4 A4", 30: "C3 G3 D4 E4",
+    }
+    root = lambda bar: ns(chords[bar])[0]
+
+    # パッド：場面ごとに敷く
+    for p in ns(chords[1]):
+        s.note(PAD, 0.0, 6.05, p + 12, 72)
+    for bar in range(4, 31):
+        if bar in (22, 23, 24, 25, 26, 27):
+            continue
+        for p in ns(chords[bar]):
+            s.note(PAD, Bt(bar), 2.05, p + 12, 62)
+    s.cc(PAD, 0, 11, 0)
+    s.ramp(PAD, 0.0, 2.5, 0, 100)
+    s.cc(PAD, 6.0, 11, 90)
+    s.ramp(PAD, 40.0, 41.9, 90, 110)
+    s.cc(PAD, 42.0, 11, 70)
+    s.ramp(PAD, 54.0, 55.0, 70, 100)
+    s.ramp(PAD, 58.0, 60.0, 100, 30)
+
+    # 2%：点が現れるときの上り、灰色に沈むときの下り、光る2つの音
+    up = ns("A4 C5 E5 G5 A5 C6 E6 G6 A6 C7")
+    for i in range(16):
+        s.note(MAR, 6.0 + i * 0.0625, 0.2, up[i % len(up)] - (12 if i < 6 else 0), 52 + i * 2)
+    down = ns("E6 C6 A5 G5 E5 C5 A4 G4 E4 C4 A3")
+    for i, p in enumerate(down):
+        s.note(MAR, 7.4 + i * 0.125, 0.25, p, 54 - i * 2)
+    s.note(VIB, 8.9, 1.6, n("E6"), 82)
+    s.note(VIB, 9.15, 1.6, n("B6"), 78)
+
+    # 3〜4：マリンバの刻み（8分）とベース
+    def ostinato(bar, vel=58):
+        t3 = ns(chords[bar])
+        r = t3[0] + 12
+        pat = [r, t3[1] + 12, r + 12, t3[2] + 12, t3[1] + 12, r + 12, t3[2] + 12, t3[1] + 12]
+        for k, p in enumerate(pat):
+            s.note(MAR, Bt(bar, k * 0.5), 0.3, p, vel + (8 if k % 2 == 0 else 0))
+    for bar in range(7, 20):
+        ostinato(bar, 54 if bar < 15 else 60)
+    for bar in range(7, 20):
+        for b in ((0, 2) if bar < 15 else (0, 1, 2, 3)):
+            s.note(BASS, Bt(bar, b), 0.45, root(bar) - 12, 80)
+
+    # 寿司屋：ピチカートの軽い旋律、星が並ぶところで鉄琴
+    pz = {11: [(0, "A4", .25), (.5, "C5", .25), (1, "F5", .25), (1.5, "E5", .25), (2, "C5", .5), (3, "A4", .5)],
+          12: [(0, "B4", .25), (.5, "D5", .25), (1, "G5", .25), (1.5, "F5", .25)],
+          13: [(0, "E5", .5), (1, "G5", .5), (2, "B5", 1)],
+          14: [(0, "C6", .5), (.5, "B5", .5), (1, "A5", 1), (2, "E5", 1), (3, "C5", .5)]}
+    for bar, notes in pz.items():
+        for b, p, d in notes:
+            s.note(PIZZ, Bt(bar, b), d * 0.5, n(p), 80)
+    for t, p in zip((23.0, 23.5, 24.0), ("G5", "C6", "E6")):
+        s.note(GLK, t, 1.2, n(p), 92)
+
+    # 聞きに行く：吹き出しごとにビブラフォン
+    for t in (31.0, 33.0, 35.0):
+        bar = int(t // 2) + 1
+        for p in ns(chords[bar])[1:]:
+            s.note(VIB, t, 1.4, p + 24, 70)
+
+    # 書き換わる直前：上っていく粒
+    for i in range(32):
+        s.note(MAR, 38.0 + i * 0.0625, 0.15, ns("G4 B4 D5 G5")[i % 4] + 12 * (i // 8 % 2), 40 + i)
+    gl = ns("C5 D5 E5 G5 A5 C6 D6 E6 G6 A6 C7 D7 E7 G7")
+    for i in range(16):
+        s.note(VIB, 41.0 + i * 0.0625, 0.4, gl[min(i, len(gl) - 1)], 50 + i * 3)
+
+    # ドロップ（42〜54秒）
+    for bar in range(22, 28):
+        tones = ns(chords[bar])
+        for k in range(8):
+            off = k % 2 == 1
+            # 裏拍のエレピ
+            if off:
+                for p in tones[1:]:
+                    s.note(EP, Bt(bar, k * 0.5), 0.22, p + 12, 72)
+            # ベースは8分でオクターブ
+            s.note(BASS, Bt(bar, k * 0.5), 0.22, tones[0] - 12 + (12 if off else 0), 92)
+        for p in tones:
+            s.note(STR, Bt(bar), 2.0, p + 12, 66)
+    s.cc(STR, 0, 11, 0)
+    s.ramp(STR, 42.0, 43.0, 40, 96)
+    s.ramp(STR, 53.0, 54.0, 96, 0)
+    melody = {
+        22: [(0, "E5", .5), (.5, "G5", .5), (1, "C6", 1), (2, "B5", .5), (2.5, "G5", .5), (3, "E5", 1)],
+        23: [(0, "D5", .5), (.5, "G5", .5), (1, "B5", 1), (2, "A5", .5), (2.5, "G5", .5), (3, "D5", 1)],
+        24: [(0, "C5", .5), (.5, "E5", .5), (1, "A5", 1), (2, "G5", .5), (2.5, "E5", .5), (3, "C5", 1)],
+        25: [(0, "A4", .5), (.5, "C5", .5), (1, "F5", 1), (2, "E5", .5), (2.5, "D5", .5), (3, "C5", 1)],
+        26: [(0, "D5", .5), (.5, "F5", .5), (1, "A5", .5), (1.5, "C6", .5), (2, "A5", .5), (2.5, "F5", .5), (3, "D5", 1)],
+        27: [(0, "G5", 1), (1, "A5", .5), (1.5, "B5", .5), (2, "D6", 2)],
+    }
+    for bar, notes in melody.items():
+        for b, p, d in notes:
+            s.note(VIB, Bt(bar, b), d * 0.5 * 0.95, n(p), 86)
+            s.note(MAR, Bt(bar, b), 0.2, n(p) - 12, 52)
+
+    # 締め：ロゴで和音
+    for p in ns("C3 G3 C4 E4 G4 D5"):
+        s.note(EP, 58.0, 2.0, p, 70)
+    for p in ns("C6 E6 G6"):
+        s.note(GLK, 58.0, 2.0, p, 80)
+    s.note(VIB, 58.0, 2.0, n("E6"), 74)
+    for i, p in enumerate(ns("E5 G5 C6")):
+        s.note(VIB, 56.6 + i * 0.25, 1.2, p, 50)
+
+    # 打楽器
+    def hit(t, note, vel):
+        s.note(DR, t, 0.1, note, vel)
+    for bar in (2, 3, 4, 5, 6):
+        for b in range(4):
+            hit(Bt(bar, b), 42, 30 if b else 38)
+    for bar in range(7, 15):
+        hit(Bt(bar, 0), 36, 72); hit(Bt(bar, 2), 36, 66)
+        hit(Bt(bar, 1), 37, 46); hit(Bt(bar, 3), 37, 46)
+        for k in range(8):
+            hit(Bt(bar, k * 0.5), 82, 40 if k % 2 == 0 else 30)
+    for bar in range(15, 19):
+        hit(Bt(bar, 0), 36, 84); hit(Bt(bar, 2), 36, 80)
+        if bar >= 17:
+            hit(Bt(bar, 1.5), 36, 64)
+        hit(Bt(bar, 1), 39, 72); hit(Bt(bar, 3), 39, 72)
+        for k in range(8):
+            hit(Bt(bar, k * 0.5), 42, 46 if k % 2 == 0 else 34)
+    # 19小節目：スネアのロールで盛り上げる
+    hit(Bt(19, 0), 36, 84)
+    for k in range(16):
+        hit(Bt(19, k * 0.125), 38, 30 + k * 2)
+    for k in range(16):
+        hit(Bt(19, 2 + k * 0.125), 38, 64 + k * 3)
+    hit(Bt(20, 0), 36, 70)
+    for k in range(16):
+        hit(Bt(20, k * 0.25), 42, 22 + k)
+    # ドロップ
+    hit(42.0, 49, 110)
+    hit(50.0, 49, 84)
+    for bar in range(22, 28):
+        for b in range(4):
+            hit(Bt(bar, b), 36, 100)
+            hit(Bt(bar, b + 0.5), 46, 52)
+        hit(Bt(bar, 1), 39, 88); hit(Bt(bar, 3), 39, 88)
+        for k in range(16):
+            hit(Bt(bar, k * 0.25), 42, 26 if k % 2 else 34)
+    hit(58.0, 49, 60)
+
+    x = render(s, total)
+    x = reverb(x, seconds=1.6, wet=0.2, tone=7500, seed=9)
+
+    # 効果音
+    sfx = np.zeros_like(x)
+    r = np.random.default_rng(31)
+
+    def place(sig, t, gain, pan=0.0):
+        a = int(t * SR)
+        b = min(len(sfx), a + len(sig))
+        if b <= a:
+            return
+        sfx[a:b, 0] += sig[: b - a] * gain * (1 - max(pan, 0))
+        sfx[a:b, 1] += sig[: b - a] * gain * (1 + min(pan, 0))
+
+    def env(L, a, d):
+        tt = np.arange(L) / SR
+        return np.minimum(tt / max(a, 1e-4), 1) * np.exp(-tt / d)
+
+    def bp(sig, lo, hi):
+        return sosfilt(butter(2, [lo, hi], "band", fs=SR, output="sos"), sig)
+
+    def key():
+        L = int(0.06 * SR)
+        tt = np.arange(L) / SR
+        f = r.uniform(1800, 3200)
+        return bp(r.standard_normal(L), f * 0.6, f * 1.6) * env(L, 0.001, 0.012) + np.sin(2 * np.pi * r.uniform(170, 230) * tt) * env(L, 0.001, 0.02) * 0.6
+
+    def pop(f0, f1, length):
+        L = int(length * SR)
+        tt = np.arange(L) / SR
+        f = f0 * (f1 / f0) ** (tt / length)
+        return np.sin(2 * np.pi * np.cumsum(f) / SR) * env(L, 0.002, length / 3)
+
+    def noise_sweep(length, lo0, lo1, rising=True):
+        L = int(length * SR)
+        sig = r.standard_normal(L)
+        out = np.zeros(L)
+        n_seg = 12
+        for i in range(n_seg):
+            k = i / (n_seg - 1)
+            fc = lo0 * (lo1 / lo0) ** k
+            seg = slice(i * L // n_seg, (i + 1) * L // n_seg)
+            out[seg] = bp(sig, fc * 0.6, min(fc * 1.6, 20000))[seg]
+        tt = np.arange(L) / L
+        shape = np.sin(np.pi * tt) ** 2 if not rising else tt ** 2 * (1 - tt) * 6.75
+        return out * shape
+
+    def sparkle(length, count, lo=3000, hi=7000):
+        L = int(length * SR)
+        out = np.zeros(L)
+        for _ in range(count):
+            a = int(r.uniform(0, L * 0.9))
+            m = int(0.05 * SR)
+            tt = np.arange(m) / SR
+            blip = np.sin(2 * np.pi * r.uniform(lo, hi) * tt) * np.exp(-tt * 70)
+            out[a:a + m] += blip[: len(out[a:a + m])]
+        return out
+
+    def crackle(length, count):
+        L = int(length * SR)
+        out = np.zeros(L)
+        for _ in range(count):
+            a = int(r.uniform(0, L * 0.95))
+            m = int(0.006 * SR)
+            out[a:a + m] += bp(r.standard_normal(m), 1500, 9000)[: len(out[a:a + m])] * r.uniform(0.3, 1)
+        return out
+
+    def boom():
+        L = int(0.9 * SR)
+        tt = np.arange(L) / SR
+        f = 40 + 60 * np.exp(-tt * 9)
+        return np.sin(2 * np.pi * np.cumsum(f) / SR) * env(L, 0.003, 0.25)
+
+    for c in cuts["cuts"]:
+        t, k = c["t"], c["type"]
+        if k == "type":
+            place(key(), t, 0.32, r.uniform(-0.2, 0.2))
+        elif k == "shimmer":
+            place(sparkle(1.0, 40), t, 0.05)
+        elif k == "pop_s":
+            place(pop(700, 380, 0.08), t, 0.16)
+        elif k == "pop":
+            place(pop(950, 260, 0.12), t, 0.3)
+            place(key(), t, 0.2)
+        elif k == "whoosh":
+            place(noise_sweep(0.8, 600, 4000, rising=False), t - 0.05, 0.22)
+        elif k == "whoosh_s":
+            place(noise_sweep(0.45, 900, 5000, rising=False), t - 0.05, 0.16)
+        elif k == "draw":
+            L = int(0.7 * SR)
+            mod = 0.5 + 0.5 * np.sin(2 * np.pi * 14 * np.arange(L) / SR)
+            place(bp(r.standard_normal(L), 2000, 6000) * mod * np.sin(np.pi * np.arange(L) / L), t, 0.05)
+        elif k == "boing":
+            L = int(0.45 * SR)
+            tt = np.arange(L) / SR
+            f = 260 + 160 * np.sin(2 * np.pi * 9 * tt) * np.exp(-tt * 4) + 120 * tt / 0.45
+            place(np.sin(2 * np.pi * np.cumsum(f) / SR) * env(L, 0.005, 0.15), t, 0.25)
+        elif k == "star":
+            place(sparkle(0.3, 6, 4000, 8000), t, 0.07)
+        elif k == "bubble":
+            place(pop(320, 900, 0.09), t, 0.22)
+        elif k == "absorb":
+            place(noise_sweep(0.25, 6000, 900, rising=True)[::-1].copy(), t - 0.22, 0.12)
+            place(pop(500, 1000, 0.06), t, 0.12)
+        elif k == "crumble":
+            place(crackle(0.35, 28), t, 0.2, r.uniform(-0.3, 0.3))
+        elif k == "assemble":
+            place(noise_sweep(1.0, 800, 9000, rising=True), t, 0.12)
+            place(sparkle(1.0, 30, 3000, 9000), t, 0.04)
+        elif k == "burst":
+            place(boom(), t, 0.5)
+            place(sparkle(0.6, 30, 3000, 9000), t, 0.06)
+        elif k == "rise":
+            place(noise_sweep(0.9, 500, 3000, rising=False), t, 0.08)
+        elif k == "morph":
+            place(noise_sweep(1.6, 400, 6000, rising=False), t, 0.15)
+        elif k == "land":
+            place(pop(520, 300, 0.07), t, 0.12, r.uniform(-0.3, 0.3))
+        elif k == "ring":
+            L = int(1.2 * SR)
+            tt = np.arange(L) / SR
+            place((np.sin(2 * np.pi * 1320 * tt) + 0.4 * np.sin(2 * np.pi * 2640 * tt)) * env(L, 0.002, 0.35), t, 0.08)
+        elif k == "logo":
+            place(key(), t, 0.25)
+            place(boom(), t, 0.25)
+    # ドロップ前のライザー
+    place(noise_sweep(2.0, 300, 8000, rising=True), 36.0, 0.16)
+
+    x = x + sfx
+    x = fade(x, total - 1.2, total)
+    write(loudnorm(x, -15.0), OUT / "bgm_motion.wav")
+
+
 if __name__ == "__main__":
-    which = sys.argv[1:] or ["chic", "mojicut"]
+    which = sys.argv[1:] or ["chic", "mojicut", "motion"]
     if "chic" in which:
         chic()
     if "mojicut" in which:
         mojicut()
+    if "motion" in which:
+        motion()

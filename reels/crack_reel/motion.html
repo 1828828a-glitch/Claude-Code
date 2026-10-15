@@ -1,0 +1,880 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>crack motion graphics</title>
+<link rel="stylesheet" href="fonts/local.css">
+<style>
+html,body{margin:0;background:#fff;}
+#c{display:block;width:1080px;height:1920px;}
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// ---------------------------------------------------------------------------
+// crack 紹介モーショングラフィックス「その肩書き、本当？」 60秒・1080x1920
+// 白地に黒の線。色が入るのは書き換わる瞬間から
+// ---------------------------------------------------------------------------
+const W = 1080, H = 1920, TOTAL = 60;
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+const INK = '#141414', GRAY = '#A3A3A3', LIGHT = '#DADADA', BG = '#FFFFFF';
+const VIVID = { pink:'#FF3D7F', yellow:'#FFB800', teal:'#14B8A6', blue:'#2F6BFF', violet:'#8B5CF6', green:'#22C55E' };
+const GOTHIC = '"Zen Kaku Gothic New"', SANS = '"Jost"';
+
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const prog = (t, a, d) => clamp((t - a) / d);
+const E = {
+  out: x => 1 - Math.pow(1 - clamp(x), 3),
+  in: x => Math.pow(clamp(x), 2),
+  inOut: x => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; },
+  back: x => { x = clamp(x); const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); },
+};
+const win = (t, a, b, fi = .4, fo = .4) => Math.min(E.inOut(prog(t, a, fi)), 1 - E.inOut(prog(t, b, fo)));
+function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const font = (w, px, fam = GOTHIC) => `${w} ${px}px ${fam}`;
+function hex(h) { h = h.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16)); }
+function mixc(a, b, k) { const A = hex(a), B = hex(b); return `rgb(${A.map((v, i) => Math.round(lerp(v, B[i], k))).join(',')})`; }
+const rot = (x, y, a) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
+
+function rrect(x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r); }
+function circle(x, y, r) { g.beginPath(); g.arc(x, y, Math.max(r, 0), 0, Math.PI * 2); }
+function poly(pts, close = true) { g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); if (close) g.closePath(); }
+// 線を途中まで引く（frac: 0〜1）
+function strokeReveal(pts, frac, close = false) {
+  if (frac <= 0) return;
+  const P = close ? [...pts, pts[0]] : pts;
+  let L = 0; const seg = [];
+  for (let i = 1; i < P.length; i++) { const d = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); seg.push(d); L += d; }
+  let rem = L * clamp(frac);
+  g.beginPath(); g.moveTo(P[0][0], P[0][1]);
+  for (let i = 1; i < P.length && rem > 0; i++) {
+    const d = seg[i - 1], k = Math.min(1, rem / d);
+    g.lineTo(lerp(P[i - 1][0], P[i][0], k), lerp(P[i - 1][1], P[i][1], k)); rem -= d;
+  }
+  g.stroke();
+}
+function resample(pts, M) {
+  const P = [...pts, pts[0]]; const seg = []; let L = 0;
+  for (let i = 1; i < P.length; i++) { const d = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); seg.push(d); L += d; }
+  const out = []; let i = 0, acc = 0;
+  for (let k = 0; k < M; k++) {
+    const d = k / M * L;
+    while (i < seg.length - 1 && acc + seg[i] < d) { acc += seg[i]; i++; }
+    const f = seg[i] ? (d - acc) / seg[i] : 0;
+    out.push([lerp(P[i][0], P[i + 1][0], f), lerp(P[i][1], P[i + 1][1], f)]);
+  }
+  return out;
+}
+// 向きと始点をそろえる（時計回り、いちばん下の点から）
+function normalize(P) {
+  let area = 0; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length]; area += a[0] * b[1] - b[0] * a[1]; }
+  if (area < 0) P = [...P].reverse();
+  let s = 0; P.forEach((p, i) => { if (p[1] > P[s][1] + 0.01 || (Math.abs(p[1] - P[s][1]) < 0.01 && p[0] < P[s][0])) s = i; });
+  return [...P.slice(s), ...P.slice(0, s)];
+}
+
+// ---------------------------------------------------------------------------
+// 時間割と効果音のきっかけ
+// ---------------------------------------------------------------------------
+const Q1 = 'あなたの会社のすごさ、', Q2 = '言えますか？';
+const TYPE_T = (() => { const ts = []; let t = 0.5; for (const ch of Q1 + Q2) { ts.push(t); t += ch === '、' ? 0.4 : 0.13; } return ts; })();
+const TYPE_END = TYPE_T[TYPE_T.length - 1];
+const STAR_LAND = [23.0, 23.5, 24.0];
+const BUBBLE_T = [31.0, 33.0, 35.0];
+const ABSORB_T = [38.2, 38.6, 39.0];          // 吸い込まれ始め（0.6秒で名札へ）
+const CRUMBLE_T0 = 40.0, ASSEMBLE_T0 = 41.0, BURST_T = 42.0;
+const FEATHER_T = Array.from({ length: 9 }, (_, j) => 50.9 + j * 0.3);
+const CUTS = [];
+TYPE_T.forEach(t => CUTS.push({ t, type: 'type' }));
+[[6.0, 'shimmer'], [7.4, 'down'], [8.9, 'ding'], [9.2, 'pop_s'], [11.5, 'whoosh_s'], [12.3, 'draw'], [14.4, 'pop'],
+ [19.6, 'whoosh'], [21.2, 'boing'], [25.0, 'pop_s'], [27.6, 'whoosh'], [28.6, 'draw'], [29.4, 'pop_s'], [29.8, 'pop_s'], [30.2, 'pop_s'],
+ [38.2, 'whoosh_s'], [ASSEMBLE_T0, 'assemble'], [BURST_T, 'burst'], [42.2, 'rise'], [46.3, 'morph'], [50.0, 'draw'],
+ [54.4, 'pop_s'], [56.6, 'ring'], [57.1, 'whoosh_s'], [58.0, 'logo']].forEach(([t, type]) => CUTS.push({ t, type }));
+STAR_LAND.forEach(t => CUTS.push({ t, type: 'star' }));
+BUBBLE_T.forEach(t => CUTS.push({ t, type: 'bubble' }));
+ABSORB_T.forEach(t => CUTS.push({ t: t + 0.6, type: 'absorb' }));
+for (let k = 0; k < 5; k++) CUTS.push({ t: CRUMBLE_T0 + k * 0.14, type: 'crumble' });
+FEATHER_T.forEach(t => CUTS.push({ t: t + 0.62, type: 'land' }));
+CUTS.sort((a, b) => a.t - b.t);
+
+// ---------------------------------------------------------------------------
+// カメラ（主人公の世界の座標 → 画面）
+// ---------------------------------------------------------------------------
+const X0 = 1700; // 寿司屋は右隣に置く
+const CAMS = {
+  s3: { x: 540, y: 1060, s: 1.35 },
+  s4: { x: X0 + 540, y: 1000, s: 1.15 },
+  s5: { x: 540, y: 1000, s: 1.0 },
+  s6: { x: 540, y: 860, s: 0.62 },
+};
+function camMix(a, b, k) { return { x: lerp(a.x, b.x, k), y: lerp(a.y, b.y, k), s: Math.exp(lerp(Math.log(a.s), Math.log(b.s), k)) }; }
+function camAt(t) {
+  if (t < 19.6) return CAMS.s3;
+  if (t < 20.4) return camMix(CAMS.s3, CAMS.s4, E.inOut(prog(t, 19.6, 0.8)));
+  if (t < 27.6) return CAMS.s4;
+  if (t < 28.4) return camMix(CAMS.s4, CAMS.s5, E.inOut(prog(t, 27.6, 0.8)));
+  if (t < 42.0) return CAMS.s5;
+  return camMix(CAMS.s5, CAMS.s6, E.inOut(prog(t, 42.0, 2.0)));
+}
+const toScreen = (c, x, y) => [(x - c.x) * c.s + W / 2, (y - c.y) * c.s + H / 2];
+function applyCam(c) { g.setTransform(c.s, 0, 0, c.s, W / 2 - c.x * c.s, H / 2 - c.y * c.s); }
+const resetT = () => g.setTransform(1, 0, 0, 1, 0, 0);
+
+// ---------------------------------------------------------------------------
+// 部品
+// ---------------------------------------------------------------------------
+const FEET = [540, 1250];
+const HEAD_LOCAL = [0, -262], HEAD_R = 30;
+
+// 主人公（ピクトグラム）。y は足元
+function drawPerson(x, y, k, t, opts = {}) {
+  g.save(); g.translate(x, y); g.scale(k, k);
+  g.fillStyle = INK; g.strokeStyle = INK; g.lineCap = 'round'; g.lineJoin = 'round';
+  rrect(-34, -118, 28, 118, 12); g.fill();
+  rrect(6, -118, 28, 118, 12); g.fill();
+  rrect(-40, -226, 80, 122, 24); g.fill();
+  if (!opts.noHead) { circle(0, -262, HEAD_R); g.fill(); }
+  // モップ：上の手を支点に、1秒（2拍）で左右に振る
+  const sw = opts.still ? 0 : 0.14 * Math.sin(t * Math.PI * 2);
+  const piv = [62, -186];
+  const R = (px, py) => { const [rx, ry] = rot(px - piv[0], py - piv[1], sw); return [piv[0] + rx, piv[1] + ry]; };
+  const s0 = R(42, -238), s1 = R(132, -14), h2 = R(90, -112);
+  g.lineWidth = 20;
+  poly([[28, -210], piv], false); g.stroke();
+  poly([[30, -192], h2], false); g.stroke();
+  g.lineWidth = 9;
+  poly([s0, s1], false); g.stroke();
+  // モップの頭
+  g.save(); g.translate(s1[0], s1[1]); g.rotate(sw * 0.4);
+  rrect(-50, -6, 100, 14, 5); g.fill();
+  g.lineWidth = 5;
+  for (let i = -4; i <= 4; i++) { poly([[i * 11, 6], [i * 11 + Math.sin(t * 6 + i) * 3, 24]], false); g.stroke(); }
+  g.restore();
+  g.restore();
+}
+
+// 寿司屋の大将
+function drawChef(cx, t) {
+  g.fillStyle = INK; g.strokeStyle = INK; g.lineCap = 'round';
+  rrect(cx - 52, 912, 104, 260, 26); g.fill();
+  circle(cx, 870, 34); g.fill();
+  // 鉢巻き
+  g.strokeStyle = BG; g.lineWidth = 9; poly([[cx - 33, 858], [cx + 33, 858]], false); g.stroke();
+  g.strokeStyle = INK; g.lineWidth = 6;
+  poly([[cx + 34, 856], [cx + 62, 840]], false); g.stroke();
+  poly([[cx + 34, 860], [cx + 64, 870]], false); g.stroke();
+  // 腕
+  g.lineWidth = 22;
+  poly([[cx - 40, 936], [cx - 92, 1086]], false); g.stroke();
+  poly([[cx + 40, 936], [cx + 92, 1086]], false); g.stroke();
+}
+function drawSushi(cx, k = 1) {
+  g.save(); g.translate(cx, 1100); g.scale(k, k); g.translate(-cx, -1100);
+  g.lineWidth = 5; g.strokeStyle = INK; g.fillStyle = BG; g.lineJoin = 'round';
+  rrect(cx - 110, 1082, 220, 20, 4); g.fill(); g.stroke();
+  rrect(cx - 62, 1040, 124, 44, 20); g.fill(); g.stroke();
+  g.beginPath();
+  g.moveTo(cx - 72, 1052); g.quadraticCurveTo(cx, 1004, cx + 74, 1046);
+  g.lineTo(cx + 66, 1064); g.quadraticCurveTo(cx, 1050, cx - 66, 1068); g.closePath();
+  g.fill(); g.stroke();
+  g.lineWidth = 3;
+  for (const dx of [-36, -6, 24]) { poly([[cx + dx, 1056], [cx + dx + 16, 1034]], false); g.stroke(); }
+  g.restore();
+}
+function star(x, y, r, a) {
+  const pts = [];
+  for (let i = 0; i < 10; i++) { const rr = i % 2 ? r * 0.45 : r; const an = a - Math.PI / 2 + i * Math.PI / 5; pts.push([x + Math.cos(an) * rr, y + Math.sin(an) * rr]); }
+  poly(pts);
+}
+
+// 駅のホーム（線画）。reveal で描き進める
+function drawStation(reveal, alpha) {
+  if (alpha <= 0) return;
+  g.save(); g.globalAlpha = alpha; g.strokeStyle = GRAY; g.lineCap = 'round'; g.lineJoin = 'round';
+  const R = (d) => clamp((reveal - d) / 0.45);
+  g.lineWidth = 3.5;
+  strokeReveal([[-1400, 520], [1700, 520]], R(0));
+  strokeReveal([[-1400, 548], [1700, 548]], R(0.05));
+  for (const x of [170, 910]) { strokeReveal([[x - 13, 548], [x - 13, 1250]], R(0.15)); strokeReveal([[x + 13, 548], [x + 13, 1250]], R(0.18)); }
+  // 駅名標
+  strokeReveal([[300, 548], [300, 612]], R(0.25)); strokeReveal([[520, 548], [520, 612]], R(0.25));
+  strokeReveal([[250, 612], [570, 612], [570, 714], [250, 714]], R(0.3), true);
+  if (R(0.45) > 0) {
+    g.globalAlpha = alpha * R(0.45); g.fillStyle = GRAY; g.textAlign = 'center';
+    g.font = font(700, 46); g.fillText('おおさか', 410, 672);
+    g.font = font(400, 22, SANS); g.fillText('OSAKA', 410, 702);
+    g.globalAlpha = alpha;
+  }
+  // 時計（4時52分）
+  strokeReveal([[790, 548], [790, 606]], R(0.3));
+  if (R(0.35) > 0) {
+    g.beginPath(); g.arc(790, 650, 44, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * R(0.35)); g.stroke();
+    if (R(0.5) > 0) {
+      g.lineWidth = 4;
+      const hA = (4 + 52 / 60) / 12 * Math.PI * 2 - Math.PI / 2, mA = 52 / 60 * Math.PI * 2 - Math.PI / 2;
+      poly([[790, 650], [790 + Math.cos(hA) * 22, 650 + Math.sin(hA) * 22]], false); g.stroke();
+      poly([[790, 650], [790 + Math.cos(mA) * 32, 650 + Math.sin(mA) * 32]], false); g.stroke();
+      g.lineWidth = 3.5;
+    }
+  }
+  // ホーム
+  g.lineWidth = 4;
+  strokeReveal([[-1400, 1250], [1700, 1250]], R(0.1));
+  g.lineWidth = 3;
+  strokeReveal([[-1400, 1290], [1700, 1290]], R(0.2));
+  if (R(0.4) > 0) {
+    g.fillStyle = GRAY;
+    for (let x = -1380; x < 1690; x += 24) { if ((x + 1380) / 3070 > R(0.4)) break; circle(x, 1228, 3); g.fill(); }
+  }
+  // 線路
+  strokeReveal([[-1400, 1380], [1700, 1380]], R(0.3));
+  strokeReveal([[-1400, 1420], [1700, 1420]], R(0.35));
+  for (let x = -1380; x < 1690; x += 64) { if ((x + 1380) / 3070 > R(0.5)) break; poly([[x, 1368], [x + 10, 1432]], false); g.stroke(); }
+  g.restore();
+}
+
+// 名札
+const TAG_OLD = 'お掃除の人', TAG_NEW = '町づくりのパートナー';
+const TAG_FS = 46, TAG_PAD = 50, TAG_H = 84;
+function tagWidth(text) { g.font = font(700, TAG_FS); return g.measureText(text).width + TAG_PAD * 2; }
+let TW_OLD, TW_NEW;
+
+function drawTagFrame(cx, cy, w, k, fillK, pointer = true) {
+  g.save(); g.translate(cx, cy); g.scale(k, k);
+  g.lineWidth = 4.5; g.strokeStyle = INK; g.lineJoin = 'round';
+  // 吹き出しの口（頭を指す）
+  g.beginPath(); g.roundRect(-w / 2, -TAG_H / 2, w, TAG_H, 18);
+  g.fillStyle = BG; g.fill();
+  if (fillK > 0) {
+    g.save(); g.clip();
+    const grd = g.createLinearGradient(-w / 2, 0, w / 2, 0);
+    grd.addColorStop(0, VIVID.teal); grd.addColorStop(0.35, VIVID.blue); grd.addColorStop(0.7, VIVID.violet); grd.addColorStop(1, VIVID.pink);
+    g.fillStyle = grd; circle(0, 0, (w * 0.7) * fillK); g.fill();
+    g.restore();
+    g.beginPath(); g.roundRect(-w / 2, -TAG_H / 2, w, TAG_H, 18);
+  }
+  g.stroke();
+  if (pointer) {
+    g.beginPath(); g.moveTo(-14, TAG_H / 2 - 2); g.lineTo(0, TAG_H / 2 + 18); g.lineTo(14, TAG_H / 2 - 2);
+    g.fillStyle = fillK >= 1 ? VIVID.violet : BG; g.fill(); g.stroke();
+    g.fillStyle = fillK >= 1 ? VIVID.violet : BG; g.fillRect(-12, TAG_H / 2 - 6, 24, 6);
+  }
+  // 名札らしく、左に留め穴
+  g.lineWidth = 3.5; circle(-w / 2 + 22, 0, 6); g.fillStyle = BG; g.fill(); g.stroke();
+  g.restore();
+}
+
+// 文字を点の集まりにする（名札の崩れと組み替え用）
+function samplePoints(text, step) {
+  const c = document.createElement('canvas'); c.width = 900; c.height = 140;
+  const x = c.getContext('2d'); x.font = font(700, TAG_FS); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#000';
+  x.fillText(text, 450, 72);
+  const d = x.getImageData(0, 0, 900, 140).data; const pts = [];
+  for (let yy = 0; yy < 140; yy += step) for (let xx = 0; xx < 900; xx += step) if (d[(yy * 900 + xx) * 4 + 3] > 120) pts.push([xx - 450, yy - 70]);
+  return pts;
+}
+let PARTS = null;
+function buildParticles() {
+  const A = samplePoints(TAG_OLD, 3), B = samplePoints(TAG_NEW, 3);
+  g.font = font(700, TAG_FS);
+  const wOld = g.measureText(TAG_OLD).width;
+  const r = rng(77), cols = Object.values(VIVID);
+  PARTS = B.map((b, i) => {
+    const a = A[Math.floor(i * A.length / B.length)];
+    const ch = clamp(Math.floor((a[0] + wOld / 2) / (wOld / TAG_OLD.length)), 0, TAG_OLD.length - 1);
+    return { a, b, ch, vx: (r() - .5) * 300, vy: -40 - r() * 200, col: cols[Math.floor(r() * cols.length)], d: r() * 0.12 };
+  });
+}
+
+// 周りの3者
+const RING = { x: 540, y: 1040, r: 330 };
+const PARTNERS = [
+  { ang: -150, label: '鉄道会社', say: '「いつも計画どおり」', icon: 'train', bub: [262, 738] },
+  { ang: -90, label: 'お客さん', say: '「町がきれい」', icon: 'person', bub: [540, 548] },
+  { ang: -30, label: '取引先', say: '「任せられる」', icon: 'building', bub: [818, 738] },
+].map(p => ({ ...p, pos: [RING.x + RING.r * Math.cos(p.ang * Math.PI / 180), RING.y + RING.r * Math.sin(p.ang * Math.PI / 180)] }));
+
+function drawIcon(p, k) {
+  if (k <= 0) return;
+  const [x, y] = p.pos;
+  g.save(); g.translate(x, y); g.scale(k, k);
+  g.lineWidth = 4.5; g.strokeStyle = INK; g.fillStyle = BG; circle(0, 0, 62); g.fill(); g.stroke();
+  g.fillStyle = INK; g.lineJoin = 'round'; g.lineCap = 'round';
+  if (p.icon === 'train') {
+    rrect(-30, -36, 60, 66, 12); g.fill();
+    g.fillStyle = BG; rrect(-21, -27, 42, 22, 5); g.fill();
+    circle(-15, 14, 5); g.fill(); circle(15, 14, 5); g.fill();
+    g.strokeStyle = INK; g.lineWidth = 5; poly([[-18, 34], [-28, 44]], false); g.stroke(); poly([[18, 34], [28, 44]], false); g.stroke();
+  } else if (p.icon === 'person') {
+    circle(-6, -30, 12); g.fill();
+    rrect(-22, -16, 32, 38, 10); g.fill();
+    rrect(-20, 20, 12, 26, 5); g.fill(); rrect(-4, 20, 12, 26, 5); g.fill();
+    g.lineWidth = 4; g.strokeStyle = INK; rrect(16, 4, 20, 22, 3); g.fill(); g.beginPath(); g.arc(26, 4, 7, Math.PI, 0); g.stroke();
+  } else {
+    g.lineWidth = 4.5; g.strokeStyle = INK; rrect(-26, -38, 52, 76, 3); g.stroke();
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { g.fillRect(-17 + i * 13, -28 + j * 15, 8, 9); }
+    g.fillRect(-7, 18, 14, 20);
+  }
+  g.restore();
+}
+
+function drawBubble(p, k, alpha = 1, pos = null, scale = 1) {
+  if (k <= 0 || alpha <= 0) return;
+  const [bx, by] = pos || p.bub;
+  g.save(); g.globalAlpha = alpha; g.translate(bx, by); g.scale(k * scale, k * scale);
+  g.font = font(700, 40); const tw = g.measureText(p.say).width;
+  const w = Math.max(tw + 52, 250), h = 124;
+  g.lineWidth = 4.5; g.strokeStyle = INK; g.fillStyle = BG; g.lineJoin = 'round';
+  // しっぽはアイコンへ
+  const dx = (p.pos[0] - bx) * 0.25;
+  g.beginPath(); g.roundRect(-w / 2, -h / 2, w, h, 26); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(-14 + dx * 0.3, h / 2 - 3); g.lineTo(dx, h / 2 + 30); g.lineTo(14 + dx * 0.3, h / 2 - 3); g.fill(); g.stroke();
+  g.fillRect(-12 + dx * 0.3, h / 2 - 8, 24, 6);
+  g.fillStyle = '#7A7A7A'; g.font = font(500, 24); g.textAlign = 'center'; g.fillText(p.label, 0, -18);
+  g.fillStyle = INK; g.font = font(700, 40); g.fillText(p.say, 0, 32);
+  g.restore();
+}
+
+// 町（主人公の世界の座標）。塔9・家9・木9 = 羽9枚 × 3つの形に化ける
+const TOWN = (() => {
+  const S = [];
+  const towers = [[-470, 130, 640, 'blue'], [-300, 110, 470, 'pink'], [-140, 120, 760, 'teal'], [290, 140, 860, 'violet'], [800, 130, 900, 'yellow'],
+                  [1110, 120, 640, 'green'], [1270, 110, 760, 'pink'], [1430, 130, 540, 'blue'], [1580, 110, 820, 'teal']];
+  towers.forEach(([x, w, h, c], i) => {
+    const top = 1250 - h;
+    const pts = i % 3 === 1 ? [[x - w / 2, 1250], [x - w / 2, top + 50], [x, top], [x + w / 2, top + 50], [x + w / 2, 1250]]
+                            : [[x - w / 2, 1250], [x - w / 2, top], [x + w / 2, top], [x + w / 2, 1250]];
+    S.push({ kind: 'tower', pts, col: VIVID[c], x, w, top });
+  });
+  const houses = [[-520, 'yellow'], [-385, 'teal'], [-215, 'violet'], [-60, 'pink'], [1010, 'yellow'], [1190, 'blue'], [1350, 'violet'], [1500, 'pink'], [1610, 'yellow']];
+  houses.forEach(([x, c], i) => {
+    const w = 96 + (i % 3) * 14, h = 120 + (i % 2) * 40;
+    S.push({ kind: 'house', pts: [[x - w / 2, 1250], [x - w / 2, 1250 - h], [x, 1250 - h - 70], [x + w / 2, 1250 - h], [x + w / 2, 1250]], col: VIVID[c], x });
+  });
+  const trees = [[-560, 'green'], [-430, 'teal'], [-250, 'green'], [-30, 'green'], [1000, 'teal'], [1120, 'green'], [1260, 'green'], [1420, 'teal'], [1545, 'green']];
+  trees.forEach(([x, c], i) => {
+    const r = 40 + (i % 3) * 8, cy = 1250 - 110 - r * 0.6;
+    const pts = Array.from({ length: 16 }, (_, k) => [x + Math.cos(k / 16 * Math.PI * 2) * r, cy + Math.sin(k / 16 * Math.PI * 2) * r]);
+    S.push({ kind: 'tree', pts, col: VIVID[c], x, cy, r });
+  });
+  S.forEach((s, i) => s.order = Math.abs(s.x - 540) / 1100 + (s.kind === 'tower' ? 0 : 0.15));
+  return S;
+})();
+
+// クジャクの羽（画面座標）
+const FAN = { x: 540, y: 1230 };
+const FEATHERS = Array.from({ length: 9 }, (_, j) => {
+  const ang = (-64 + j * 16) * Math.PI / 180;
+  const L = 640 - 70 * Math.pow(Math.abs(j - 4) / 4, 1.2), Wd = 150;
+  const body = [[0, 0], [0.18 * Wd, -0.2 * L], [0.5 * Wd, -0.58 * L], [0.42 * Wd, -0.86 * L], [0, -L], [-0.42 * Wd, -0.86 * L], [-0.5 * Wd, -0.58 * L], [-0.18 * Wd, -0.2 * L]];
+  const ey = -0.74 * L;
+  const ring = Array.from({ length: 6 }, (_, k) => { const a = Math.PI / 2 + k * Math.PI / 3; return [Math.cos(a) * 50, ey + Math.sin(a) * 62]; });
+  const core = [[0, ey + 34], [24, ey], [0, ey - 34], [-24, ey]];
+  const bodyCol = [VIVID.teal, VIVID.blue, VIVID.green][j % 3];
+  return { j, ang, L, ey, parts: [{ pts: body, col: bodyCol }, { pts: ring, col: VIVID.yellow }, { pts: core, col: j % 2 ? VIVID.violet : VIVID.pink }] };
+});
+const fanPoint = (f, p, base = FAN, k = 1, extra = 0) => { const [x, y] = rot(p[0] * k, p[1] * k, f.ang + extra); return [base.x + x, base.y + y]; };
+
+// 町の形 → 羽の形 の対応（左から順に）
+const M = 48;
+let MORPH = null;
+function buildMorph() {
+  const c6 = CAMS.s6;
+  const byKind = k => TOWN.filter(s => s.kind === k).sort((a, b) => a.x - b.x);
+  const groups = [byKind('tower'), byKind('house'), byKind('tree')];
+  MORPH = [];
+  FEATHERS.forEach((f, j) => {
+    f.parts.forEach((part, pi) => {
+      const src = groups[pi][j];
+      const A = normalize(resample(src.pts.map(p => toScreen(c6, p[0], p[1])), M));
+      const B = normalize(resample(part.pts.map(p => fanPoint(f, p)), M));
+      MORPH.push({ A, B, colA: src.col, colB: part.col, order: j * 0.05 + pi * 0.04, f, pi });
+    });
+  });
+}
+
+// 採用ページ・グッズ・名刺
+const MOCK = [
+  { label: '採用ページ', x: 230, land: { x: 230, y: 1088 }, k: 0.2 },
+  { label: 'グッズ', x: 540, land: { x: 540, y: 1236 }, k: 0.24 },
+  { label: '名刺', x: 855, land: { x: 812, y: 1150 }, k: 0.14 },
+];
+function drawMockups(t) {
+  const a0 = 50.0;
+  const R = d => clamp((t - a0 - d) / 0.7);
+  g.save(); g.strokeStyle = INK; g.lineWidth = 4; g.lineJoin = 'round'; g.lineCap = 'round';
+  // スマホ（採用ページ）
+  strokeReveal([[142, 880], [318, 880], [348, 910], [348, 1270], [318, 1300], [142, 1300], [112, 1270], [112, 910]], R(0), true);
+  if (R(0.3) > 0) {
+    g.globalAlpha = R(0.3);
+    g.fillStyle = '#F2F2F2'; g.fillRect(126, 942, 208, 150);
+    g.fillStyle = INK; g.font = font(700, 22); g.textAlign = 'left'; g.fillText('採用情報', 130, 928);
+    g.fillStyle = LIGHT; [[130, 1112, 190], [130, 1138, 160], [130, 1164, 176], [130, 1190, 120]].forEach(([x, y, w]) => g.fillRect(x, y, w, 10));
+    g.strokeStyle = INK; g.lineWidth = 3; rrect(160, 1222, 140, 44, 22); g.stroke();
+    g.fillStyle = INK; g.font = font(500, 20, SANS); g.textAlign = 'center'; g.fillText('ENTRY', 230, 1251);
+    g.globalAlpha = 1;
+  }
+  // トートバッグ（グッズ）
+  g.lineWidth = 4;
+  strokeReveal([[430, 960], [650, 960], [670, 1300], [410, 1300]], R(0.15), true);
+  if (R(0.35) > 0) { g.beginPath(); g.arc(540, 960, 62, Math.PI, Math.PI + Math.PI * R(0.35)); g.stroke(); g.beginPath(); g.arc(540, 960, 48, Math.PI, Math.PI + Math.PI * R(0.35)); g.stroke(); }
+  // 名刺
+  g.save(); g.translate(855, 1090); g.rotate(-7 * Math.PI / 180);
+  strokeReveal([[-135, -82], [135, -82], [135, 82], [-135, 82]], R(0.3), true);
+  if (R(0.5) > 0) {
+    g.globalAlpha = R(0.5);
+    g.fillStyle = INK; g.font = font(700, 26); g.textAlign = 'left'; g.fillText('田中', 10, -18);
+    g.fillStyle = LIGHT; g.fillRect(10, 6, 100, 9); g.fillRect(10, 26, 80, 9);
+    g.fillStyle = INK; g.font = font(500, 20, SANS); g.fillText('crack', 10, 62);
+    g.globalAlpha = 1;
+  }
+  g.restore();
+  // ラベル
+  const la = E.out(prog(t, 51.0, 0.5));
+  if (la > 0) {
+    g.globalAlpha = la; g.fillStyle = INK; g.font = font(500, 36); g.textAlign = 'center';
+    MOCK.forEach(m => g.fillText(m.label, m.x, 1372 + (1 - la) * 16));
+    g.globalAlpha = 1;
+  }
+  g.restore();
+}
+// 名刺の中の着地点は回転させておく
+(() => { const [x, y] = rot(-62, 56, -7 * Math.PI / 180); MOCK[2].land = { x: 855 + x, y: 1090 + y }; MOCK[2].rot = -7 * Math.PI / 180; })();
+
+// 羽1枚を描く（base, 角度, 倍率）
+function drawFeather(f, base, ang, k, alpha = 1, rachis = 1) {
+  g.save(); g.globalAlpha = alpha; g.lineJoin = 'round'; g.strokeStyle = INK; g.lineWidth = Math.max(1.5, 3.5 * Math.sqrt(k));
+  const T = p => { const [x, y] = rot(p[0] * k, p[1] * k, ang); return [base.x + x, base.y + y]; };
+  f.parts.forEach(part => { poly(part.pts.map(T)); g.fillStyle = part.col; g.fill(); g.stroke(); });
+  if (rachis > 0) { g.globalAlpha = alpha * rachis; poly([T([0, 0]), T([0, f.ey + 62])], false); g.stroke(); }
+  g.restore();
+}
+
+// ロゴの c を測る
+let LOGO = null;
+function measureLogo() {
+  const fs = 190, c = document.createElement('canvas'); c.width = 600; c.height = 400;
+  const x = c.getContext('2d'); x.font = font(500, fs, SANS); x.fillStyle = '#000'; x.fillText('c', 100, 280);
+  const d = x.getImageData(0, 0, 600, 400).data;
+  let x0 = 600, x1 = 0, y0 = 400, y1 = 0;
+  for (let yy = 0; yy < 400; yy++) for (let xx = 0; xx < 600; xx++) if (d[(yy * 600 + xx) * 4 + 3] > 128) { x0 = Math.min(x0, xx); x1 = Math.max(x1, xx); y0 = Math.min(y0, yy); y1 = Math.max(y1, yy); }
+  const cyRel = (y0 + y1) / 2 - 280, cxRel = (x0 + x1) / 2 - 100, ro = (y1 - y0) / 2;
+  let sw = 0; const row = Math.round((y0 + y1) / 2); for (let xx = x0; xx < x1; xx++) { if (d[(row * 600 + xx) * 4 + 3] > 128) sw++; else break; }
+  g.font = font(500, fs, SANS);
+  const word = 'crack', ww = g.measureText(word).width, left = 540 - ww / 2, base = 1010;
+  const letters = [...word].map((ch, i) => ({ ch, x: left + g.measureText(word.slice(0, i)).width }));
+  LOGO = { fs, base, left, letters, cx: left + cxRel, cy: base + cyRel, r: ro - sw / 2, sw };
+}
+
+// ---------------------------------------------------------------------------
+// 1フレーム
+// ---------------------------------------------------------------------------
+function renderAt(t) {
+  resetT(); g.globalAlpha = 1; g.fillStyle = BG; g.fillRect(0, 0, W, H);
+  g.textBaseline = 'alphabetic';
+
+  // 1. 問い -----------------------------------------------------------------
+  if (t < 6.4) {
+    const out = E.inOut(prog(t, 5.6, 0.5));
+    g.font = font(700, 66); g.fillStyle = INK; g.textAlign = 'left';
+    const n = TYPE_T.filter(x => x <= t).length;
+    const s1 = Q1.slice(0, Math.min(n, Q1.length)), s2 = Q2.slice(0, Math.max(0, n - Q1.length));
+    const x1 = (W - g.measureText(Q1).width) / 2, x2 = (W - g.measureText(Q2).width) / 2;
+    const y1 = 900 - out * 60, y2 = 1004 - out * 60;
+    g.globalAlpha = 1 - out;
+    g.fillText(s1, x1, y1); g.fillText(s2, x2, y2);
+    g.globalAlpha = 1;
+    // カーソル：打ち終わったら点滅したまま止まる。最後は点になって中央へ
+    let cx, cy;
+    if (n <= Q1.length) { cx = x1 + g.measureText(s1).width + 8; cy = y1; } else { cx = x2 + g.measureText(s2).width + 8; cy = y2; }
+    const blinkOn = t < TYPE_END + 0.3 || Math.floor((t - TYPE_END - 0.3) / 0.5) % 2 === 0;
+    const m = E.inOut(prog(t, 5.7, 0.45));
+    if (m > 0) {
+      const px = lerp(cx + 3, 540, m), py = lerp(cy - 24, GRID.cy, m);
+      const w = lerp(6, 44, m), h = lerp(74, 44, m);
+      g.fillStyle = INK; rrect(px - w / 2, py - h / 2, w, h, lerp(1, 22, m)); g.fill();
+    } else if (blinkOn) {
+      g.fillStyle = INK; g.fillRect(cx, cy - 60, 6, 74);
+    }
+  }
+
+  // 2. 2% -------------------------------------------------------------------
+  if (t >= 5.9 && t < 12.6) drawGrid(t);
+
+  // 3〜6. 主人公の世界 ------------------------------------------------------
+  if (t >= 11.5 && t < 46.8) drawWorld(t);
+
+  // 7. 羽 ---------------------------------------------------------------------
+  if (t >= 46.0 && t < 54.4) drawFeathers(t);
+
+  // 8. 締め -------------------------------------------------------------------
+  const white = E.inOut(prog(t, 53.8, 0.5));
+  if (white > 0) { resetT(); g.globalAlpha = white; g.fillStyle = BG; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
+  if (t >= 54.3) drawEnding(t);
+}
+
+const GRID = { n: 10, sp: 78, r: 22, cx: 540, cy: 1000 };
+const LIT = [[2, 6], [7, 2]];
+const GRAY_ORDER = (() => { const r = rng(5), idx = []; for (let i = 0; i < 100; i++) { const rr = Math.floor(i / 10), cc = i % 10; if (!LIT.some(([a, b]) => a === rr && b === cc)) idx.push(i); } for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; } const m = {}; idx.forEach((v, k) => m[v] = k); return m; })();
+const dotPos = (rr, cc) => [GRID.cx + (cc - 4.5) * GRID.sp, GRID.cy + (rr - 4.5) * GRID.sp];
+
+function drawGrid(t) {
+  resetT();
+  const fade = 1 - E.inOut(prog(t, 11.1, 0.6));
+  const maxD = Math.hypot(4.5, 4.5);
+  for (let i = 0; i < 100; i++) {
+    const rr = Math.floor(i / 10), cc = i % 10, [x, y] = dotPos(rr, cc);
+    const li = LIT.findIndex(([a, b]) => a === rr && b === cc);
+    const ap = E.back(prog(t, 6.0 + Math.hypot(rr - 4.5, cc - 4.5) / maxD * 0.75, 0.38));
+    if (ap <= 0) continue;
+    let r = GRID.r * ap, col = INK, alpha = fade;
+    if (li < 0) {
+      col = mixc(INK, LIGHT, E.inOut(prog(t, 7.4 + GRAY_ORDER[i] / 98 * 1.3, 0.35)));
+    } else {
+      const glow = E.out(prog(t, 8.9, 0.4));
+      r *= 1 + 0.18 * glow;
+      if (li === 0) {
+        // 主人公の頭になる点
+        alpha = 1;
+        const m = E.inOut(prog(t, 11.5, 0.8));
+        const head = toScreen(CAMS.s3, FEET[0] + HEAD_LOCAL[0], FEET[1] + HEAD_LOCAL[1]);
+        if (m > 0) { const nx = lerp(x, head[0], m), ny = lerp(y, head[1], m); r = lerp(r, HEAD_R * CAMS.s3.s, m); g.globalAlpha = 1; g.fillStyle = INK; circle(nx, ny, r); g.fill(); continue; }
+      }
+      if (glow > 0 && t < 11.4) {
+        for (const off of [0, 0.45]) {
+          const p = ((t - 8.9 + off) % 0.9) / 0.9;
+          g.globalAlpha = alpha * (1 - p) * glow; g.strokeStyle = INK; g.lineWidth = 3; circle(x, y, r + 8 + p * 34); g.stroke();
+        }
+      }
+    }
+    g.globalAlpha = alpha; g.fillStyle = col; circle(x, y, r); g.fill();
+  }
+  g.globalAlpha = 1;
+  // 文字
+  const ta = E.out(prog(t, 9.2, 0.6)) * fade;
+  if (ta > 0) {
+    const dy = (1 - ta) * 24;
+    g.globalAlpha = ta; g.fillStyle = INK; g.textAlign = 'center';
+    g.font = font(500, 46); g.fillText('答えられたのは、', 540, 330 + dy);
+    // 約 2 % を一続きで真ん中に
+    const parts = [['約', font(700, 92)], ['2', font(500, 200, SANS)], ['%', font(500, 120, SANS)]];
+    const ws = parts.map(([s, f]) => { g.font = f; return g.measureText(s).width; });
+    let x = 540 - (ws[0] + ws[1] + ws[2] + 16) / 2;
+    g.textAlign = 'left';
+    parts.forEach(([s, f], k) => { g.font = f; g.fillText(s, x, 540 + dy); x += ws[k] + (k === 0 ? 16 : 0); });
+    g.globalAlpha = 1;
+  }
+}
+
+function drawWorld(t) {
+  const c = camAt(t);
+  applyCam(c);
+  const leave = 1 - E.inOut(prog(t, 46.0, 0.6));        // 羽に変わる前に消える
+  // 駅：描き進め → 寿司屋のあいだはそのまま → 町では薄く
+  const stA = (t < 28.4 ? 1 : lerp(1, 0.45, E.inOut(prog(t, 28.4, 0.6)))) * (t > 42 ? lerp(0.45, 0.8, E.inOut(prog(t, 42, 1))) : 1) * leave;
+  // 町（42秒から立ち上がる。駅の後ろに建つので先に描く。46.3秒からは羽への変形で描く）
+  if (t >= 42.0 && t < 46.3) drawTown(t);
+  drawStation(prog(t, 12.3, 1.9) * 1.6, stA);
+
+  // 電車
+  if (t >= 42.6 && t < 46.6) {
+    const x = lerp(-1700, 2300, prog(t, 42.6, 3.8));
+    g.save(); g.globalAlpha = leave * E.out(prog(t, 42.6, 0.4)); g.lineWidth = 6; g.strokeStyle = INK; g.lineJoin = 'round';
+    for (let k = 0; k < 3; k++) {
+      const x0 = x - k * 340;
+      rrect(x0 - 320, 1262, 320, 112, k === 0 ? 40 : 14); g.fillStyle = VIVID.blue; g.fill(); g.stroke();
+      g.fillStyle = BG; for (let w = 0; w < 4; w++) { rrect(x0 - 296 + w * 72, 1284, 52, 36, 6); g.fill(); g.stroke(); }
+      circle(x0 - 250, 1388, 14); g.fillStyle = BG; g.fill(); g.stroke(); circle(x0 - 70, 1388, 14); g.fill(); g.stroke();
+    }
+    g.restore();
+  }
+
+  // 主人公
+  const bodyIn = E.out(prog(t, 12.2, 0.7));
+  if (bodyIn > 0 && leave > 0) {
+    g.save(); g.globalAlpha = leave;
+    // 頭は 2% の点が飛んできて引き継ぐ
+    const noHead = t < 12.3;
+    g.globalAlpha = leave * bodyIn;
+    drawPerson(FEET[0], FEET[1] + (1 - bodyIn) * 30, 1, t, { noHead: true });
+    g.globalAlpha = leave;
+    if (!noHead) { g.fillStyle = INK; circle(FEET[0] + HEAD_LOCAL[0], FEET[1] + HEAD_LOCAL[1], HEAD_R); g.fill(); }
+    g.restore();
+  }
+
+  // 寿司屋
+  if (t >= 19.3 && t < 28.6) drawSushiScene(t);
+
+  resetT();
+  // 5. 聞きに行く
+  if (t >= 28.4 && t < 40.2) drawPartners(t);
+  // 名札（14.4秒〜）
+  if (t >= 14.3) drawTag(t, c, leave);
+}
+
+function drawTown(t) {
+  g.save(); g.lineJoin = 'round';
+  TOWN.forEach(s => {
+    const rise = E.out(prog(t, 42.2 + s.order * 1.1, 0.7));
+    if (rise <= 0) return;
+    const pts = s.pts.map(([x, y]) => [x, 1250 - (1250 - y) * rise]);
+    const fillK = E.inOut(prog(t, 42.5 + s.order * 1.1, 0.7));
+    poly(pts);
+    g.fillStyle = fillK > 0 ? mixc('#FFFFFF', s.col, fillK) : BG; g.fill();
+    g.lineWidth = 6; g.strokeStyle = INK; g.stroke();
+    // 窓・幹
+    g.globalAlpha = rise;
+    if (s.kind === 'tower') {
+      g.fillStyle = BG; g.strokeStyle = INK; g.lineWidth = 4;
+      const top = 1250 - (1250 - s.top) * rise;
+      for (let yy = top + 70; yy < 1210; yy += 70) for (const dx of [-s.w / 4, s.w / 4]) { rrect(s.x + dx - 14, yy, 28, 34, 3); g.fill(); g.stroke(); }
+    } else if (s.kind === 'tree') {
+      g.lineWidth = 8; g.strokeStyle = INK; poly([[s.x, 1250], [s.x, 1250 - (1250 - s.cy - s.r) * rise]], false); g.stroke();
+      const cy = 1250 - (1250 - s.cy) * rise;
+      poly(s.pts.map(([x, y]) => [x, cy + (y - s.cy)])); g.fillStyle = mixc('#FFFFFF', s.col, fillK); g.fill(); g.lineWidth = 6; g.stroke();
+    }
+    g.globalAlpha = 1;
+  });
+  // 太陽
+  const sun = E.back(prog(t, 43.2, 0.6));
+  if (sun > 0) { circle(1240, 420, 80 * sun); g.fillStyle = VIVID.yellow; g.fill(); g.lineWidth = 6; g.strokeStyle = INK; g.stroke(); }
+  g.restore();
+}
+
+function drawSushiScene(t) {
+  const cx = X0 + 540, chefX = cx + 170, sushiX = cx - 100;
+  g.save();
+  drawChef(chefX, t);
+  // カウンター
+  g.lineWidth = 5; g.strokeStyle = INK; g.fillStyle = BG;
+  g.fillRect(X0 + 80, 1100, 920, 320); poly([[X0 + 80, 1100], [X0 + 1000, 1100]], false); g.stroke();
+  g.strokeStyle = GRAY; g.lineWidth = 3; poly([[X0 + 80, 1130], [X0 + 1000, 1130]], false); g.stroke();
+  for (let x = X0 + 140; x < X0 + 1000; x += 160) { poly([[x, 1130], [x, 1400]], false); g.stroke(); }
+  drawSushi(sushiX, 1.4);
+  // 「？」
+  const q = E.back(prog(t, 21.2, 0.45));
+  if (q > 0) {
+    g.save(); g.translate(chefX + 96, 790); g.rotate(Math.sin((t - 21.2) * 5) * 0.08 * (1 - prog(t, 21.2, 2))); g.scale(q, q);
+    g.fillStyle = INK; g.font = font(500, 120, SANS); g.textAlign = 'center'; g.fillText('?', 0, 40); g.restore();
+  }
+  // 外から星が3つ
+  const targets = [[sushiX - 84, 960], [sushiX, 936], [sushiX + 84, 960]];
+  const froms = [[sushiX - 1100, 640], [sushiX, 160], [sushiX + 1100, 700]];
+  STAR_LAND.forEach((tl, i) => {
+    const p = prog(t, tl - 0.8, 0.8);
+    if (p <= 0) return;
+    const e = E.inOut(p);
+    const [fx, fy] = froms[i], [tx, ty] = targets[i];
+    const mx = (fx + tx) / 2 + (i === 1 ? 180 : 0), my = Math.min(fy, ty) - 240;
+    const x = (1 - e) * (1 - e) * fx + 2 * (1 - e) * e * mx + e * e * tx;
+    const y = (1 - e) * (1 - e) * fy + 2 * (1 - e) * e * my + e * e * ty;
+    const land = E.back(prog(t, tl, 0.35));
+    const r = 30 * (p < 1 ? 1 : lerp(1.35, 1, land));
+    star(x, y, r, (1 - e) * Math.PI * 2);
+    g.fillStyle = BG; g.fill(); g.lineWidth = 4.5; g.strokeStyle = INK; g.lineJoin = 'round'; g.stroke();
+  });
+  // 言葉
+  const ta = E.out(prog(t, 25.0, 0.6));
+  if (ta > 0) {
+    g.globalAlpha = ta; g.fillStyle = INK; g.textAlign = 'center'; g.font = font(700, 50);
+    g.fillText('価値は、外の人が知っている', cx, 600 + (1 - ta) * 20);
+    g.globalAlpha = 1;
+  }
+  g.restore();
+}
+
+function drawPartners(t) {
+  const out = 1 - E.inOut(prog(t, 39.4, 0.6));
+  // 見出し
+  const ca = E.out(prog(t, 28.6, 0.6)) * (1 - E.inOut(prog(t, 38.3, 0.5)));
+  if (ca > 0) {
+    g.globalAlpha = ca; g.fillStyle = INK; g.textAlign = 'left';
+    g.font = font(500, 54, SANS); const w1 = g.measureText('crack').width;
+    g.font = font(700, 50); const w2 = g.measureText('が、聞きに行く').width;
+    const x = 540 - (w1 + w2 + 6) / 2;
+    g.font = font(500, 54, SANS); g.fillText('crack', x, 340 + (1 - ca) * 16);
+    g.font = font(700, 50); g.fillText('が、聞きに行く', x + w1 + 6, 340 + (1 - ca) * 16);
+    g.globalAlpha = 1;
+  }
+  // 円
+  g.save(); g.globalAlpha = out; g.strokeStyle = INK; g.lineWidth = 3; g.setLineDash([2, 14]); g.lineCap = 'round';
+  const cr = E.inOut(prog(t, 28.6, 1.0));
+  if (cr > 0) { g.beginPath(); g.arc(RING.x, RING.y, RING.r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * cr); g.stroke(); }
+  g.setLineDash([]); g.restore();
+  PARTNERS.forEach((p, i) => {
+    g.save(); g.globalAlpha = out;
+    drawIcon(p, E.back(prog(t, 29.4 + i * 0.4, 0.4)));
+    g.restore();
+    // 吹き出し → 38.2秒から名札へ吸い込まれる
+    const bk = E.back(prog(t, BUBBLE_T[i], 0.4));
+    const a0 = ABSORB_T[i];
+    if (t < a0) drawBubble(p, bk);
+    else {
+      const e = E.inOut(prog(t, a0, 0.6));
+      const tag = [540, 865];
+      const mx = (p.bub[0] + tag[0]) / 2 + (i - 1) * 120, my = Math.min(p.bub[1], tag[1]) - 160;
+      const x = (1 - e) * (1 - e) * p.bub[0] + 2 * (1 - e) * e * mx + e * e * tag[0];
+      const y = (1 - e) * (1 - e) * p.bub[1] + 2 * (1 - e) * e * my + e * e * tag[1];
+      if (e < 1) drawBubble(p, 1, 1 - E.in(e) * 0.6, [x, y], lerp(1, 0.12, e));
+    }
+  });
+}
+
+function drawTag(t, c, leave) {
+  const pop = E.back(prog(t, 14.4, 0.45));
+  if (pop <= 0) return;
+  // 主人公の頭の上に付いている位置
+  const anchored = toScreen(c, 540, 900);
+  let k = c.s * pop, [x, y] = anchored;
+  // 吸い込むたびに少し跳ねる
+  ABSORB_T.forEach(a => { const p = prog(t, a + 0.6, 0.3); if (p > 0 && p < 1) k *= 1 + 0.08 * Math.sin(p * Math.PI); });
+  // 書き換え後は画面の上の方で大きく
+  const fl = E.inOut(prog(t, 42.0, 1.6));
+  if (fl > 0) { x = lerp(x, 540, fl); y = lerp(y, 488, fl); k = lerp(k, 1.32, fl); }
+  const wK = E.inOut(prog(t, ASSEMBLE_T0, 0.9));
+  const w = lerp(TW_OLD, TW_NEW, wK);
+  const fillK = E.out(prog(t, BURST_T, 0.4));
+  g.save(); g.globalAlpha = leave;
+  // 浮いたあとは主人公とのあいだを細い線でつなぐ
+  if (fl > 0) {
+    const head = toScreen(c, 540, 958);
+    g.strokeStyle = INK; g.lineWidth = 2.5; g.setLineDash([3, 9]); g.globalAlpha = leave * fl;
+    poly([[x, y + (TAG_H / 2 + 18) * k], head], false); g.stroke(); g.setLineDash([]); g.globalAlpha = leave;
+  }
+  drawTagFrame(x, y, w, k, fillK);
+  g.translate(x, y); g.scale(k, k);
+  if (t < CRUMBLE_T0) {
+    g.fillStyle = INK; g.font = font(700, TAG_FS); g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(TAG_OLD, 10, 2);
+  } else if (t < BURST_T) {
+    // 1文字ずつ崩れ、色の粒になって組み変わる
+    PARTS.forEach(p => {
+      const tc = CRUMBLE_T0 + p.ch * 0.14;
+      const dt = Math.max(0, t - tc);
+      const fall = (tt) => [p.a[0] + 10 + p.vx * tt, p.a[1] + 2 + p.vy * tt + 0.5 * 560 * tt * tt];
+      const ts = ASSEMBLE_T0 + (p.b[0] + 300) / 600 * 0.35 + p.d;
+      let px, py, col;
+      if (t < ts) {
+        [px, py] = t < tc ? [p.a[0] + 10, p.a[1] + 2] : fall(dt);
+        col = t < tc ? INK : mixc(INK, p.col, clamp(dt / 0.25));
+      } else {
+        const st = fall(Math.max(0, ts - tc));
+        const e = E.inOut(prog(t, ts, 0.5));
+        px = lerp(st[0], p.b[0] + 10, e); py = lerp(st[1], p.b[1] + 2, e) - Math.sin(e * Math.PI) * 60;
+        col = p.col;
+      }
+      g.fillStyle = col; g.fillRect(px - 1.5, py - 1.5, 3, 3);
+    });
+  } else {
+    g.fillStyle = mixc(VIVID.violet, '#FFFFFF', fillK); g.font = font(700, TAG_FS); g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(TAG_NEW, 10, 2);
+  }
+  g.restore();
+  g.textBaseline = 'alphabetic';
+}
+
+function drawFeathers(t) {
+  resetT();
+  const flyStart = 50.0;
+  const fanMove = E.inOut(prog(t, flyStart, 0.8));
+  const base = { x: FAN.x, y: lerp(FAN.y, 840, fanMove) }, fk = lerp(1, 0.6, fanMove);
+  const breathe = 0.03 * Math.sin((t - 48.6) * Math.PI) * clamp((t - 48.6) / 0.5);
+  // 見出し
+  const ca = E.out(prog(t, 47.2, 0.6)) * (1 - E.inOut(prog(t, 53.4, 0.4)));
+  if (ca > 0) { g.globalAlpha = ca; g.fillStyle = INK; g.textAlign = 'center'; g.font = font(700, 50); g.fillText('誇りが、かたちになる', 540, 340 + (1 - ca) * 16); g.globalAlpha = 1; }
+
+  if (t < 48.8) {
+    // 町の形が集まって羽になる
+    g.lineJoin = 'round';
+    MORPH.forEach(m => {
+      const e = E.inOut(prog(t, 46.3 + m.order, 1.6));
+      const swirl = Math.sin(e * Math.PI) * 0.45 * (m.f.j < 4 ? -1 : 1);
+      const P = m.A.map((a, i) => {
+        let x = lerp(a[0], m.B[i][0], e), y = lerp(a[1], m.B[i][1], e);
+        const [rx, ry] = rot(x - 540, y - 1000, swirl); return [540 + rx, 1000 + ry];
+      });
+      poly(P); g.fillStyle = mixc(m.colA, m.colB, e); g.fill(); g.lineWidth = lerp(3, 3.5, e); g.strokeStyle = INK; g.stroke();
+    });
+    // 羽の軸
+    const ra = E.out(prog(t, 48.0, 0.6));
+    if (ra > 0) { g.globalAlpha = ra; g.strokeStyle = INK; g.lineWidth = 3.5; FEATHERS.forEach(f => { poly([fanPoint(f, [0, 0]), fanPoint(f, [0, f.ey + 62])], false); g.stroke(); }); g.globalAlpha = 1; }
+    return;
+  }
+  if (t >= flyStart) drawMockups(t);
+  FEATHERS.forEach(f => {
+    const ts = FEATHER_T[f.j];
+    const m = MOCK[f.j % 3], slot = Math.floor(f.j / 3);
+    const tgtAng = (m.rot || 0) + (slot - 1) * 0.36;
+    if (t < ts) { drawFeather(f, base, f.ang * (1 + 0) + breathe, fk); return; }
+    const e = E.inOut(prog(t, ts, 0.62));
+    const from = fanPoint(f, [0, 0], base, fk);
+    const x = lerp(from[0], m.land.x, e), y = lerp(from[1], m.land.y, e) - Math.sin(e * Math.PI) * 140;
+    const k = lerp(fk, m.k, e), ang = lerp(f.ang + breathe, tgtAng, e);
+    const land = prog(t, ts + 0.62, 0.25);
+    drawFeather(f, { x, y }, ang, k * (land > 0 && land < 1 ? 1 + 0.12 * Math.sin(land * Math.PI) : 1), 1, 1);
+  });
+}
+
+function drawEnding(t) {
+  resetT();
+  const L1 = '自社を自慢できない社員を、', L2a = 'ゼロ', L2b = 'に。';
+  const fadeRest = 1 - E.inOut(prog(t, 56.6, 0.5));
+  g.textAlign = 'left'; g.fillStyle = INK;
+  g.font = font(700, 58);
+  const w1 = g.measureText(L1).width; let x = 540 - w1 / 2;
+  [...L1].forEach((ch, i) => {
+    const a = E.out(prog(t, 54.4 + i * 0.05, 0.4)) * fadeRest;
+    g.globalAlpha = a; g.fillText(ch, x, 830 + (1 - E.out(prog(t, 54.4 + i * 0.05, 0.4))) * 20); x += g.measureText(ch).width;
+  });
+  g.font = font(900, 124);
+  const wa = g.measureText(L2a).width, wb = g.measureText(L2b).width;
+  const x2 = 540 - (wa + wb) / 2;
+  const a2 = E.out(prog(t, 55.2, 0.5));
+  const zeroFade = 1 - E.inOut(prog(t, 56.6, 0.4));
+  g.globalAlpha = a2 * zeroFade; g.fillText(L2a, x2, 1010 + (1 - a2) * 24);
+  g.globalAlpha = a2 * fadeRest; g.fillText(L2b, x2 + wa, 1010 + (1 - a2) * 24);
+  g.globalAlpha = 1;
+  // ゼロ → 0 の輪 → ロゴの c
+  const zx = x2 + wa / 2, zy = 1010 - 44;
+  const ringIn = E.out(prog(t, 56.6, 0.5));
+  if (ringIn > 0) {
+    const mv = E.inOut(prog(t, 57.1, 0.9));
+    const R0 = 96, SW0 = 22;
+    const cx = lerp(zx, LOGO.cx, mv), cy = lerp(zy, LOGO.cy, mv);
+    const r = lerp(R0 * lerp(0.4, 1, ringIn), LOGO.r, mv), sw = lerp(SW0, LOGO.sw, mv);
+    const gap = 0.78 * E.inOut(prog(t, 57.5, 0.6));
+    const swap = E.inOut(prog(t, 58.2, 0.25));
+    g.globalAlpha = ringIn * (1 - swap); g.strokeStyle = INK; g.lineWidth = sw; g.lineCap = 'butt';
+    g.beginPath(); g.arc(cx, cy, r, gap, Math.PI * 2 - gap); g.stroke();
+    // rack
+    g.font = font(500, LOGO.fs, SANS); g.fillStyle = INK;
+    LOGO.letters.forEach((l, i) => {
+      const a = i === 0 ? swap : E.out(prog(t, 57.8 + (i - 1) * 0.1, 0.35));
+      if (a <= 0) return;
+      g.globalAlpha = a; g.fillText(l.ch, l.x, LOGO.base + (i === 0 ? 0 : (1 - a) * 18));
+    });
+    g.globalAlpha = 1;
+  }
+}
+
+// ---------------------------------------------------------------------------
+window.TOTAL = TOTAL;
+window.CUTS = CUTS;
+window.seek = t => renderAt(t);
+const FACES = ["400 40px 'Zen Kaku Gothic New'", "500 40px 'Zen Kaku Gothic New'", "700 40px 'Zen Kaku Gothic New'", "900 40px 'Zen Kaku Gothic New'", "400 40px 'Jost'", "500 40px 'Jost'"];
+window.__ready = Promise.all(FACES.map(f => document.fonts.load(f, 'あア0crack%'))).then(() => document.fonts.ready).then(() => {
+  TW_OLD = tagWidth(TAG_OLD); TW_NEW = tagWidth(TAG_NEW);
+  buildParticles(); buildMorph(); measureLogo();
+  return true;
+});
+if (!/render/.test(location.search)) {
+  const t0 = performance.now();
+  const fit = () => { const s = Math.min(innerWidth / 1080, innerHeight / 1920); cv.style.width = 1080 * s + 'px'; cv.style.height = 1920 * s + 'px'; };
+  fit(); addEventListener('resize', fit);
+  window.__ready.then(() => { const loop = () => { renderAt(((performance.now() - t0) / 1000) % TOTAL); requestAnimationFrame(loop); }; loop(); });
+}
+</script>
+</body>
+</html>

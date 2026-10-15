@@ -3,7 +3,8 @@
 //   node render.mjs --stills 3,12.5 指定した秒のフレームを PNG で保存する
 //   node render.mjs --range 50,60   指定した区間だけ out/preview.mp4 に書き出す
 //   --page mojicut.html を付けると文字カット版を書き出す（out/crack_reel_mojicut.mp4）
-// out/bgm_chic.wav / out/bgm_mojicut.wav（music.py で作る）があれば音声として入れる
+//   --page motion.html でモーショングラフィックス版（out/crack_reel_motion.mp4）
+// out/bgm_chic.wav / out/bgm_<ページ名>.wav（music.py で作る）があれば音声として入れる
 import { createRequire } from 'node:module';
 import { execSync, spawn } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -59,6 +60,8 @@ function encoder(file, extra = []) {
 
 if (stillsArg) {
   const { browser, page, shoot } = await openPage();
+  const sc = await page.evaluate(() => window.CUTS ?? null);
+  if (sc) fs.writeFileSync(path.join(outDir, `${path.basename(pageFile, '.html')}_cuts.json`), JSON.stringify({ total: await page.evaluate(() => window.TOTAL), cuts: sc }));
   for (const s of stillsArg.split(',').map(Number)) {
     await page.evaluate(t => window.seek(t), s);
     fs.writeFileSync(path.join(outDir, `still_${baseName}_${s.toFixed(2)}.png`), await shoot());
