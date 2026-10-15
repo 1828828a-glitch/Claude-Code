@@ -1,29 +1,35 @@
 // 使い方:
 //   node render.js preview 3.5 20 46.8 ...   指定秒のフレームを frames/ に PNG で保存
 //   node render.js video out.mp4 [fps] [workers]   全編を MP4 に書き出す
+//   PAGE=reel.html node render.js ...   別のページ（縦型リール版など）を対象にする
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 let chromium;
 try { ({ chromium } = require('playwright')); } catch { ({ chromium } = require('/opt/node22/lib/node_modules/playwright')); }
 
-const PAGE = 'file://' + path.resolve(__dirname, 'index.html');
+const PAGE_FILE = process.env.PAGE || 'index.html';
+const PAGE = 'file://' + path.resolve(__dirname, PAGE_FILE);
+const TMP = path.join(__dirname, 'frames', path.basename(PAGE_FILE, '.html'));
 
 async function openPage(browser) {
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
   page.on('pageerror', e => console.error('pageerror:', e.message));
   await page.goto(PAGE);
   await page.waitForFunction(() => window.__ready === true, null, { timeout: 60000 });
+  // 画面サイズはページ側の window.STAGE で決める（未指定なら 1920x1080）
+  const stage = await page.evaluate(() => window.STAGE || { w: 1920, h: 1080 });
+  if (stage.w !== 1920 || stage.h !== 1080) await page.setViewportSize({ width: stage.w, height: stage.h });
   return page;
 }
 
 async function preview(times) {
   const browser = await chromium.launch();
   const page = await openPage(browser);
-  fs.mkdirSync(path.join(__dirname, 'frames'), { recursive: true });
+  fs.mkdirSync(TMP, { recursive: true });
   for (const t of times) {
     await page.evaluate(t => window.seek(t), t);
-    const f = path.join(__dirname, 'frames', `t${String(t).padStart(6, '0')}.png`);
+    const f = path.join(TMP, `t${String(t).padStart(6, '0')}.png`);
     await page.screenshot({ path: f });
     console.log(f);
   }
@@ -57,7 +63,7 @@ async function video(out, fps = 30, workers = 4) {
   await browser.close();
   const total = Math.round(dur * fps);
   const per = Math.ceil(total / workers);
-  const tmp = path.join(__dirname, 'frames');
+  const tmp = TMP;
   fs.mkdirSync(tmp, { recursive: true });
   const segs = [];
   for (let i = 0; i < workers; i++) {

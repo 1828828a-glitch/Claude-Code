@@ -23,6 +23,31 @@ TELのWebサイトで使われている配色（シアン #00a9e0、グリーン
 | 2:07 | 11 ガバナンス体制と年1回の見直しサイクル |
 | 2:27 | クロージングと出典 |
 
+## リール版
+
+`tel_ai_policy_reel.mp4` は Instagram リールや TikTok、YouTube ショート向けの縦型版です（1080×1920、30fps、53秒）。
+1コマ目にフックの一文を出しているので、そのままカバー画像に使えます。原則は1項目1小節（2.4秒）で切り替わり、BGMは100BPMでその頭にそろえています。
+下から約420pxと右端120pxはアプリのUIが重なるので、文字や図はその外に置きました。
+
+| 時間 | 内容 |
+| --- | --- |
+| 0:00 | フック「AIのルールを決めた。」 |
+| 0:02 | タイトル |
+| 0:05 | AIの可能性とリスク |
+| 0:10 | 11の原則の一覧 |
+| 0:12 | 01〜05 |
+| 0:24 | 06 禁止対象のAI（暗転） |
+| 0:31 | 07〜11 |
+| 0:43 | 締めのメッセージ |
+| 0:48 | エンドカードと出典 |
+
+```bash
+PAGE=reel.html node render.js preview 0 13.4 27.9
+PAGE=reel.html node render.js video reel_noaudio.mp4
+python3 make_reel_audio.py reel_bgm.wav
+ffmpeg -i reel_noaudio.mp4 -i reel_bgm.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart tel_ai_policy_reel.mp4
+```
+
 ## 作り直すとき
 
 ```bash
