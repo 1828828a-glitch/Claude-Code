@@ -2,6 +2,8 @@
 //   node render.mjs                 動画を書き出す（--workers 3 で並列数を変えられる）
 //   node render.mjs --stills 3,12.5 指定した秒のフレームを PNG で保存する
 //   node render.mjs --range 50,60   指定した区間だけ out/preview.mp4 に書き出す
+//   --page mojicut.html を付けると文字カット版を書き出す（out/crack_reel_mojicut.mp4）
+// out/bgm_chic.wav / out/bgm_mojicut.wav（music.py で作る）があれば音声として入れる
 import { createRequire } from 'node:module';
 import { execSync, spawn } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -21,6 +23,8 @@ const clip = { x: 0, y: 0, width: 1080, height: 1920, scale: 1 };
 const args = process.argv.slice(2);
 const opt = name => (args.includes(name) ? args[args.indexOf(name) + 1] : null);
 const stillsArg = opt('--stills');
+const pageFile = opt('--page') ?? 'index.html';
+const baseName = pageFile === 'index.html' ? 'crack_reel' : `crack_reel_${path.basename(pageFile, '.html')}`;
 const range = opt('--range')?.split(',').map(Number);
 const workers = Number(opt('--workers') ?? Math.max(1, Math.min(3, os.cpus().length - 1)));
 
@@ -30,7 +34,9 @@ const executablePath = fs.existsSync('/opt/pw-browsers/chromium-1194/chrome-linu
 async function openPage() {
   const browser = await chromium.launch({ executablePath });
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
-  await page.goto(pathToFileURL(path.join(here, 'index.html')).href + '?render');
+  page.on('console', m => { if (m.type() === 'warning' || m.type() === 'error') console.log('[page]', m.text()); });
+  page.on('pageerror', e => console.log('[pageerror]', e.message));
+  await page.goto(pathToFileURL(path.join(here, pageFile)).href + '?render');
   await page.evaluate(() => window.__ready);
   // Playwright の screenshot は PNG だと遅いので CDP で直接撮る
   const cdp = await page.context().newCDPSession(page);
@@ -55,7 +61,7 @@ if (stillsArg) {
   const { browser, page, shoot } = await openPage();
   for (const s of stillsArg.split(',').map(Number)) {
     await page.evaluate(t => window.seek(t), s);
-    fs.writeFileSync(path.join(outDir, `still_${s.toFixed(2)}.png`), await shoot());
+    fs.writeFileSync(path.join(outDir, `still_${baseName}_${s.toFixed(2)}.png`), await shoot());
   }
   console.log(`stills saved (total ${(await page.evaluate(() => window.TOTAL)).toFixed(2)}s)`);
   await browser.close();
@@ -64,6 +70,9 @@ if (stillsArg) {
 
 const probe = await openPage();
 const total = await probe.page.evaluate(() => window.TOTAL);
+// 文字カット版はカットの時刻を書き出しておく（music.py が効果音の位置に使う）
+const cuts = await probe.page.evaluate(() => window.CUTS ?? null);
+if (cuts) fs.writeFileSync(path.join(outDir, `${path.basename(pageFile, '.html')}_cuts.json`), JSON.stringify({ total, cuts }));
 await probe.browser.close();
 const first = range ? Math.floor(range[0] * FPS) : 0;
 const frames = Math.ceil((range ? range[1] : total) * FPS) - first;
@@ -89,11 +98,15 @@ await Promise.all(Array.from({ length: workers }, async (_, w) => {
 // つないで無音の音声トラックを足す
 const list = path.join(tmp, 'list.txt');
 fs.writeFileSync(list, Array.from({ length: workers }, (_, w) => `file '${path.join(tmp, `seg${w}.mp4`)}'`).join('\n'));
-const mp4 = path.join(outDir, range ? 'preview.mp4' : 'crack_reel.mp4');
+const mp4 = path.join(outDir, range ? `preview_${baseName}.mp4` : `${baseName}.mp4`);
+// music.py の BGM があれば入れる。なければ無音
+const bgm = path.join(outDir, pageFile === 'index.html' ? 'bgm_chic.wav' : `bgm_${path.basename(pageFile, '.html')}.wav`);
+const audioIn = fs.existsSync(bgm)
+  ? `${range ? `-ss ${range[0]} ` : ''}-i "${bgm}"`
+  : '-f lavfi -i anullsrc=channel_layout=stereo:sample_rate=48000';
 execSync([
-  'ffmpeg -y -loglevel error -f concat -safe 0', `-i "${list}"`,
-  '-f lavfi -i anullsrc=channel_layout=stereo:sample_rate=48000',
-  '-map 0:v -map 1:a -shortest -c:v copy -c:a aac -b:a 128k -movflags +faststart', `"${mp4}"`,
+  'ffmpeg -y -loglevel error -f concat -safe 0', `-i "${list}"`, audioIn,
+  '-map 0:v -map 1:a -shortest -c:v copy -c:a aac -b:a 192k -ar 48000 -movflags +faststart', `"${mp4}"`,
 ].join(' '));
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(`done: ${mp4} (${total.toFixed(2)}s, ${frames} frames, ${((Date.now() - t0) / 1000).toFixed(0)}s)`);

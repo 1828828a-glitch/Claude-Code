@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>crack reel 文字カット版</title>
+<link rel="stylesheet" href="fonts/local.css">
+<style>
+:root{
+  --light:#F4EFE7;
+  --ink:#1A1918;
+  --red:#A11B33;
+  --thin:'Noto Serif JP', serif;
+  --bold:'Shippori Mincho B1', serif;
+  --mincho:'Shippori Mincho', serif;
+  --serif:'Cormorant Garamond', serif;
+  --sans:'Jost', sans-serif;
+}
+html,body{margin:0;background:#000;}
+#stage{position:relative;width:1080px;height:1920px;overflow:hidden;background:#0e0d0d;}
+.card{position:absolute;inset:0;display:none;background-size:cover;}
+.card.on{display:block;}
+.inner{position:absolute;inset:0;transform-origin:50% 42%;}
+.dark{color:var(--light);}
+.lightbg{color:var(--ink);}
+
+/* 共通の細い枠 */
+.frame{position:absolute;left:40px;right:40px;top:40px;bottom:40px;border:1.5px solid currentColor;opacity:.75;}
+
+/* タイトルカード */
+.label{position:absolute;left:100px;top:236px;font-family:var(--serif);font-weight:500;font-size:42px;letter-spacing:.04em;
+  border:1.5px solid currentColor;padding:2px 18px 6px;line-height:1.1;}
+.sono{position:absolute;right:112px;top:236px;writing-mode:vertical-rl;font-family:var(--thin);font-weight:500;font-size:34px;letter-spacing:.3em;}
+.vroman{position:absolute;right:58px;top:760px;writing-mode:vertical-rl;font-family:var(--sans);font-weight:400;font-size:19px;letter-spacing:.42em;opacity:.85;}
+.tblock{position:absolute;left:0;right:0;top:470px;display:flex;flex-direction:column;align-items:center;}
+.kanji{font-family:var(--bold);font-weight:700;font-size:250px;line-height:1;letter-spacing:.12em;margin-right:-.12em;}
+.kanji.k3{font-size:200px;}
+.kanji.k1{font-size:300px;}
+.en{font-family:var(--serif);font-weight:500;font-size:40px;letter-spacing:.1em;margin-top:56px;}
+.def{width:600px;margin-top:62px;font-family:var(--thin);font-weight:300;font-size:33px;line-height:1.85;letter-spacing:.14em;text-align:justify;}
+.serial{position:absolute;right:150px;top:1318px;font-family:var(--serif);font-weight:500;font-size:38px;letter-spacing:.06em;
+  border:1.5px solid currentColor;padding:2px 16px 6px;line-height:1.1;}
+
+/* 原稿用紙 */
+.page{position:absolute;left:96px;top:232px;font-family:var(--sans);font-weight:300;font-size:30px;letter-spacing:.08em;color:#6c675f;}
+.genko{position:absolute;}
+.genko .box{position:absolute;inset:-14px;border:3px solid #3a3835;}
+.genko .box::after{content:"";position:absolute;inset:5px;border:1px solid #3a3835;}
+.gl{position:absolute;border:1px solid #c9c3b8;box-sizing:border-box;}
+.gl.r{border-color:#ddd8cf;}
+.gc{position:absolute;writing-mode:vertical-rl;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mincho);font-weight:500;color:var(--ink);font-feature-settings:"vert";}
+.gr{position:absolute;writing-mode:vertical-rl;display:flex;align-items:center;justify-content:center;
+  font-family:var(--thin);font-weight:500;color:#45423e;letter-spacing:.06em;}
+.gl.latin{font-family:var(--serif);}
+
+/* 扉ページ */
+.btitle{position:absolute;writing-mode:vertical-rl;font-family:var(--thin);font-weight:300;letter-spacing:.06em;line-height:1;}
+.bauthor{position:absolute;writing-mode:vertical-rl;font-family:var(--thin);font-weight:300;letter-spacing:.14em;line-height:1;}
+.bbody{position:absolute;writing-mode:vertical-rl;font-family:var(--thin);font-weight:300;text-align:justify;}
+.bbody p{margin:0;text-indent:1em;}
+
+/* 一行カード */
+.lblock{position:absolute;left:80px;right:80px;top:250px;height:1080px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.who{font-family:var(--thin);font-weight:500;font-size:32px;letter-spacing:.5em;margin-bottom:40px;display:flex;align-items:center;gap:20px;}
+.who::before,.who::after{content:"";width:40px;height:1px;background:currentColor;opacity:.7;}
+.ll{font-family:var(--thin);font-weight:300;font-size:64px;line-height:1.85;letter-spacing:.1em;white-space:nowrap;text-align:center;font-feature-settings:"palt";}
+.lsub{font-family:var(--thin);font-weight:300;font-size:38px;letter-spacing:.14em;margin-top:36px;opacity:.9;}
+
+/* フラッシュ */
+.fl{font-family:var(--bold);font-weight:800;line-height:1.2;letter-spacing:.08em;white-space:nowrap;text-align:center;}
+
+/* 数字 */
+.big{font-family:var(--bold);font-weight:800;font-size:330px;line-height:1;letter-spacing:.06em;}
+
+/* 書き換え */
+.rw{position:absolute;left:0;right:0;top:220px;height:1160px;display:flex;justify-content:center;align-items:center;}
+.rw .v{writing-mode:vertical-rl;font-family:var(--mincho);font-weight:500;font-size:92px;letter-spacing:.12em;line-height:1.75;}
+.rw .v p{white-space:nowrap;}
+.rw .v p{margin:0;}
+.rw .hit{position:relative;}
+.rw .strike{position:absolute;left:50%;top:-30px;width:12px;margin-left:-6px;height:calc(100% + 60px);background:var(--red);transform-origin:top;}
+
+/* ロゴ */
+.logo{font-family:var(--serif);font-weight:500;font-size:150px;letter-spacing:.06em;line-height:1;border:2px solid currentColor;padding:20px 54px 40px;}
+.tag{font-family:var(--thin);font-weight:300;font-size:34px;letter-spacing:.2em;margin-top:70px;}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const BPM = 100, BEAT = 60 / BPM;
+const BG = {pink:'#AF4A69', red:'#9C1B31', black:'#0F0E0E', paper:'#F1ECE3', navy:'#141C33'};
+const ROMAN = 'MACHIMONOGATARI';
+
+// ---------------------------------------------------------------------------
+// 構成。b は拍数（BPM100 なので 1拍 = 0.6秒）
+// ---------------------------------------------------------------------------
+const ITEMS = [
+  // 其ノ壹 ふつうの朝
+  {b:4, type:'title', bg:'pink', label:'Nichijou', kanji:'日常', en:'an ordinary morning', no:'其ノ壹',
+     def:'ツネヒゴロノコト。毎日クリカエサレル、変ワリバエノナイ営ミ。マタ、始発前ノ静カナ朝。', serial:'#001.044.952'},
+  {b:2, type:'flash', bg:'black', text:'大阪の駅。', size:128},
+  {b:5, type:'genko', page:'012', rows:7, text:'[始|し][発|はつ][前|まえ]のホームを、[清|せい][掃|そう][員|いん]の[田|た][中|なか]さんは[今日|きょう]も[磨|みが]いている。'},
+  {b:4, type:'line', bg:'black', lines:['「お父さんの仕事は？」'], sub:'と娘に聞かれて、こう答える。'},
+  {b:1, type:'flash', bg:'red', text:'……', size:170, thin:true},
+  {b:4, type:'book', title:'……お掃除の人や。', tsize:112, author:'田中', body:[
+     '大阪の駅。始発前のホームを、清掃員の田中さんは今日も磨いている。',
+     '「お父さんの仕事は？」と娘に聞かれて、こう答える。'], bsize:40},
+
+  // 其ノ貳 問い
+  {b:3, type:'title', bg:'black', label:'Shitsumon', kanji:'質問', en:'the question', no:'其ノ貳',
+     def:'ワカラナイコトヲ、問イタダスコト。答エラレヌ者ニトッテハ、思イノホカ重イモノ。', serial:'#002.090.010'},
+  {b:3, type:'genko', page:'031', rows:5, cell:120, ruby:42, text:'ある[日|ひ]、[求|きゅう][職|しょく][者|しゃ]にたずねられた。'},
+  {b:5, type:'line', bg:'red', who:'求職者', lines:['「この会社にしかない','すごさって、','なんだと思いますか？」']},
+  {b:4, type:'line', bg:'black', lines:['田中さんは、','答えられなかった。']},
+  {b:5, type:'number', bg:'red', big:'九割', en:'nine out of ten', line:'社員の9割が、同じだった。'},
+
+  // 其ノ參 例え
+  {b:3, type:'title', bg:'paper', label:'Hiyu', kanji:'比喩', en:'a metaphor', no:'其ノ參',
+     def:'アル物事ヲ、似タ別ノ物事ニナゾラエテ言イ表スコト。タトエ。', serial:'#003.316.208'},
+  {b:6, type:'genko', page:'047', rows:8, text:'[寿司|す し][屋|や]の[大|たい][将|しょう]に「このお[店|みせ]、[他|ほか]と[何|なに]が[違|ちが]うの？」と[聞|き]いても、[本|ほん][当|とう]のことはわからない。'},
+  {b:4, type:'line', bg:'black', lines:['だから、','食べた人の声を集める','ミシュランがある。']},
+  {b:2, type:'flash', bg:'paper', text:'会社も同じ。', size:116},
+  {b:5, type:'line', bg:'red', lines:['自分たちの価値は、','外の人の方が知っている。']},
+
+  // 其ノ肆 泥臭く聞きに行く
+  {b:3, type:'title', bg:'red', label:'Shuzai', kanji:'取材', en:'we go and ask', no:'其ノ肆',
+     def:'現場ニ足ヲ運ビ、直接話ヲ聞イテ材料ヲ集メルコト。泥臭イホド、確カナモノ。', serial:'#004.778.105'},
+  {b:6, type:'genko', page:'066', rows:8, text:'{crack:2}は、この[会|かい][社|しゃ]を[選|えら]び[続|つづ]けてきた[鉄|てつ][道|どう][会|がい][社|しゃ]に[話|はなし]を[聞|き]きに[行|い]った。'},
+  {b:3, type:'line', bg:'black', lines:['返ってきたのは、','こんな言葉だった。']},
+  {b:1, type:'flash', bg:'red', text:'町は、', size:210},
+  {b:7, type:'genko', page:'067', rows:7, text:'「[町|まち]は、きれいにし[続|つづ]ける[人|ひと]がいて[初|はじ]めてつくられる。[彼|かれ]らは[町|まち]づくりのパートナーです。」'},
+  {b:4, type:'title', bg:'pink', label:'Machi', kanji:'町', en:'partners in making the town', no:'其ノ肆',
+     def:'キレイニシ続ケル人ガイテ、初メテツクラレルモノ。', serial:'#004.778.106'},
+
+  // 其ノ伍 書き換わる瞬間
+  {b:3, type:'title', bg:'black', label:'Saiteigi', kanji:'再定義', en:'redefinition', no:'其ノ伍',
+     def:'自分ノ仕事ノ意味ヲ、アラタメテ定メナオスコト。', serial:'#005.000.001'},
+  {b:6, type:'genko', page:'089', rows:9, cell:96, ruby:36, text:'その[言|こと][葉|ば]を、[研|けん][修|しゅう]で[社|しゃ][員|いん]に[届|とど]けた。[田|た][中|なか]さんは、[少|すこ]し[黙|だま]ってから[笑|わら]った。'},
+  {b:1, type:'flash', bg:'black', text:'……', size:170, thin:true},
+  {b:6, type:'rewrite'},
+
+  // 其ノ陸 そのあと
+  {b:3, type:'title', bg:'red', label:'Kyouji', kanji:'矜持', en:'pride', no:'其ノ陸',
+     def:'自分ノ仕事ヲ信ジテ抱ク、静カナ誇リ。', serial:'#006.512.630'},
+  {b:5, type:'genko', page:'112', rows:7, text:'その[誇|ほこ]りは、[一|いち][枚|まい]のアートになり、[採|さい][用|よう]の[言|こと][葉|ば]になった。'},
+  {b:2, type:'flash', bg:'navy', text:'そしてある夜。', size:104},
+  {b:4, type:'line', bg:'navy', who:'娘', lines:['「パパの仕事ってなに？」']},
+  {b:10, type:'book', title:'町をつくってるんや。', tsize:104, author:'田中', bsize:29, body:[
+     '大阪の駅。始発前のホームを、清掃員の田中さんは今日も磨いている。「お父さんの仕事は？」と娘に聞かれて、こう答える。「……お掃除の人や。」',
+     'ある日、求職者にたずねられた。「この会社にしかないすごさって、なんだと思いますか？」田中さんは、答えられなかった。社員の九割が、同じだった。',
+     'その言葉を、研修で社員に届けた。田中さんは、少し黙ってから笑った。「俺ら、お掃除屋じゃなかったんや。」',
+     'その誇りは、一枚のアートになり、採用の言葉になった。そしてある夜。娘「パパの仕事ってなに？」']},
+
+  // 締め
+  {b:4, type:'line', bg:'black', lines:['自社を自慢できない','社員を、']},
+  {b:4, type:'flash', bg:'red', text:'ゼロに。', size:210},
+  {b:8, type:'logo', bg:'black'},
+];
+
+(function(){ let b=0; ITEMS.forEach(it=>{ it.b0=b; it.tin=b*BEAT; b+=it.b; it.tout=b*BEAT; }); })();
+const TOTAL = ITEMS[ITEMS.length-1].tout;
+
+// ---------------------------------------------------------------------------
+// 道具
+// ---------------------------------------------------------------------------
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const easeOut=x=>1-Math.pow(1-clamp(x),3);
+const easeInOut=x=>{x=clamp(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;};
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function hex(h){h=h.replace('#','');return [0,2,4].map(i=>parseInt(h.substr(i,2),16));}
+const isLight = bg => bg==='paper';
+
+// 紙の質感（色ごとに1枚つくって使い回す）
+const TEX = {};
+function texture(name){
+  if(TEX[name]) return TEX[name];
+  const w=540,h=960,c=document.createElement('canvas');c.width=w;c.height=h;
+  const x=c.getContext('2d'), r=rng(name.length*977+13), base=hex(BG[name]);
+  x.fillStyle=BG[name];x.fillRect(0,0,w,h);
+  const light=isLight(name);
+  // むら
+  for(let i=0;i<26;i++){
+    const gx=r()*w, gy=r()*h, gr=60+r()*220, a=0.035+r()*0.05;
+    const g=x.createRadialGradient(gx,gy,0,gx,gy,gr);
+    const col = r()<.5 ? '255,255,255' : '0,0,0';
+    g.addColorStop(0,`rgba(${col},${a})`);g.addColorStop(1,`rgba(${col},0)`);
+    x.fillStyle=g;x.fillRect(0,0,w,h);
+  }
+  // 粒
+  const img=x.getImageData(0,0,w,h),d=img.data;
+  const amp = light?10:14;
+  for(let i=0;i<d.length;i+=4){const n=(r()-.5)*amp;d[i]+=n;d[i+1]+=n;d[i+2]+=n;}
+  x.putImageData(img,0,0);
+  // 繊維
+  x.lineCap='round';
+  for(let i=0;i<(name==='black'?500:1300);i++){
+    const px=r()*w, py=r()*h, len=4+r()*16, ang=r()*Math.PI*2, bend=(r()-.5)*6;
+    const lighter=r()<.62;
+    x.strokeStyle = lighter ? `rgba(255,255,255,${(light?.35:.12)*r()})` : `rgba(0,0,0,${(light?.10:.16)*r()})`;
+    x.lineWidth=.4+r()*.9;
+    x.beginPath();x.moveTo(px,py);
+    x.quadraticCurveTo(px+Math.cos(ang)*len/2+bend,py+Math.sin(ang)*len/2-bend,px+Math.cos(ang)*len,py+Math.sin(ang)*len);
+    x.stroke();
+  }
+  return TEX[name]=c.toDataURL('image/png');
+}
+
+// ---------------------------------------------------------------------------
+// カードを組み立てる
+// ---------------------------------------------------------------------------
+const stage=document.getElementById('stage');
+
+function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
+
+function parseGenko(src){
+  const toks=[];let i=0;
+  while(i<src.length){
+    const c=src[i];
+    if(c==='['){const j=src.indexOf(']',i);const [base,ruby]=src.slice(i+1,j).split('|');toks.push({base:[...base],ruby});i=j+1;}
+    else if(c==='{'){const j=src.indexOf('}',i);const [w,n]=src.slice(i+1,j).split(':');toks.push({latin:w,span:+n});i=j+1;}
+    else{toks.push({base:[c]});i++;}
+  }
+  return toks;
+}
+
+function buildGenko(it,inner){
+  const rows=it.rows, CELL=it.cell||104, RUBY=it.ruby||38, COLW=CELL+RUBY;
+  const toks=parseGenko(it.text);
+  // 升目に流し込む
+  const cells=[]; const rubies=[]; let col=0,row=0;
+  const adv=n=>{row+=n;if(row>=rows){col++;row=0;}};
+  toks.forEach(t=>{
+    if(t.latin){ if(row+t.span>rows){col++;row=0;} cells.push({col,row,latin:t.latin,span:t.span}); adv(t.span); return; }
+    const start={col,row};
+    const placed=[];
+    t.base.forEach(ch=>{ cells.push({col,row,ch}); placed.push({col,row}); adv(1); });
+    if(t.ruby){
+      // 列をまたぐときは文字数で振り分ける
+      const byCol={}; placed.forEach(p=>{(byCol[p.col]=byCol[p.col]||[]).push(p);});
+      const keys=Object.keys(byCol); let rest=[...t.ruby.replace(/ /g,'')];
+      keys.forEach((k,ki)=>{
+        const ps=byCol[k]; const take = ki===keys.length-1 ? rest.length : Math.round(rest.length*ps.length/t.base.length);
+        rubies.push({col:+k,row:ps[0].row,len:ps.length,text:rest.splice(0,take).join('')});
+      });
+    }
+  });
+  const cols = (row===0?col:col+1);
+  const W=cols*COLW, H=rows*CELL;
+  const g=el('div','genko'); g.style.width=W+'px'; g.style.height=H+'px';
+  g.style.left=(540-W/2)+'px'; g.style.top=(800-H/2)+'px';
+  g.append(el('div','box'));
+  const x0=c=>W-(c+1)*COLW; // 右から左へ
+  for(let c=0;c<cols;c++){
+    for(let r=0;r<rows;r++){
+      const a=el('div','gl'); Object.assign(a.style,{left:x0(c)+'px',top:r*CELL+'px',width:CELL+'px',height:CELL+'px'}); g.append(a);
+      const b=el('div','gl r'); Object.assign(b.style,{left:(x0(c)+CELL)+'px',top:r*CELL+'px',width:RUBY+'px',height:CELL+'px'}); g.append(b);
+    }
+  }
+  const fs=Math.round(CELL*0.68);
+  it.cells=[];
+  cells.forEach((p,k)=>{
+    const e=el('div','gc'); e.textContent=p.latin||p.ch;
+    Object.assign(e.style,{left:x0(p.col)+'px',top:p.row*CELL+'px',width:CELL+'px',height:(p.span||1)*CELL+'px',fontSize:(p.latin?Math.round(CELL*0.62):fs)+'px'});
+    if(p.latin){e.style.fontFamily='var(--serif)';e.style.fontWeight='500';e.style.letterSpacing='.04em';}
+    g.append(e); it.cells.push({e,k,ruby:[]});
+  });
+  rubies.forEach(rb=>{
+    const e=el('div','gr'); e.textContent=rb.text;
+    const rf=Math.min(Math.round(RUBY*0.6), Math.floor(rb.len*CELL/Math.max(rb.text.length,1)*0.9));
+    Object.assign(e.style,{left:(x0(rb.col)+CELL)+'px',top:rb.row*CELL+'px',width:RUBY+'px',height:rb.len*CELL+'px',fontSize:rf+'px'});
+    g.append(e);
+    // ルビは下の文字と一緒に出す
+    const idx=cells.findIndex(c=>c.col===rb.col&&c.row===rb.row);
+    if(idx>=0) it.cells[idx].ruby.push(e);
+  });
+  // 句読点が行頭に来ていないか
+  cells.forEach(p=>{ if(p.row===0 && /[、。」）]/.test(p.ch||'')) console.warn('行頭禁則', it.text.slice(0,10), p.ch); });
+  inner.append(g);
+  inner.append(el('div','page',it.page));
+}
+
+function buildBook(it,inner){
+  const top=300;
+  const t=el('div','btitle',it.title); Object.assign(t.style,{right:'110px',top:top+'px',fontSize:it.tsize+'px'});
+  const a=el('div','bauthor',it.author); Object.assign(a.style,{right:(110+it.tsize+46)+'px',top:'880px',fontSize:'64px'});
+  const b=el('div','bbody'); b.innerHTML=it.body.map(p=>`<p>${p}</p>`).join('');
+  const bodyRight = 110+it.tsize+46+64+70;
+  Object.assign(b.style,{right:bodyRight+'px',top:(top+60)+'px',height:'1000px',fontSize:it.bsize+'px',lineHeight:1.95,letterSpacing:'.06em',maxWidth:(1080-bodyRight-96)+'px'});
+  inner.append(t,a,b);
+  it.parts={t,a,b};
+}
+
+ITEMS.forEach((it,i)=>{
+  const bgName = it.bg || (['genko','book','rewrite'].includes(it.type)?'paper':'black');
+  const card=el('div','card '+(isLight(bgName)?'lightbg':'dark'));
+  card.style.backgroundColor=BG[bgName];
+  it.bgName=bgName;
+  const inner=el('div','inner'); card.append(inner);
+  if(it.type==='title'){
+    inner.append(el('div','frame'));
+    inner.append(el('div','label',it.label));
+    inner.append(el('div','sono',it.no));
+    inner.append(el('div','vroman',ROMAN));
+    const tb=el('div','tblock');
+    const k=el('div','kanji'+(it.kanji.length===3?' k3':it.kanji.length===1?' k1':''),it.kanji);
+    tb.append(k, el('div','en',`[${it.en}]`), el('div','def',it.def));
+    inner.append(tb);
+    inner.append(el('div','serial',it.serial));
+  }else if(it.type==='genko'){
+    buildGenko(it,inner);
+  }else if(it.type==='book'){
+    buildBook(it,inner);
+  }else if(it.type==='line'){
+    const lb=el('div','lblock');
+    if(it.who) lb.append(el('div','who',it.who));
+    it.lines.forEach(l=>lb.append(el('div','ll',l)));
+    if(it.sub) lb.append(el('div','lsub',it.sub));
+    inner.append(lb);
+  }else if(it.type==='flash'){
+    const lb=el('div','lblock'); const f=el('div','fl',it.text); f.style.fontSize=it.size+'px'; if(it.thin){f.style.fontFamily='var(--thin)';f.style.fontWeight='300';} lb.append(f); inner.append(lb);
+  }else if(it.type==='number'){
+    inner.append(el('div','frame'));
+    const lb=el('div','lblock');
+    lb.append(el('div','big',it.big), Object.assign(el('div','en',`[${it.en}]`),{}), el('div','lsub',it.line));
+    inner.append(lb);
+    inner.append(el('div','vroman',ROMAN));
+  }else if(it.type==='rewrite'){
+    const rw=el('div','rw');
+    rw.innerHTML=`<div class="v"><p>「俺ら、</p><p><span class="hit">お掃除屋<i class="strike"></i></span></p><p>じゃなかったんや。」</p></div>`;
+    inner.append(rw);
+    it.strike=rw.querySelector('.strike'); it.hit=rw.querySelector('.hit');
+  }else if(it.type==='logo'){
+    inner.append(el('div','frame'));
+    inner.append(el('div','vroman',ROMAN));
+    const lb=el('div','lblock'); lb.append(el('div','logo','crack'), el('div','tag','自社を自慢できない社員を、ゼロに。')); inner.append(lb);
+    it.serialEl=el('div','serial','#999.999.999'); inner.append(it.serialEl);
+  }
+  it.card=card; it.inner=inner;
+  stage.append(card);
+});
+
+// ---------------------------------------------------------------------------
+// 1フレームを描く
+// ---------------------------------------------------------------------------
+let current=-1;
+function renderAt(t){
+  let idx=ITEMS.findIndex(it=>t>=it.tin && t<it.tout);
+  if(idx<0) idx=ITEMS.length-1;
+  if(idx!==current){
+    if(current>=0) ITEMS[current].card.classList.remove('on');
+    ITEMS[idx].card.classList.add('on'); current=idx;
+  }
+  const it=ITEMS[idx], lt=t-it.tin, dur=it.tout-it.tin, p=clamp(lt/dur);
+
+  // ゆっくり寄る。フラッシュは寄った状態から引く
+  let s = 1+0.022*p;
+  if(it.type==='flash' || it.type==='number') s = 1.07-0.07*easeOut(lt/0.28)+0.012*p;
+  it.inner.style.transform=`scale(${s})`;
+
+  if(it.type==='genko'){
+    // 1文字ずつすばやく書かれていく
+    const per=Math.min(0.045, (dur*0.45)/it.cells.length);
+    it.cells.forEach(c=>{
+      const a=clamp((lt-0.05-c.k*per)/0.08);
+      c.e.style.opacity=a; c.ruby.forEach(r=>r.style.opacity=a);
+    });
+  }
+  if(it.type==='book'){
+    it.parts.t.style.opacity=1;
+    it.parts.a.style.opacity=easeOut((lt-0.35)/0.4);
+    it.parts.b.style.opacity=easeOut((lt-0.6)/0.8);
+  }
+  if(it.type==='rewrite'){
+    it.strike.style.transform=`scaleY(${easeInOut((lt-0.55)/0.35)})`;
+    it.hit.style.opacity=1-0.45*easeOut((lt-0.95)/0.5);
+  }
+  if(it.type==='logo'){
+    // 通し番号がゼロまで落ちる
+    const k=easeInOut((lt-0.6)/1.6);
+    const n=Math.round(999999999*(1-k));
+    const sN=String(n).padStart(9,'0');
+    it.serialEl.textContent=`#${sN.slice(0,3)}.${sN.slice(3,6)}.${sN.slice(6)}`;
+    stage.style.opacity = 1;
+  }
+}
+
+// ---------------------------------------------------------------------------
+window.TOTAL = TOTAL;
+window.CUTS = ITEMS.map(it=>({t:it.tin, type:it.type, bg:it.bgName}));
+window.seek = t=>renderAt(t);
+// 非表示のカードの書体は読み込まれないので、使う書体を先に全部読み込んでおく
+const FACES=["700 40px 'Shippori Mincho B1'","800 40px 'Shippori Mincho B1'","500 40px 'Shippori Mincho'","300 40px 'Noto Serif JP'","500 40px 'Noto Serif JP'","500 40px 'Cormorant Garamond'","300 40px 'Jost'","400 40px 'Jost'"];
+window.__ready = Promise.all(FACES.map(f=>document.fonts.load(f,'日常あアA1'))).then(()=>document.fonts.ready).then(()=>{
+  ITEMS.forEach(it=>{ it.card.style.backgroundImage=`url(${texture(it.bgName)})`; });
+  return true;
+});
+if(!/render/.test(location.search)){
+  const t0=performance.now();
+  const fit=()=>{const s=Math.min(innerWidth/1080,innerHeight/1920);stage.style.transform=`scale(${s})`;stage.style.transformOrigin='0 0';};
+  fit();addEventListener('resize',fit);
+  window.__ready.then(()=>{
+    const loop=()=>{renderAt(((performance.now()-t0)/1000)%TOTAL);requestAnimationFrame(loop);};
+    loop();
+  });
+}
+</script>
+</body>
+</html>
