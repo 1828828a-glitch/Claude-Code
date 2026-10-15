@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>crack reel</title>
+<link rel="stylesheet" href="fonts/local.css">
+<style>
+:root{
+  --ink:#E9E3D7;
+  --muted:#8E887C;
+  --gold:#B79C6C;
+  --mincho:'Shippori Mincho', serif;
+  --serif:'Cormorant Garamond', serif;
+  --gothic:'Zen Kaku Gothic New', sans-serif;
+}
+html,body{margin:0;background:#000;}
+#stage{position:relative;width:1080px;height:1920px;overflow:hidden;background:#0b0c0e;}
+#bg,#grain{position:absolute;inset:0;}
+#grain{z-index:5;pointer-events:none;}
+#vignette{position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:radial-gradient(ellipse 85% 62% at 50% 44%,rgba(0,0,0,0) 40%,rgba(0,0,0,.55) 100%);}
+#fade{position:absolute;inset:0;z-index:6;background:#000;opacity:0;}
+#text{position:absolute;inset:0;z-index:3;}
+
+/* 文字を置く範囲はリールのUI（上の見出し、下のキャプション、右のボタン）を避ける */
+.card{position:absolute;left:96px;right:96px;top:250px;height:1080px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--ink);font-family:var(--mincho);opacity:0;will-change:transform,opacity,filter;}
+.l{margin:0;font-size:50px;line-height:1.95;letter-spacing:.1em;font-feature-settings:"palt";
+  text-align:center;white-space:nowrap;font-weight:400;}
+.ch{display:inline-block;opacity:0;will-change:transform,opacity,filter;}
+.xl{font-size:86px;letter-spacing:.18em;font-weight:500;}
+.q{font-size:56px;}
+.sm{font-size:40px;color:#CFC8BB;}
+.gold{color:var(--gold);}
+.latin{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:.02em;font-size:1.18em;}
+
+.who{display:flex;align-items:center;gap:18px;margin-bottom:34px;
+  font-family:var(--gothic);font-weight:400;font-size:30px;letter-spacing:.4em;color:var(--gold);opacity:0;}
+.who::before{content:"";width:44px;height:1px;background:var(--gold);opacity:.7;}
+
+.vbox{writing-mode:vertical-rl;display:block;}
+.vbox .l{font-size:66px;line-height:1.85;letter-spacing:.16em;font-feature-settings:"vpal";text-align:start;}
+.vbox .l.big{font-size:80px;letter-spacing:.2em;}
+
+/* 9割 */
+.num{font-family:var(--serif);font-weight:300;font-size:170px;color:var(--gold);font-variant-numeric:lining-nums;
+  letter-spacing:0;line-height:1;margin:0 .06em 0 .02em;vertical-align:-.08em;}
+.dots{display:flex;gap:24px;margin-top:58px;}
+.dot{width:18px;height:18px;border-radius:50%;box-sizing:border-box;border:1.5px solid var(--ink);
+  background:var(--ink);opacity:0;}
+
+/* 下線 */
+.uline{position:relative;}
+.uline::after{content:"";position:absolute;left:6%;right:6%;bottom:14px;height:1px;background:var(--gold);
+  transform:scaleX(var(--u,0));transform-origin:left center;}
+
+/* 書き換え */
+.rewrite .old{font-size:46px;color:var(--muted);margin-left:64px;position:relative;letter-spacing:.2em;inline-size:max-content;}
+.strike{position:absolute;top:-10px;left:50%;width:1.5px;margin-left:-.75px;height:calc(100% + 20px);
+  background:var(--gold);transform:scaleY(var(--s,0));transform-origin:top center;}
+
+/* 額縁 */
+.framewrap{position:relative;padding:86px 76px;}
+.framewrap svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+.framewrap rect{fill:none;stroke:var(--gold);stroke-width:1.2;stroke-dasharray:1 1;}
+
+/* カウントダウン */
+.counter{position:relative;width:200px;height:210px;margin-bottom:26px;}
+.counter span{position:absolute;inset:0;text-align:center;font-family:var(--serif);font-weight:300;
+  font-size:200px;line-height:210px;color:var(--gold);opacity:0;font-variant-numeric:lining-nums;}
+.zero{font-size:100px;letter-spacing:.2em;font-weight:500;}
+
+/* ロゴ */
+.logo{font-family:var(--serif);font-weight:400;font-size:150px;letter-spacing:.06em;color:var(--ink);line-height:1;}
+.logo-rule{width:84px;height:1px;background:var(--gold);margin-top:46px;transform:scaleX(var(--r,0));}
+
+/* 章ラベル */
+.chap{position:absolute;left:96px;top:226px;display:flex;align-items:center;gap:22px;opacity:0;color:var(--muted);}
+.chap .n{font-family:var(--serif);font-style:italic;font-weight:400;font-size:54px;color:var(--gold);letter-spacing:.02em;}
+.chap .bar{width:58px;height:1px;background:var(--gold);opacity:.65;transform-origin:left center;}
+.chap .t{font-family:var(--mincho);font-size:31px;letter-spacing:.32em;color:#A8A195;}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="bg" width="1080" height="1920"></canvas>
+  <div id="vignette"></div>
+  <div id="text"></div>
+  <canvas id="grain" width="1080" height="1920"></canvas>
+  <div id="fade"></div>
+</div>
+<script>
+// ---------------------------------------------------------------------------
+// 構成。dur は文字が出始めてから消え始めるまでの秒数
+// ---------------------------------------------------------------------------
+const SECTIONS = [
+  {n:'01', t:'ふつうの朝',        top:'#18212c', bot:'#0a0c0f'},
+  {n:'02', t:'問い',              top:'#151515', bot:'#09090a'},
+  {n:'03', t:'例え',              top:'#1a1610', bot:'#0b0a08'},
+  {n:'04', t:'泥臭く、聞きに行く', top:'#131619', bot:'#090a0b'},
+  {n:'05', t:'書き換わる瞬間',     top:'#16130f', bot:'#0a0908'},
+  {n:'06', t:'そのあと',          top:'#17130e', bot:'#0a0907'},
+  {n:'',   t:'',                  top:'#0f0f10', bot:'#070707'},
+];
+const NIGHT = {top:'#0b1226', bot:'#04060c'};
+
+const ITEMS = [
+  // 01 ふつうの朝
+  {sec:0, dur:2.6, id:'osaka', html:`<p class="l xl">大阪の駅。</p>`},
+  {sec:0, dur:3.9, html:`<p class="l">始発前のホームを、</p><p class="l">清掃員の田中さんは</p><p class="l">今日も磨いている。</p>`},
+  {sec:0, dur:3.5, html:`<p class="l q">「お父さんの仕事は？」</p><p class="l sm">と娘に聞かれて、こう答える。</p>`},
+  {sec:0, dur:3.9, id:'osouji', html:`<div class="vbox"><p class="l big">……<i class="pause" data-delay="0.7"></i>お掃除の人や。</p></div>`, stagger:0.1},
+
+  // 02 問い
+  {sec:1, dur:2.7, html:`<p class="l">ある日、</p><p class="l">求職者にたずねられた。</p>`},
+  {sec:1, dur:3.8, html:`<p class="l q">「この会社にしかない</p><p class="l q">すごさって、</p><p class="l q">なんだと思いますか？」</p>`},
+  {sec:1, dur:2.8, html:`<p class="l">田中さんは、</p><p class="l">答えられなかった。</p>`},
+  {sec:1, dur:3.9, id:'ninewari', html:`<p class="l">社員の<span class="num u">9</span>割が、</p><p class="l">同じだった。</p><div class="dots">${'<i class="dot"></i>'.repeat(10)}</div>`},
+
+  // 03 例え
+  {sec:2, dur:4.4, html:`<p class="l">寿司屋の大将に</p><p class="l q">「このお店、他と何が違うの？」</p><p class="l">と聞いても、</p><p class="l">本当のことはわからない。</p>`},
+  {sec:2, dur:3.5, id:'voices', html:`<p class="l">だから、</p><p class="l">食べた人の声を集める</p><p class="l">ミシュランがある。</p>`},
+  {sec:2, dur:4.1, id:'outside', html:`<p class="l">会社も同じ。</p><p class="l">自分たちの価値は、</p><p class="l uline gold">外の人の方が知っている。</p>`},
+
+  // 04 泥臭く、聞きに行く
+  {sec:3, dur:4.1, id:'rail', html:`<p class="l"><span class="latin u">crack</span>は、</p><p class="l">この会社を選び続けてきた</p><p class="l">鉄道会社に話を聞きに行った。</p>`},
+  {sec:3, dur:2.6, html:`<p class="l">返ってきたのは、</p><p class="l">こんな言葉だった。</p>`},
+  {sec:3, dur:5.0, id:'quote1', html:`<div class="vbox"><p class="l">「町は、</p><p class="l">きれいにし続ける</p><p class="l">人がいて</p><p class="l">初めてつくられる。</p></div>`, lineGap:0.35},
+  {sec:3, dur:4.4, id:'quote2', html:`<div class="vbox"><p class="l">彼らは</p><p class="l">町づくりの</p><p class="l gold">パートナーです。」</p></div>`, lineGap:0.35},
+
+  // 05 書き換わる瞬間
+  {sec:4, dur:2.8, html:`<p class="l">その言葉を、</p><p class="l">研修で社員に届けた。</p>`},
+  {sec:4, dur:4.1, html:`<p class="l">田中さんは、</p><p class="l">少し黙ってから</p><p class="l" data-delay="0.9">笑った。</p>`},
+  {sec:4, dur:5.9, id:'rewrite', html:`<div class="vbox rewrite"><p class="l old">お掃除の人や。<i class="strike"></i></p><p class="l" data-delay="1.25">「俺ら、</p><p class="l">お掃除屋じゃ</p><p class="l">なかったんや。」</p></div>`, stagger:0.065},
+
+  // 06 そのあと
+  {sec:5, dur:4.0, id:'art', html:`<div class="framewrap"><svg preserveAspectRatio="none"><rect x="0" y="0" width="100%" height="100%" pathLength="1"/></svg><p class="l">その誇りは、</p><p class="l">一枚のアートになり、</p><p class="l">採用の言葉になった。</p></div>`},
+  {sec:5, dur:2.6, id:'night', html:`<p class="l xl" style="font-size:66px">そしてある夜。</p>`},
+  {sec:5, dur:3.0, html:`<div class="who">娘</div><p class="l q">「パパの仕事ってなに？」</p>`},
+  {sec:5, dur:4.9, id:'machi', html:`<div class="who">田中さん</div><div class="vbox"><p class="l big">「町を</p><p class="l big">つくってるんや。」</p></div>`, stagger:0.085, lineGap:0.25},
+
+  // 締め
+  {sec:6, dur:4.4, id:'zero', html:`<div class="counter">${[9,8,7,6,5,4,3,2,1,0].map(d=>`<span>${d}</span>`).join('')}</div><p class="l">自社を自慢できない社員を、</p><p class="l zero" data-delay="0.9">ゼロに。</p>`},
+  {sec:6, dur:3.4, id:'logo', last:true, html:`<div class="logo"><span class="ch-wrap">crack</span></div><div class="logo-rule"></div>`, stagger:0.11},
+];
+
+const START = 0.25, GAP = 0.3, SEC_GAP = 0.3, OUT = 0.6, CHAR = 1.0, END_HOLD = 1.6;
+
+// 時刻を割り当てる
+(function(){
+  let c = START;
+  ITEMS.forEach((it,i)=>{
+    if(i>0 && it.sec!==ITEMS[i-1].sec) c += SEC_GAP;
+    it.tin = c; it.tout = c + it.dur; c = it.tout + GAP;
+  });
+})();
+const LAST = ITEMS[ITEMS.length-1];
+const TOTAL = LAST.tout + END_HOLD;
+const byId = Object.fromEntries(ITEMS.filter(i=>i.id).map(i=>[i.id,i]));
+const secRange = SECTIONS.map((s,k)=>{
+  const its = ITEMS.filter(i=>i.sec===k);
+  return {a: its[0].tin - 0.15, b: its[its.length-1].tout + OUT};
+});
+
+// ---------------------------------------------------------------------------
+// 道具
+// ---------------------------------------------------------------------------
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const lerp=(a,b,k)=>a+(b-a)*k;
+const easeOut=x=>1-Math.pow(1-clamp(x),3);
+const easeIn=x=>Math.pow(clamp(x),2);
+const easeInOut=x=>{x=clamp(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;};
+const ramp=(t,a,d)=>easeInOut((t-a)/d);
+// a で現れ、b で消え始める窓
+const win=(t,a,b,fi=1,fo=1)=>Math.min(ramp(t,a,fi),1-ramp(t,b,fo));
+function hex(h){h=h.replace('#','');return [0,2,4].map(i=>parseInt(h.substr(i,2),16));}
+function mix(c1,c2,k){const a=hex(c1),b=hex(c2);return '#'+a.map((v,i)=>Math.round(lerp(v,b[i],k)).toString(16).padStart(2,'0')).join('');}
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+// ---------------------------------------------------------------------------
+// DOM を組み立てる
+// ---------------------------------------------------------------------------
+const textLayer = document.getElementById('text');
+
+function splitInto(node, out){
+  for(const child of [...node.childNodes]){
+    if(child.nodeType===3){
+      const frag=document.createDocumentFragment();
+      for(const ch of child.textContent){
+        if(!ch.trim()){frag.append(ch);continue;}
+        const s=document.createElement('span');s.className='ch';s.textContent=ch;frag.append(s);out.push({el:s});
+      }
+      child.replaceWith(frag);
+    }else if(child.classList && child.classList.contains('pause')){
+      out.push({pause:parseFloat(child.dataset.delay)});
+    }else if(child.classList && child.classList.contains('u')){
+      child.classList.add('ch');out.push({el:child});
+    }else if(child.classList && child.classList.contains('strike')){
+      // 打ち消し線は fx で動かす
+    }else{
+      splitInto(child,out);
+    }
+  }
+}
+
+ITEMS.forEach(it=>{
+  const card=document.createElement('div');
+  card.className='card';
+  card.innerHTML=it.html;
+  textLayer.append(card);
+  it.card=card;
+  const lines=[...card.querySelectorAll('.l, .ch-wrap')];
+  let units=[];
+  lines.forEach(l=>{const u=[];splitInto(l,u);units.push({line:l,u});});
+  const n=units.reduce((s,x)=>s+x.u.filter(z=>z.el).length,0);
+  const stagger = it.stagger ?? clamp(1.1/Math.max(n,1),0.03,0.06);
+  const lineGap = it.lineGap ?? 0.1;
+  let d=0; it.chars=[];
+  units.forEach((x,li)=>{
+    if(li>0) d+=lineGap;
+    if(x.line.dataset.delay) d+=parseFloat(x.line.dataset.delay);
+    x.u.forEach(z=>{
+      if(z.pause!==undefined){d+=z.pause;return;}
+      it.chars.push({el:z.el,d});d+=stagger;
+    });
+  });
+  it.revealEnd = d + CHAR;
+  it.who = card.querySelector('.who');
+});
+
+const chapEls = SECTIONS.map((s,k)=>{
+  if(!s.n) return null;
+  const el=document.createElement('div');
+  el.className='chap';
+  el.innerHTML=`<span class="n">${s.n}</span><span class="bar"></span><span class="t">${s.t}</span>`;
+  textLayer.append(el);
+  return el;
+});
+
+// ---------------------------------------------------------------------------
+// 背景
+// ---------------------------------------------------------------------------
+const bg=document.getElementById('bg'), g=bg.getContext('2d');
+const grain=document.getElementById('grain'), gg=grain.getContext('2d');
+const W=1080,H=1920;
+
+const noiseTiles=[];
+(function(){
+  const r=rng(7);
+  for(let k=0;k<6;k++){
+    const c=document.createElement('canvas');c.width=360;c.height=640;
+    const x=c.getContext('2d'),img=x.createImageData(360,640);
+    for(let i=0;i<img.data.length;i+=4){const v=r()*255;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=255;}
+    x.putImageData(img,0,0);noiseTiles.push(c);
+  }
+})();
+
+// 夜の町（奥と手前の2層）
+function makeCity(seed,hMin,hMax,winP){
+  const r=rng(seed), b=[]; let x=-30;
+  while(x<W+30){
+    const w=46+r()*104, h=hMin+r()*(hMax-hMin);
+    const wins=[];
+    const cols=Math.max(1,Math.floor((w-14)/15)), rows=Math.floor((h-22)/22);
+    for(let i=0;i<cols;i++)for(let j=0;j<rows;j++){
+      if(r()<winP) wins.push({x:x+9+i*15,y:j*22+14,on:r(),warm:r()});
+    }
+    b.push({x,w,h,wins}); x+=w+2+r()*10;
+  }
+  return b;
+}
+const cityFar=makeCity(17,70,230,0.16);
+const cityNear=makeCity(42,60,300,0.30);
+
+// 声（引用符）
+const voices=(function(){
+  const r=rng(9),v=[];
+  for(let i=0;i<16;i++) v.push({x:80+r()*920,y0:r(),s:46+r()*110,sp:0.035+r()*0.05,a:0.06+r()*0.14,glyph:r()<.5?'“':'”',ph:r()*6});
+  return v;
+})();
+
+function palAt(t){
+  let s=0;
+  for(let k=0;k<SECTIONS.length;k++) if(t>=secRange[k].a-0.0001) s=k;
+  let top=SECTIONS[s].top, bot=SECTIONS[s].bot;
+  if(s===5){
+    const nk=ramp(t,byId.night.tin-0.2,2.2);
+    top=mix(top,NIGHT.top,nk);bot=mix(bot,NIGHT.bot,nk);
+  }
+  if(s>0){
+    const a=secRange[s].a, k=ramp(t,a-0.3,1.6);
+    if(k<1){const p=palAt(a-0.31);top=mix(p.top,top,k);bot=mix(p.bot,bot,k);}
+  }
+  return {top,bot};
+}
+
+function drawBg(t){
+  const p=palAt(t);
+  const grd=g.createLinearGradient(0,0,0,H);
+  grd.addColorStop(0,p.top);grd.addColorStop(1,p.bot);
+  g.globalAlpha=1;g.fillStyle=grd;g.fillRect(0,0,W,H);
+
+  // 01 夜明け前の冷たい光とホーム
+  const a1=win(t,0,secRange[0].b-0.6,0.01,1.2);
+  if(a1>0){
+    const rg=g.createRadialGradient(540,-260,0,540,-260,1300);
+    rg.addColorStop(0,`rgba(120,150,190,${0.13*a1})`);rg.addColorStop(1,'rgba(120,150,190,0)');
+    g.fillStyle=rg;g.fillRect(0,0,W,H);
+    // 斜めに差す光
+    const sx=lerp(-500,900,t/secRange[0].b);
+    g.save();g.translate(sx,0);g.rotate(-0.32);
+    const lg=g.createLinearGradient(-160,0,160,0);
+    lg.addColorStop(0,'rgba(200,215,235,0)');lg.addColorStop(.5,`rgba(200,215,235,${0.05*a1})`);lg.addColorStop(1,'rgba(200,215,235,0)');
+    g.fillStyle=lg;g.fillRect(-160,-400,320,2800);g.restore();
+    // ホームの縁
+    g.globalAlpha=a1;
+    g.fillStyle='rgba(233,227,215,0.16)';g.fillRect(0,1452,W,1.5);
+    g.fillStyle='rgba(233,227,215,0.07)';g.fillRect(0,1460,W,1);
+    // 点字ブロック
+    const off=-(t*14)%38;
+    for(let bx=off-38;bx<W+38;bx+=38){
+      g.fillStyle='rgba(176,148,92,0.10)';g.fillRect(bx,1484,32,32);
+      g.fillStyle='rgba(196,168,108,0.22)';
+      for(let i=0;i<4;i++)for(let j=0;j<4;j++){g.beginPath();g.arc(bx+5+i*7.3,1489+j*7.3,1.7,0,7);g.fill();}
+    }
+    g.globalAlpha=1;
+  }
+
+  // 03 声が立ちのぼる
+  const v=byId.voices, a3=win(t,v.tin-0.2,byId.outside.tout,1.4,1.0);
+  if(a3>0){
+    g.font='300 100px "Cormorant Garamond"';g.textAlign='center';
+    voices.forEach(q=>{
+      const y=1700-((q.y0+(t-v.tin+3)*q.sp)%1)*1500;
+      const fadeEdge=clamp((1700-y)/200)*clamp((y-200)/300);
+      g.globalAlpha=a3*q.a*fadeEdge;
+      g.fillStyle='#E9E3D7';
+      g.font=`300 ${q.s}px "Cormorant Garamond"`;
+      g.fillText(q.glyph,q.x+Math.sin(t*0.5+q.ph)*12,y);
+    });
+    g.globalAlpha=1;
+  }
+
+  // 04 線路
+  const r=byId.rail;
+  const a4=Math.max(win(t,r.tin-0.4,byId.quote1.tin-0.2,1.4,1.0), 0.35*win(t,byId.quote1.tin-0.3,byId.quote2.tout,1,1));
+  if(a4>0){
+    const hy=1190, vx=540;
+    g.globalAlpha=a4;
+    g.strokeStyle='rgba(233,227,215,0.22)';g.lineWidth=1.4;
+    [[250,1920],[830,1920]].forEach(([bx,by])=>{
+      g.beginPath();g.moveTo(bx,by);g.lineTo(lerp(bx,vx,0.94),lerp(by,hy,0.94));g.stroke();
+    });
+    // 枕木（手前に流れてくる）
+    const speed=0.55;
+    for(let k=0;k<26;k++){
+      let z=((k/26)-(t*speed/26*4))%1; if(z<0) z+=1;
+      const depth=Math.pow(z,2.2);           // 0=奥 1=手前
+      const y=lerp(hy+8,1920,depth);
+      const kk=(y-hy)/(1920-hy);
+      const hw=lerp(30,330,kk)*1.08;
+      g.strokeStyle=`rgba(183,156,108,${0.28*clamp(kk*3)})`;
+      g.lineWidth=lerp(0.6,3,kk);
+      g.beginPath();g.moveTo(vx-hw,y);g.lineTo(vx+hw,y);g.stroke();
+    }
+    g.globalAlpha=1;
+  }
+
+  // 05 書き換わったあとの、あたたかい光
+  const rw=byId.rewrite;
+  const a5=win(t,rw.tin+1.6,secRange[5].a+1.5,2.2,2.0);
+  if(a5>0){
+    const rg=g.createRadialGradient(540,820,0,540,820,820);
+    rg.addColorStop(0,`rgba(226,180,112,${0.14*a5})`);rg.addColorStop(1,'rgba(226,180,112,0)');
+    g.fillStyle=rg;g.fillRect(0,0,W,H);
+  }
+
+  // 06 夜の町
+  const nt=byId.night, mc=byId.machi;
+  const a6=win(t,nt.tin-0.2,mc.tout+0.2,2.4,1.4);
+  if(a6>0){
+    const base=1580;
+    const glowK=ramp(t,mc.tin+0.6,3.0);
+    g.globalAlpha=a6;
+    // 地平線の明るみ。答えのあとは町あかりで暖かくなる
+    let hg=g.createLinearGradient(0,base-620,0,base);
+    hg.addColorStop(0,'rgba(60,84,140,0)');hg.addColorStop(1,'rgba(60,84,140,0.20)');
+    g.fillStyle=hg;g.fillRect(0,base-620,W,620);
+    hg=g.createLinearGradient(0,base-760,0,base);
+    hg.addColorStop(0,'rgba(232,176,104,0)');hg.addColorStop(1,`rgba(232,176,104,${0.16*glowK})`);
+    g.fillStyle=hg;g.fillRect(0,base-760,W,760);
+    const lit=(w,first)=>{
+      // 前半はぽつぽつ、田中さんの答えで一気に灯る
+      const tOn = w.on<first ? lerp(nt.tin+0.8,mc.tin,w.on/first) : lerp(mc.tin+0.5,mc.tin+3.4,(w.on-first)/(1-first));
+      return ramp(t,tOn,0.7);
+    };
+    cityFar.forEach(b=>{
+      g.fillStyle='#0b1122';g.fillRect(b.x,base-b.h-40,b.w,b.h+40);
+      b.wins.forEach(w=>{const k=lit(w,0.15);if(k<=0)return;
+        g.fillStyle=`rgba(${w.warm<.7?'214,176,120':'190,200,222'},${0.45*k})`;g.fillRect(w.x,base-b.h-40+w.y,5,7);});
+    });
+    cityNear.forEach(b=>{
+      g.fillStyle='#05070d';g.fillRect(b.x,base-b.h,b.w,b.h+400);
+      g.fillStyle='rgba(150,170,214,0.10)';g.fillRect(b.x,base-b.h,b.w,1);
+      b.wins.forEach(w=>{const k=lit(w,0.22);if(k<=0)return;
+        const c=w.warm<0.82?'238,192,120':'224,228,238';
+        g.fillStyle=`rgba(${c},${0.10*k})`;g.fillRect(w.x-5,base-b.h+w.y-5,16,19);
+        g.fillStyle=`rgba(${c},${0.88*k})`;g.fillRect(w.x,base-b.h+w.y,6,9);});
+    });
+    g.globalAlpha=1;
+  }
+}
+
+let frameNo=0;
+function drawGrain(){
+  gg.clearRect(0,0,W,H);
+  // 粒子は3フレームごとに入れ替える（毎フレーム変えると再圧縮で崩れる）
+  gg.globalAlpha=0.032;
+  gg.drawImage(noiseTiles[Math.floor(frameNo/3)%noiseTiles.length],0,0,W,H);
+}
+
+// ---------------------------------------------------------------------------
+// 1フレームを描く
+// ---------------------------------------------------------------------------
+function renderAt(t, fno){
+  frameNo = fno ?? Math.floor(t*30);
+  drawBg(t);
+  drawGrain();
+
+  ITEMS.forEach(it=>{
+    const outEnd = it.last ? Infinity : it.tout+OUT;
+    if(t<it.tin-0.05 || t>outEnd){ it.card.style.opacity=0; it.card.style.visibility='hidden'; return; }
+    it.card.style.visibility='visible';
+    const q = it.last ? 0 : easeIn((t-it.tout)/OUT);
+    const life = clamp((t-it.tin)/(it.dur+OUT));
+    it.card.style.opacity = 1-q;
+    it.card.style.filter = q>0 ? `blur(${q*7}px)` : 'none';
+    it.card.style.transform = `translateY(${-q*14}px) scale(${1+0.014*life})`;
+    it.chars.forEach(c=>{
+      const e=easeOut((t-it.tin-c.d)/CHAR);
+      c.el.style.opacity=e;
+      c.el.style.transform=`translateY(${(1-e)*20}px)`;
+      c.el.style.filter=e<1?`blur(${(1-e)*10}px)`:'none';
+    });
+    if(it.who){
+      const e=easeOut((t-it.tin-0.05)/0.9);
+      it.who.style.opacity=e;
+      it.who.style.transform=`translateY(${(1-e)*10}px)`;
+    }
+    if(FX[it.id]) FX[it.id](t,it);
+  });
+
+  SECTIONS.forEach((s,k)=>{
+    const el=chapEls[k]; if(!el) return;
+    const a=win(t,secRange[k].a+0.05,secRange[k].b-0.5,0.9,0.5);
+    el.style.opacity=a;
+    el.style.transform=`translateY(${(1-ramp(t,secRange[k].a,0.9))*10}px)`;
+    el.querySelector('.bar').style.transform=`scaleX(${easeOut((t-secRange[k].a-0.2)/1.0)})`;
+  });
+
+  document.getElementById('fade').style.opacity = ramp(t,TOTAL-0.7,0.7);
+}
+
+const FX = {
+  ninewari(t,it){
+    const dots=[...it.card.querySelectorAll('.dot')];
+    dots.forEach((d,i)=>{
+      const ap=easeOut((t-it.tin-0.7-i*0.05)/0.6);
+      // 9つが白抜けして、ひとつだけ残る
+      const k=i<9?easeInOut((t-it.tin-1.7-i*0.09)/0.5):0;
+      d.style.opacity=ap*(1-0.55*k);
+      d.style.background=i<9?`rgba(233,227,215,${1-k})`:'var(--gold)';
+      d.style.borderColor=i<9?'var(--ink)':'var(--gold)';
+    });
+  },
+  outside(t,it){
+    it.card.querySelector('.uline').style.setProperty('--u',easeInOut((t-it.tin-it.revealEnd+0.2)/0.9));
+  },
+  rewrite(t,it){
+    const old=it.card.querySelector('.old');
+    const s=easeInOut((t-it.tin-0.85)/0.7);
+    old.querySelector('.strike').style.setProperty('--s',s);
+    old.style.opacity=lerp(1,0.4,easeInOut((t-it.tin-1.5)/0.8));
+  },
+  art(t,it){
+    it.card.querySelector('rect').style.strokeDashoffset=1-easeInOut((t-it.tin-0.2)/1.8);
+  },
+  zero(t,it){
+    const spans=[...it.card.querySelectorAll('.counter span')];
+    const p=(t-it.tin-0.3)/1.5;   // 9 → 0
+    const idx=clamp(Math.floor(easeIn(clamp(p))*9.999),0,9);
+    spans.forEach((s,i)=>{
+      const on = i===idx ? 1 : 0;
+      const appear = easeOut((t-it.tin-0.1)/0.5);
+      s.style.opacity = on*appear;
+      s.style.transform = `translateY(${i===idx && i<9 ? 0 : 0}px)`;
+    });
+  },
+  logo(t,it){
+    it.card.querySelector('.logo-rule').style.setProperty('--r',easeInOut((t-it.tin-0.9)/1.0));
+  },
+};
+
+// ---------------------------------------------------------------------------
+// 書き出し用 API と、ブラウザで開いたときの再生
+// ---------------------------------------------------------------------------
+window.TOTAL = TOTAL;
+window.seek = (t,f)=>renderAt(t,f);
+window.__ready = document.fonts.ready.then(()=>{
+  ITEMS.forEach(it=>{});
+  return true;
+});
+if(!/render/.test(location.search)){
+  const t0=performance.now();
+  const fit=()=>{const s=Math.min(innerWidth/1080,innerHeight/1920);const st=document.getElementById('stage');st.style.transform=`scale(${s})`;st.style.transformOrigin='0 0';};
+  fit();addEventListener('resize',fit);
+  window.__ready.then(()=>{
+    const loop=()=>{renderAt(((performance.now()-t0)/1000)%TOTAL);requestAnimationFrame(loop);};
+    loop();
+  });
+}
+</script>
+</body>
+</html>
