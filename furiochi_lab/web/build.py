@@ -1,8 +1,10 @@
 """Web版（claude.ai の Artifact）を組み立てる
 
 furiochi_lab の問題バンク・採点ルール・AIプロンプトを JSON にして template.html に埋め込む。
+web/sounds/ に音声があれば、それも埋め込んで合成の効果音と差し替える（sounds/README.md）。
 使い方: python furiochi_lab/web/build.py [出力先]（既定は furiochi-lab.html）
 """
+import base64
 from dataclasses import asdict
 import json
 from pathlib import Path
@@ -47,9 +49,22 @@ data = {
     },
 }
 
+# sounds/ の音声はファイル名（拡張子なし）が鳴らす場面の名前。名前は sound.js の SYNTH と同じ
+AUDIO_EXT = {".wav", ".ogg", ".mp3", ".flac", ".m4a"}
+sounds = {}
+for f in sorted((Path(__file__).parent / "sounds").glob("*")):
+    if f.suffix.lower() not in AUDIO_EXT:
+        continue
+    if f.stem in sounds:
+        sys.exit(f"sounds/ に {f.stem} が2つあります。1つにしてください")
+    sounds[f.stem] = base64.b64encode(f.read_bytes()).decode("ascii")
+    print("sound:", f.name, f.stat().st_size, "bytes")
+if sounds:
+    data["sounds"] = sounds
+
 # src/ の部品を順につなぐ。JS はひとつの即時関数の中で同じスコープを共有する
 CSS_FILES = ["base.css", "stage.css", "charts.css"]
-JS_FILES = ["charts.js", "stage.js", "app.js"]
+JS_FILES = ["charts.js", "stage.js", "sound.js", "app.js"]
 
 src = Path(__file__).parent / "src"
 blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")

@@ -442,7 +442,7 @@ function startProblem(id, retryOf = null, prevAnswer = "") {
   fieldMemo.clear();
   render(); window.scrollTo({ top: 0 });
 }
-function startQueue(ids, label) { if (!ids.length) return; Object.assign(S, { queue: ids, queueLabel: label, queuePos: 0 }); startProblem(ids[0]); }
+function startQueue(ids, label) { if (!ids.length) return; Sound.play("debayashi"); Object.assign(S, { queue: ids, queueLabel: label, queuePos: 0 }); startProblem(ids[0]); }
 function stopQueue() { Object.assign(S, { queue: [], queueLabel: "", queuePos: 0 }); }
 function startMode(mode) { stopQueue(); S.mode = mode; const id = nextProblemId(mode, S.attempts); if (id) startProblem(id); }
 function goNext() {
@@ -1035,11 +1035,12 @@ function afterRender() {
   if (S.view === "practice") {
     // 新しい問題（ラウンド）が出たときだけ、めくりをめくる
     const mk = app.querySelector(".mekuri");
-    if (mk && flippedRound !== S.round) { flippedRound = S.round; Stage.flip(mk); }
+    if (mk && flippedRound !== S.round) { flippedRound = S.round; Stage.flip(mk); Sound.play("mekuri"); }
     const num = app.querySelector(".scorecard [data-count]");
     if (num && S.attempt) {
       const key = S.round + "|" + S.attempt.id + "|" + S.attempt.evaluation.source + "|" + num.dataset.count;
-      if (key !== countedKey) { countedKey = key; Stage.countUp(num, Number(num.dataset.count)); }
+      // 締めの音は数え上げ（0.6秒）が終わるころに鳴らす
+      if (key !== countedKey) { countedKey = key; Stage.countUp(num, Number(num.dataset.count)); Sound.score(ratio(S.attempt.evaluation), 0.45); }
     }
   }
   syncCountdown();
@@ -1063,10 +1064,19 @@ function updateCounter(el) {
 let cdTimer = 0;
 function stopCountdown() { if (cdTimer) clearInterval(cdTimer); cdTimer = 0; }
 const countdownLive = () => S.challenge && S.view === "practice" && S.phase === "answer" && document.getElementById("cd");
+// 残り5秒から1秒ごとに木の音、時間切れで鉦。よそへ行っていて時間切れを過ぎていたら、戻ってから鉦は鳴らさない
+let cdCue = { start: 0, sec: 0, over: false };
+function cueCountdown(left) {
+  const sec = Math.ceil(left), over = left < 0;
+  if (cdCue.start !== S.challengeStart) { cdCue = { start: S.challengeStart, sec, over }; return; }
+  if (over) { if (!cdCue.over && left > -1) Sound.play("kane"); cdCue.over = true; return; }
+  if (sec !== cdCue.sec) { cdCue.sec = sec; if (sec <= 5) Sound.play("tick"); }
+}
 function tickCountdown() {
   const el = countdownLive();
   if (!el) { stopCountdown(); return; }
   const left = CH_SEC - (Date.now() - S.challengeStart) / 1000;
+  cueCountdown(left);
   const t = document.getElementById("cdText"), arc = document.getElementById("cdArc");
   const over = left < 0;
   el.classList.toggle("over", over);
@@ -1103,6 +1113,16 @@ function setSatisfaction(v) {
   const cap = document.getElementById("satCap");
   if (cap) cap.textContent = next ? next + "　" + SATISFACTION[next] : "任意。あとで見返すときの目安に";
 }
+// 見出しの効果音ボタン。スピーカーに音の波（鳴らす）か×（消す）を添える
+function syncSoundButton() {
+  const b = document.querySelector('[data-act="sound"]');
+  if (!b) return;
+  const on = Sound.enabled();
+  b.setAttribute("aria-pressed", String(on));
+  b.title = on ? "効果音を消す" : "効果音を鳴らす";
+  b.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path class="snd-body" d="M3 7.6h2.8L10 4.2v11.6l-4.2-3.4H3z"/>'
+    + '<path class="snd-mark" d="' + (on ? "M13.2 7.4a3.6 3.6 0 0 1 0 5.2M15.4 5.2a6.8 6.8 0 0 1 0 9.6" : "M13 7.8l4.4 4.4M17.4 7.8L13 12.2") + '"/></svg>';
+}
 function filterPicker(k) {
   S.pickPattern = k;
   app.querySelectorAll('[data-act="pfilter"]').forEach(b => b.setAttribute("aria-pressed", String(b.dataset.k === k)));
@@ -1135,6 +1155,7 @@ document.addEventListener("click", e => {
   else if (act === "cancelDelete") { S.confirmDelete = null; render(); }
   else if (act === "delete") { Store.remove(t.dataset.id); S.confirmDelete = null; render(); }
   else if (act === "dtab") { S.dictTab = t.dataset.k; render(); }
+  else if (act === "sound") { Sound.set(!Sound.enabled()); syncSoundButton(); Sound.play("hyoshigi"); }
 });
 document.addEventListener("change", e => {
   const t = e.target;
@@ -1176,6 +1197,8 @@ document.addEventListener("submit", e => {
     const diagnosis = val("diag-" + r);
     const miss = !answer.trim() ? mode.answer_label + (multi(p) ? "を1つ以上" : "を") + "入力してください。" : p.mode === "M06" && !diagnosis ? "弱い理由を一言で入力してください。" : "";
     if (miss) { err.textContent = miss; err.hidden = false; return; }
+    // 送った合図。ツッコミ設計では、返した一言にハリセンを鳴らす
+    Sound.play(p.mode === "M07" ? "harisen" : "hyoshigi");
     const now = Date.now();
     S.draft = {
       answer, diagnosis, intent: val("intent-" + r), save: document.getElementById("save-" + r).checked, checks: autoChecks(p, answer),
@@ -1201,6 +1224,8 @@ document.addEventListener("submit", e => {
 
 // ━━━ 起動 ━━━
 Store.loadLocal();
+Sound.load(D.sounds);
+syncSoundButton();
 render();
 use("sample").then(s => { sample = s; S.ai = s ? "ready" : "off"; renderIfSafe(); });
 Store.init();
