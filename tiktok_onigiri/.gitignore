@@ -1,0 +1,6 @@
+fonts/
+frames_check/
+out/*_video.mp4
+out/*_audio.wav
+out/*_cues.json
+out/*.log
