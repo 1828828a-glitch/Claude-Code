@@ -25,15 +25,16 @@ function shotDoorOpen(ctx, lt, o = {}) {
     ctx.fillStyle = '#8d8a84'; ctx.fillRect(0, 1460, W, H - 1460);
     ctx.fillStyle = '#3a3a3a'; rr(ctx, 360, 1600, 150, 50, 24); ctx.fill(); rr(ctx, 560, 1620, 150, 50, 24); ctx.fill();
   });
+  dust(ctx, lt, { rect: [250, 280, 580, 1180], n: 40, a: 0.9 * op });
   if (o.hand !== false) drawHand(ctx, lerp(820, 980, op), lerp(1300, 1500, op), 1.4, -0.6, { sleeve: o.sleeve || '#2c3753', curl: 0.7 });
   fade(ctx, op * 0.25, '#fff8e8');
 }
 
 // 回想の母(カメラ目線でほほえむ)
 function shotMemoryMom(ctx, lt, o = {}) {
-  camera(ctx, { zoom: 1.08 - lt * 0.02 }, () => {
-    bgHomeKitchen(ctx, lt);
-    drawPerson(ctx, { x: 540, y: 1060, s: 1.75, who: 'mom', outfit: 'apron', t: lt + 7,
+  setLight({ side: -1, rim: '255,236,200', rimA: 0.70 });
+  scene2d(ctx, { zoom: 1.08 - lt * 0.03, dof: 8 }, c => bgHomeKitchen(c, lt), c => {
+    drawPerson(c, { x: 540, y: 1060, s: 1.75, who: 'mom', outfit: 'apron', t: lt + 7,
       ex: { ...EX.smile, open: talk(lt, o.talk?.[0] ?? 0.3, o.talk?.[1] ?? 1.0, 0.35), smile: 0.9 },
       afterHead: o.bento === false ? null : x => armsHoldBento(x, { y: 500, s: 1.05 }) });
   });
@@ -46,8 +47,9 @@ function shotPOVHandover(ctx, lt, o = {}) {
   const h = handheld(lt, 5, 0.9, 29);
   const surprised = tw(lt, g + 0.1, g + 0.4);
   const ex = mixEx({ ...EX.smile, open: talk(lt, o.talk?.[0] ?? 0.4, o.talk?.[1] ?? 1.2, 0.35) }, { smile: 0.2, eye: 1, browUp: 0.4 }, surprised);
+  setLight({ side: -1, rim: '255,236,200', rimA: 0.63 });
   camera(ctx, { zoom: 1.02, x: h.x + away * -30, y: h.y, rot: h.r + away * -0.02 }, () => {
-    bgHomeKitchen(ctx, lt);
+    withFilter(ctx, 'blur(6px)', c => bgHomeKitchen(c, lt), 'dof');
     drawPerson(ctx, { x: 540, y: 920, s: 1.7, who: 'mom', outfit: 'apron', t: lt + 9, ex,
       afterHead: x => {
         if (away < 0.05) armsHoldBento(x, { y: 430, s: 1.45 });
@@ -83,13 +85,14 @@ function polaroid(ctx, x, y, s, rot, fn, label, a = 1, sepia = true) {
 // 夜の台所で、母がひとり
 function shotNightMom(ctx, lt, o = {}) {
   const h = handheld(lt, 3, 0.5, 31);
-  camera(ctx, { zoom: (o.zoom || 1.0) + lt * 0.015, x: h.x, y: h.y }, () => {
-    bgNightKitchen(ctx, lt);
+  setLight({ side: 1, rim: '255,196,130', rimA: 0.63 });
+  camera(ctx, { zoom: (o.zoom || 1.0) + lt * 0.02, x: h.x, y: h.y }, () => {
+    withFilter(ctx, 'blur(4px)', c => bgNightKitchen(c, lt), 'dof');
     drawPerson(ctx, { x: 540, y: 1000, s: 1.45, who: 'mom', outfit: 'cardigan', t: lt + 11,
       ex: o.ex || { smile: 0.15, eye: 0.75, look: [0.2, 0.85], brow: -0.3 } });
     ctx.fillStyle = lg(ctx, 0, 1300, 0, H, [[0, '#8f6240'], [1, '#5e3e28']]); ctx.fillRect(0, 1360, W, H - 1360);
     ctx.fillStyle = '#7a5134'; ctx.fillRect(0, 1340, W, 26);
-    drawTeacup(ctx, 830, 1450, 1.0);
+    drawTeacup(ctx, 830, 1450, 1.0, lt);
     if (o.phone !== false) {
       drawPhone(ctx, 500, 1520, 0.42, -0.25, (c, w, hh) => { c.fillStyle = '#dfe6f0'; c.fillRect(0, 0, w, hh); c.fillStyle = 'rgba(255,255,255,0.5)'; c.fillRect(0, 0, w, 120); });
       drawHand(ctx, 430, 1720, 1.0, -0.2, { sleeve: '#86977c', curl: 0.7 });
@@ -119,6 +122,7 @@ function shotSausageHesitate(ctx, lt, o = {}) {
 // 玄関で、閉まったドアに「いってらっしゃい」
 function shotGenkanMom(ctx, lt, o = {}) {
   const closeP = tw(lt, 0, 0.5);
+  setLight({ side: 1, rim: '255,240,210', rimA: 0.63 });
   camera(ctx, { zoom: 1.0 + lt * 0.02 }, () => {
     bgGenkan(ctx, lt, { open: 1 - closeP });
     drawPersonBack(ctx, { x: 560, y: 1450, s: 1.35, who: 'mom', outfit: 'apron', tilt: 0.04 });
@@ -130,8 +134,9 @@ function shotGenkanMom(ctx, lt, o = {}) {
 function shotMomReact(ctx, lt, o = {}) {
   const k = tw(lt, 0.4, 1.2);
   const tear = tw(lt, 1.0, 2.2);
-  camera(ctx, { zoom: 1.05 + lt * 0.03 }, () => {
-    bgHomeKitchen(ctx, lt);
+  setLight({ side: -1, rim: '255,232,190', rimA: 0.70 });
+  camera(ctx, { zoom: 1.05 + lt * 0.035 }, () => {
+    withFilter(ctx, 'blur(7px)', c => bgHomeKitchen(c, lt), 'dof');
     const ex = mixEx({ smile: 0.1, eye: 1, browUp: 0.6, look: [0, 0.6] }, { smile: 0.75, eye: 0.6, brow: -0.6, tear, look: [0, 0.5] }, k);
     ex.drop = seg(lt, 2.2, 3.6); ex.dropSide = 1;
     drawPerson(ctx, { x: 540, y: 1080, s: 1.8, who: 'mom', outfit: 'cardigan', t: lt + 13, ex, nod: -6 * k });

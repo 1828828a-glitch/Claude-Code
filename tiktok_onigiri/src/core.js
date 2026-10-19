@@ -52,7 +52,7 @@ function camera(ctx, c, fn) {
   const cx = c.cx ?? W / 2, cy = c.cy ?? H / 2;
   ctx.translate(cx, cy);
   if (c.rot) ctx.rotate(c.rot);
-  const z = c.zoom ?? 1;
+  const z = (c.zoom ?? 1) * (c.noOverscan ? 1 : 1.03);
   ctx.scale(z, z);
   ctx.translate(-cx + (c.x || 0), -cy + (c.y || 0));
   fn();
@@ -226,5 +226,93 @@ function tearBlur(ctx, amount, t, fn) {
   const wob = Math.sin(t * 2.2) * 8;
   ctx.fillStyle = lg(ctx, 0, H * 0.72 + wob, 0, H, [[0, 'rgba(200,230,255,0)'], [0.4, 'rgba(210,235,255,0.25)'], [1, 'rgba(230,245,255,0.5)']]);
   ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+// ---- 映画的な質感のための部品 ----
+
+// 背景と人物を別の奥行きで動かす(パララックス)。dof で背景をぼかす
+function scene2d(ctx, c, bgFn, fgFn) {
+  const d = c.bgDepth ?? 0.45;
+  const bcam = { zoom: 1 + ((c.zoom ?? 1) - 1) * d, x: (c.x || 0) * d, y: (c.y || 0) * d, rot: (c.rot || 0) * d };
+  camera(ctx, bcam, () => {
+    if (c.dof) withFilter(ctx, `blur(${c.dof}px)`, bgFn, 'dof');
+    else bgFn(ctx);
+  });
+  camera(ctx, c, () => fgFn(ctx));
+}
+
+// 光の中を漂うほこり
+function dust(ctx, t, o = {}) {
+  const n = o.n ?? 46, r = rng(o.seed ?? 3);
+  const [x0, y0, w, h] = o.rect || [0, 0, W, H];
+  ctx.save(); ctx.globalCompositeOperation = 'screen';
+  if (o.clip) { o.clip(ctx); ctx.clip(); }
+  for (let i = 0; i < n; i++) {
+    const bx = r(), by = r(), sp = 6 + r() * 16, sz = 1.5 + r() * 4.5, ph = r() * TAU, br = 0.25 + r() * 0.6;
+    const x = x0 + ((bx * w + Math.sin(t * 0.4 + ph) * 26 + t * 4) % w + w) % w;
+    const y = y0 + ((by * h - t * sp) % h + h) % h;
+    const a = br * (0.55 + 0.45 * Math.sin(t * 1.3 + ph)) * (o.a ?? 0.55);
+    ctx.fillStyle = rg(ctx, x, y, 0, sz * 2.2, [[0, `rgba(${o.rgb || '255,244,220'},${a})`], [1, `rgba(${o.rgb || '255,244,220'},0)`]]);
+    ctx.fillRect(x - sz * 2.2, y - sz * 2.2, sz * 4.4, sz * 4.4);
+  }
+  ctx.restore();
+}
+
+// 立ちのぼる湯気
+function steam(ctx, x, y, t, o = {}) {
+  const n = o.n ?? 9, per = o.per ?? 2.6, hgt = o.h ?? 320, wid = o.w ?? 60;
+  ctx.save(); ctx.globalCompositeOperation = 'screen';
+  for (let i = 0; i < n; i++) {
+    const p = ((t / per + i / n + hash(i * 7.1) * 0.3) % 1 + 1) % 1;
+    const sway = Math.sin(p * 4 + i * 1.7 + t * 0.6) * 30 * p;
+    const px = x + (hash(i * 3.3) - 0.5) * wid + sway, py = y - p * hgt;
+    const rad = (o.r ?? 34) * (0.6 + p * 1.6);
+    const a = Math.sin(p * Math.PI) * (o.a ?? 0.16);
+    ctx.fillStyle = rg(ctx, px, py, 0, rad, [[0, `rgba(255,255,255,${a})`], [0.6, `rgba(255,255,255,${a * 0.4})`], [1, 'rgba(255,255,255,0)']]);
+    ctx.fillRect(px - rad, py - rad, rad * 2, rad * 2);
+  }
+  ctx.restore();
+}
+
+// 居酒屋の煙・もや
+function haze(ctx, t, o = {}) {
+  const r = rng(o.seed ?? 8);
+  ctx.save(); ctx.globalCompositeOperation = o.mode || 'screen';
+  for (let i = 0; i < (o.n ?? 7); i++) {
+    const bx = r() * W, by = (o.y0 ?? 0) + r() * (o.h ?? H), rad = 260 + r() * 320;
+    const x = bx + Math.sin(t * 0.15 + i) * 80, y = by + Math.cos(t * 0.12 + i * 2) * 40;
+    ctx.fillStyle = rg(ctx, x, y, 0, rad, [[0, `rgba(${o.rgb || '255,220,180'},${o.a ?? 0.08})`], [1, `rgba(${o.rgb || '255,220,180'},0)`]]);
+    ctx.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+  }
+  ctx.restore();
+}
+
+// 手前を横切るボケ(前景の灯りやグラス)
+function fgBokeh(ctx, t, spots) {
+  ctx.save(); ctx.globalCompositeOperation = 'screen';
+  spots.forEach(([x, y, r, rgb, a], i) => {
+    const xx = x + Math.sin(t * 0.3 + i) * 10;
+    ctx.fillStyle = rg(ctx, xx, y, 0, r, [[0, `rgba(${rgb},${a * 0.6})`], [0.75, `rgba(${rgb},${a})`], [0.92, `rgba(${rgb},${a * 0.7})`], [1, `rgba(${rgb},0)`]]);
+    ctx.beginPath(); ctx.arc(xx, y, r, 0, TAU); ctx.fill();
+  });
+  ctx.restore();
+}
+
+// 明るい部分だけをにじませる(ブルーム)
+let _bloomC = null, _bloomC2 = null;
+function bloom(ctx, src, a = 0.3, tint = 'rgba(255,214,180,1)') {
+  if (!_bloomC) { _bloomC = document.createElement('canvas'); _bloomC.width = 270; _bloomC.height = 480; _bloomC2 = document.createElement('canvas'); _bloomC2.width = 135; _bloomC2.height = 240; }
+  const x = _bloomC.getContext('2d');
+  x.clearRect(0, 0, 270, 480);
+  x.filter = 'brightness(0.6) contrast(3.6) blur(5px)';
+  x.drawImage(src, 0, 0, 270, 480);
+  x.filter = 'none';
+  x.globalCompositeOperation = 'multiply'; x.fillStyle = tint; x.fillRect(0, 0, 270, 480); x.globalCompositeOperation = 'source-over';
+  const x2 = _bloomC2.getContext('2d');
+  x2.clearRect(0, 0, 135, 240); x2.filter = 'blur(6px)'; x2.drawImage(_bloomC, 0, 0, 135, 240); x2.filter = 'none';
+  ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.imageSmoothingQuality = 'high';
+  ctx.globalAlpha = a; ctx.drawImage(_bloomC, 0, 0, W, H);
+  ctx.globalAlpha = a * 0.8; ctx.drawImage(_bloomC2, 0, 0, W, H);
   ctx.restore();
 }

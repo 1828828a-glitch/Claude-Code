@@ -33,12 +33,16 @@ function bgHomeKitchen(ctx, t, o = {}) {
   ctx.strokeStyle = 'rgba(0,0,0,0.06)'; ctx.lineWidth = 4;
   for (let x = 0; x < W; x += 270) { ctx.beginPath(); ctx.moveTo(x, 1290); ctx.lineTo(x, H); ctx.stroke(); }
   // 差し込む光
+  ctx.fillStyle = lg(ctx, 0, 510, 0, 600, [[0, 'rgba(90,60,30,0.25)'], [1, 'rgba(90,60,30,0)']]); ctx.fillRect(600, 510, 480, 90);
+  ctx.fillStyle = lg(ctx, 0, 1266, 0, 1340, [[0, 'rgba(90,60,30,0.3)'], [1, 'rgba(90,60,30,0)']]); ctx.fillRect(0, 1266, W, 74);
   if (o.rays !== false) {
+    const ray = c => { c.beginPath(); c.moveTo(wx, wy); c.lineTo(wx + ww, wy); c.lineTo(wx + ww + 600, H); c.lineTo(wx + 200, H); c.closePath(); };
     ctx.save(); ctx.globalCompositeOperation = 'screen';
-    ctx.fillStyle = 'rgba(255,236,190,0.22)';
-    ctx.beginPath(); ctx.moveTo(wx, wy); ctx.lineTo(wx + ww, wy); ctx.lineTo(wx + ww + 600, H); ctx.lineTo(wx + 200, H); ctx.fill();
+    ray(ctx); ctx.fillStyle = lg(ctx, wx, wy, wx + 500, H, [[0, 'rgba(255,236,190,0.34)'], [1, 'rgba(255,236,190,0.04)']]); ctx.fill();
     ctx.restore();
+    dust(ctx, t, { clip: ray, n: 60, a: 0.7 });
   }
+  ctx.fillStyle = rg(ctx, W * 0.35, H * 0.35, H * 0.25, H * 0.85, [[0, 'rgba(60,35,20,0)'], [1, 'rgba(60,35,20,0.35)']]); ctx.fillRect(0, 0, W, H);
 }
 
 // 居酒屋。blur で背景ボケ
@@ -89,7 +93,9 @@ function bgIzakaya(ctx, t, o = {}) {
     for (let i = 0; i < 8; i++) { ctx.beginPath(); ctx.moveTo(0, ty + 30 + i * 70); ctx.bezierCurveTo(300, ty + 20 + i * 70, 700, ty + 50 + i * 70, W, ty + 30 + i * 70); ctx.stroke(); }
     ctx.fillStyle = 'rgba(255,200,120,0.15)'; ctx.fillRect(0, ty, W, 8);
   }
+  haze(ctx, t, { rgb: '255,190,140', a: 0.09, n: 8, h: 1200 });
   ctx.fillStyle = 'rgba(255,150,60,0.08)'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = lg(ctx, 0, 0, 0, 500, [[0, 'rgba(20,8,2,0.45)'], [1, 'rgba(20,8,2,0)']]); ctx.fillRect(0, 0, W, 500);
 }
 
 // ひとり暮らしの部屋のキッチン。tone: cool(朝の青) / warm
@@ -117,9 +123,12 @@ function bgApartment(ctx, t, o = {}) {
   ctx.beginPath(); ctx.moveTo(660, 1180); ctx.lineTo(660, 1090); ctx.quadraticCurveTo(660, 1060, 620, 1060); ctx.lineTo(600, 1060); ctx.stroke();
   // 光
   ctx.save(); ctx.globalCompositeOperation = 'screen';
-  ctx.fillStyle = `rgba(${lerp(200, 255, warm)},${lerp(225, 220, warm)},${lerp(255, 170, warm)},0.18)`;
+  ctx.fillStyle = `rgba(${lerp(200, 255, warm)},${lerp(225, 220, warm)},${lerp(255, 170, warm)},0.22)`;
   ctx.beginPath(); ctx.moveTo(580, 240); ctx.lineTo(960, 240); ctx.lineTo(700, H); ctx.lineTo(80, H); ctx.fill();
   ctx.restore();
+  dust(ctx, t, { clip: c => { c.beginPath(); c.moveTo(580, 240); c.lineTo(960, 240); c.lineTo(700, H); c.lineTo(80, H); c.closePath(); }, n: 40, a: 0.6, seed: 5 });
+  ctx.fillStyle = lg(ctx, 0, 1264, 0, 1330, [[0, 'rgba(40,50,60,0.25)'], [1, 'rgba(40,50,60,0)']]); ctx.fillRect(0, 1264, W, 66);
+  ctx.fillStyle = rg(ctx, W * 0.6, H * 0.3, H * 0.25, H * 0.85, [[0, 'rgba(20,30,45,0)'], [1, 'rgba(20,30,45,0.35)']]); ctx.fillRect(0, 0, W, H);
 }
 function mixColor(a, b, k) {
   const pa = [1, 3, 5].map(i => parseInt(a.slice(i, i + 2), 16)), pb = [1, 3, 5].map(i => parseInt(b.slice(i, i + 2), 16));
@@ -147,9 +156,11 @@ function bgClassroom(ctx, t) {
   ctx.fillStyle = '#c9a074'; ctx.fillRect(0, 1360, W, 30);
   ctx.fillStyle = '#d8b28a'; ctx.fillRect(0, 1390, W, H - 1390);
   ctx.save(); ctx.globalCompositeOperation = 'screen';
-  ctx.fillStyle = 'rgba(255,245,210,0.25)';
+  ctx.fillStyle = 'rgba(255,245,210,0.28)';
   ctx.beginPath(); ctx.moveTo(40, 200); ctx.lineTo(700, 200); ctx.lineTo(1080, H); ctx.lineTo(300, H); ctx.fill();
   ctx.restore();
+  dust(ctx, t, { clip: c => { c.beginPath(); c.moveTo(40, 200); c.lineTo(700, 200); c.lineTo(1080, H); c.lineTo(300, H); c.closePath(); }, n: 50, a: 0.7, seed: 9 });
+  ctx.fillStyle = rg(ctx, W * 0.3, H * 0.3, H * 0.3, H * 0.85, [[0, 'rgba(60,45,20,0)'], [1, 'rgba(60,45,20,0.3)']]); ctx.fillRect(0, 0, W, H);
 }
 
 // 朝の寝室
@@ -159,8 +170,9 @@ function bgBedroom(ctx, t) {
   ctx.fillStyle = '#4a5370'; ctx.fillRect(560, 120, 480, 900);
   ctx.fillStyle = 'rgba(220,235,255,0.75)'; ctx.fillRect(780, 120, 36, 900);
   ctx.save(); ctx.globalCompositeOperation = 'screen';
-  ctx.fillStyle = 'rgba(200,220,255,0.18)'; ctx.beginPath(); ctx.moveTo(780, 120); ctx.lineTo(816, 120); ctx.lineTo(600, H); ctx.lineTo(260, H); ctx.fill();
+  ctx.fillStyle = 'rgba(200,220,255,0.22)'; ctx.beginPath(); ctx.moveTo(780, 120); ctx.lineTo(816, 120); ctx.lineTo(600, H); ctx.lineTo(260, H); ctx.fill();
   ctx.restore();
+  dust(ctx, t, { clip: c => { c.beginPath(); c.moveTo(780, 120); c.lineTo(816, 120); c.lineTo(600, H); c.lineTo(260, H); c.closePath(); }, n: 40, a: 0.8, rgb: '220,235,255', seed: 4 });
   // 布団
   ctx.fillStyle = '#7d8fb3'; ctx.beginPath(); ctx.moveTo(0, 1150); ctx.bezierCurveTo(300, 1060, 700, 1120, W, 1080); ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
   ctx.fillStyle = 'rgba(255,255,255,0.08)';
@@ -233,7 +245,9 @@ function bgNightKitchen(ctx, t, o = {}) {
   ctx.fillStyle = '#e8c27a'; ctx.beginPath(); ctx.moveTo(460, 700); ctx.lineTo(620, 700); ctx.lineTo(580, 630); ctx.lineTo(500, 630); ctx.fill();
   ctx.save(); ctx.globalCompositeOperation = 'screen';
   ctx.fillStyle = rg(ctx, 540, 900, 0, 900, [[0, 'rgba(255,200,120,0.45)'], [1, 'rgba(255,170,90,0)']]); ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(255,210,140,0.1)'; ctx.beginPath(); ctx.moveTo(470, 700); ctx.lineTo(610, 700); ctx.lineTo(900, H); ctx.lineTo(180, H); ctx.fill();
   ctx.restore();
+  dust(ctx, t, { clip: c => { c.beginPath(); c.moveTo(470, 700); c.lineTo(610, 700); c.lineTo(900, H); c.lineTo(180, H); c.closePath(); }, n: 36, a: 0.6, rgb: '255,220,170', seed: 6 });
   // テーブル
   ctx.fillStyle = '#7a5134'; ctx.fillRect(0, 1260, W, 26);
   ctx.fillStyle = lg(ctx, 0, 1286, 0, H, [[0, '#8f6240'], [1, '#5e3e28']]); ctx.fillRect(0, 1286, W, H - 1286);

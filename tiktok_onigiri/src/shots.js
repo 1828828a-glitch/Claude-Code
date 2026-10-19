@@ -79,10 +79,10 @@ function armsHoldBento(ctx, o = {}) {
 // ---- 実家の台所:高校生の息子が文句を言う ----
 function shotTeenComplain(ctx, lt, o = {}) {
   const h = handheld(lt, 5, 0.8, 3);
-  camera(ctx, { zoom: 1.0 + lt * 0.03, x: h.x, y: h.y, rot: h.r }, () => {
-    bgHomeKitchen(ctx, lt);
-    const k = o.talk || [0.1, 2.3];
-    drawPerson(ctx, { x: 580, y: 1120, s: 1.6, who: 'teen', outfit: 'gakuran', t: lt + 1,
+  setLight({ side: -1, rim: '255,236,200', rimA: 0.59 });
+  const k = o.talk || [0.1, 2.3];
+  scene2d(ctx, { zoom: 1.0 + lt * 0.04, x: h.x, y: h.y, rot: h.r, dof: 6 }, c => bgHomeKitchen(c, lt), c => {
+    drawPerson(c, { x: 580, y: 1120, s: 1.6, who: 'teen', outfit: 'gakuran', t: lt + 1,
       ex: { ...EX.annoyed, brow: 1, eye: 0.6, smile: -0.6, open: talk(lt, k[0], k[1], 0.5), look: [-0.8, 0.1], noBlink: true }, tilt: -0.05 });
   });
 }
@@ -99,9 +99,9 @@ function shotMomNod(ctx, lt, o = {}) {
   ex = mixEx(ex, { ...EX.sad, smile: 0.0 }, downK);
   if (o.forced && lt > k[2] + 0.8) ex = mixEx(ex, { ...EX.sad, smile: 0.35 }, tw(lt, k[2] + 0.8, k[2] + 1.2));
   ex.noBlink = lt > k[1];
-  camera(ctx, { zoom: (o.zoom || 1.0) + lt * 0.02, x: h.x, y: h.y, rot: h.r }, () => {
-    (o.bg || bgHomeKitchen)(ctx, lt);
-    drawPerson(ctx, { x: 540, y: o.y ?? 1060, s: o.s ?? 1.75, who: 'mom', outfit: 'apron', t: lt + 2, ex, nod, tilt: o.pov ? 0 : 0.03,
+  setLight({ side: -1, rim: '255,236,200', rimA: 0.59 });
+  scene2d(ctx, { zoom: (o.zoom || 1.0) + lt * 0.03, x: h.x, y: h.y, rot: h.r, dof: 7 }, c => (o.bg || bgHomeKitchen)(c, lt), c => {
+    drawPerson(c, { x: 540, y: o.y ?? 1060, s: o.s ?? 1.75, who: 'mom', outfit: 'apron', t: lt + 2, ex, nod, tilt: o.pov ? 0 : 0.03,
       afterHead: o.bento === false ? null : x => armsHoldBento(x, { y: 500, s: 1.0 }) });
   });
 }
@@ -116,6 +116,7 @@ function shotIzakayaBite(ctx, lt, o = {}) {
   const oy = lerp(1050, -300, up) + (bitten ? lerp(-300, 1000, down) - lerp(1050, -300, 1) : 0);
   const os = bitten ? lerp(2.6, 1.8, down) : lerp(1.6, 2.6, up);
   const zoomIn = tw(lt, tb + 0.6, tb + 2.6, E.sine);
+  setLight({ side: 1, rim: '255,190,120', rimA: 0.63 });
   camera(ctx, { zoom: 1 + zoomIn * 0.32, x: h.x, y: h.y + zoomIn * 60, rot: h.r }, () => {
     bgIzakaya(ctx, lt, { blur: 14, tableY: 1500 });
     drawBeer(ctx, 860, 1560, 1.0, 0.55);
@@ -126,10 +127,12 @@ function shotIzakayaBite(ctx, lt, o = {}) {
     drawOnigiri(ctx, ox, oy, os, { bite: bitten ? 0.5 : 0, filling: 'sausage', seed: 6 });
     fingersFront(ctx, ox + 150 * os / 1.8, oy + 90 * os / 1.8, 0.95 * os / 1.8, Math.PI - 0.25, 3);
   });
+  fgBokeh(ctx, lt, [[40, 1820, 170, '255,160,80', 0.15], [1080, 1480, 120, '255,200,120', 0.12], [990, 230, 90, '255,140,70', 0.14]]);
 }
 
 // ---- 吹きこぼれ ----
 function shotPotBoil(ctx, lt) {
+  setLight({ side: 1, rim: '215,232,255', rimA: 0.56 });
   const sh = lt > 0.3 ? handheld(lt * 6, 10, 1.5, 9) : { x: 0, y: 0, r: 0 };
   camera(ctx, { zoom: 1.05, x: sh.x, y: sh.y, rot: sh.r }, () => {
     bgApartment(ctx, lt);
@@ -142,6 +145,7 @@ function shotPotBoil(ctx, lt) {
 function shotAlarm(ctx, lt, o = {}) {
   const hit = o.hitAt ?? 0.45;
   const ring = lt < hit ? 1 : 0;
+  setLight({ side: 1, rim: '210,228,255', rimA: 0.49 });
   camera(ctx, { zoom: 1.05, x: 0, y: 0 }, () => {
     bgBedroom(ctx, lt);
     // 寝ている人(枕に頭、布団をかぶる)
@@ -194,7 +198,7 @@ function shotGrabBento(ctx, lt, o = {}) {
   const g = o.grabAt ?? 1.2;
   const h = handheld(lt, 4, 0.8, 13);
   camera(ctx, { zoom: 1.0 + lt * 0.02, x: h.x, y: h.y }, () => {
-    bgHomeKitchen(ctx, lt, { rays: true });
+    withFilter(ctx, 'blur(3px)', c => bgHomeKitchen(c, lt, { rays: true }), 'dof');
     const after = tw(lt, g + 0.2, g + 0.8);
     const ex = mixEx({ ...EX.smile, open: talk(lt, 0.4, 1.1, 0.35) }, { smile: 0.2, eye: 0.8, look: [0.8, 0.2], brow: -0.3 }, after);
     drawPerson(ctx, { x: 470, y: 1000, s: 1.3, who: 'mom', outfit: 'apron', t: lt + 3, ex });
@@ -241,8 +245,9 @@ function shotThreeFillings(ctx, lt, o = {}) {
 function shotClassroom(ctx, lt) {
   const h = handheld(lt, 4, 0.8, 17);
   const lean = tw(lt, 0.1, 0.4, E.outBack);
+  setLight({ side: -1, rim: '255,244,214', rimA: 0.63 });
   camera(ctx, { zoom: 1.02, x: h.x, y: h.y }, () => {
-    bgClassroom(ctx, lt);
+    withFilter(ctx, 'blur(3px)', c => bgClassroom(c, lt), 'dof');
     drawPerson(ctx, { x: 230 + lean * 30, y: 1080, s: 1.05, who: 'friend1', outfit: 'gakuran', t: lt, ex: { ...EX.surprised, open: lt < 1.2 ? 0.7 : 0.3 }, tilt: 0.12 * lean });
     drawPerson(ctx, { x: 850 - lean * 30, y: 1080, s: 1.05, who: 'friend2', outfit: 'gakuran', t: lt + 1, glasses: true, ex: { ...EX.surprised, smile: 0.4, open: 0.4 }, tilt: -0.12 * lean });
     const emb = tw(lt, 0.7, 1.2);
@@ -256,12 +261,14 @@ function shotClassroom(ctx, lt) {
 // ---- 居酒屋で涙ぐむ ----
 function shotIzakayaTear(ctx, lt, o = {}) {
   const tear = tw(lt, 0.5, 1.6), drop = seg(lt, 1.7, 3.2);
-  camera(ctx, { zoom: 1.0 + tw(lt, 0, 4, E.sine) * 0.14, y: tw(lt, 0, 4, E.sine) * 40 }, () => {
-    bgIzakaya(ctx, lt, { blur: 16, tableY: 1560 });
+  setLight({ side: 1, rim: '255,175,105', rimA: 0.66 });
+  const push = tw(lt, 0, 4, E.sine);
+  scene2d(ctx, { zoom: 1.0 + push * 0.16, y: push * 40, bgDepth: 0.3 }, c => bgIzakaya(c, lt, { blur: 16, tableY: 1560 }), ctx => {
     const ex = { smile: lerp(0, -0.1, tear), brow: lerp(-0.2, -0.85, tear), eye: lerp(0.8, 0.72, tear), look: [0, lerp(0.7, 0.3, tear)], tear, drop: drop > 0 ? drop : 0, dropSide: -1, noBlink: lt > 1.4 };
     drawPerson(ctx, { x: 540, y: 1000, s: 1.8, who: 'adult', outfit: 'suit', t: lt + 4, ex,
       afterHead: x => { drawHand(x, 150, 640, 0.85, -0.3, { sleeve: '#f2f3f6', curl: 0.6 }); drawOnigiri(x, 40, 420, 0.8, { bite: 0.5, filling: 'sausage', seed: 6 }); fingersFront(x, 90, 470, 0.75, Math.PI - 0.3, 3); } });
   });
+  fgBokeh(ctx, lt, [[-30, 1720, 190, '255,160,80', 0.14], [1100, 560, 150, '255,190,110', 0.12]]);
 }
 
 // ---- 手のひらでおにぎりを握る(真上から) ----
@@ -279,6 +286,7 @@ function shotMakeOnigiri(ctx, lt, o = {}) {
     const p = tw(lt, 3.5, 3.9, E.out);
     drawPlate(ctx, cx, cy + 120, 360, 200, '#ffffff');
     drawOnigiri(ctx, cx, cy + lerp(-40, 0, p), 1.3, { lop: 0.85, seed: 12, nori: lt > 3.9, rot: -0.07 });
+    steam(ctx, cx, cy - 100, lt, { n: 8, h: 380, w: 140, r: 40, a: 0.12, per: 2.6 });
     const hp = tw(lt, 3.5, 3.9, E.in);
     drawHand(ctx, lerp(260, -200, hp), lerp(1250, 1700, hp), 1.5, 0.75, { sleeve, curl: 0.5 });
     drawHand(ctx, lerp(820, 1300, hp), lerp(1250, 1700, hp), 1.5, -0.75, { sleeve, curl: 0.5, flip: true });
@@ -299,6 +307,7 @@ function shotMakeOnigiri(ctx, lt, o = {}) {
     drawOnigiri(ctx, cx, cy, 1.2 - sq * 0.04, { lop: 0.4 + closeP * 0.45, seed: 12, nori: false, rot: Math.sin(lt * 3) * 0.05 });
     ctx.restore();
   }
+  steam(ctx, cx, cy - 40, lt, { n: 12, h: 460, w: 200, r: 46, a: 0.16 * (1 - closeP * 0.4), per: 2.2 });
   const gap = lerp(250, 150, closeP) - sq * 30;
   drawHand(ctx, cx - gap - 40, cy + 230, 1.45, lerp(0.8, 1.05, closeP), { sleeve, curl: 0.25 + closeP * 0.35 });
   drawHand(ctx, cx + gap + 40, cy + 230, 1.45, -lerp(0.8, 1.05, closeP), { sleeve, curl: 0.25 + closeP * 0.35, flip: true });

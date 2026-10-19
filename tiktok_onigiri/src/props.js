@@ -157,15 +157,8 @@ function drawPot(ctx, x, y, s, boil, t) {
       });
     }
   }
-  // 湯気
-  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 16; ctx.lineCap = 'round';
-  for (let i = 0; i < 3; i++) {
-    const ph = t * 1.4 + i * 2.1, bx = -90 + i * 90;
-    ctx.globalAlpha = 0.25 + 0.25 * Math.sin(ph);
-    ctx.beginPath(); ctx.moveTo(bx, -140 - boil * 60);
-    ctx.bezierCurveTo(bx + 40 * Math.sin(ph), -220, bx - 40 * Math.sin(ph), -280, bx + 20, -360); ctx.stroke();
-  }
   ctx.restore();
+  steam(ctx, x, y - (90 + boil * 60) * s, t, { n: 14, h: 520 * s, w: 300 * s, r: 50 * s, a: 0.22, per: 1.8 });
 }
 
 // ベル式の目覚まし時計
@@ -248,16 +241,8 @@ function drawRiceCooker(ctx, x, y, s, open, t) {
   rr(ctx, -220, -120, 440, 120, 60); ctx.fillStyle = '#f7f6f3'; ctx.fill();
   ctx.fillStyle = '#e1dfd9'; rr(ctx, -200, -20, 400, 22, 10); ctx.fill();
   ctx.restore();
-  // 湯気
-  if (open > 0.3) {
-    ctx.lineCap = 'round';
-    for (let i = 0; i < 4; i++) {
-      const ph = t * 1.2 + i * 1.7, bx = -120 + i * 80;
-      ctx.strokeStyle = `rgba(255,255,255,${0.35 * (open - 0.3) * (0.6 + 0.4 * Math.sin(ph))})`; ctx.lineWidth = 26;
-      ctx.beginPath(); ctx.moveTo(bx, -90); ctx.bezierCurveTo(bx + 50 * Math.sin(ph), -200, bx - 50 * Math.sin(ph), -300, bx + 20, -420); ctx.stroke();
-    }
-  }
   ctx.restore();
+  if (open > 0.3) steam(ctx, x, y - 90 * s, t, { n: 12, h: 520 * s, w: 260 * s, r: 48 * s, a: 0.15 * (open - 0.3) / 0.7, per: 2.2 });
 }
 
 // 通学カバンの中(上から)
@@ -291,17 +276,16 @@ function drawSausagePack(ctx, x, y, s, rot = 0) {
   ctx.restore();
 }
 
-// 湯のみ
-function drawTeacup(ctx, x, y, s) {
+// 湯のみ(t は湯気の時間)
+function drawTeacup(ctx, x, y, s, t = 0) {
   ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
   fillEll(ctx, 0, 70, 90, 20, 'rgba(0,0,0,0.25)');
   ctx.beginPath(); ctx.moveTo(-80, -60); ctx.lineTo(80, -60); ctx.lineTo(64, 70); ctx.quadraticCurveTo(0, 84, -64, 70); ctx.closePath();
   ctx.fillStyle = '#5f7a8c'; ctx.fill();
   ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(-60, -50, 24, 110);
   fillEll(ctx, 0, -60, 80, 16, '#4b6271'); fillEll(ctx, 0, -58, 70, 12, '#9c8a4c');
-  ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 8; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(-10, -90); ctx.bezierCurveTo(10, -130, -20, -160, 6, -200); ctx.stroke();
   ctx.restore();
+  steam(ctx, x, y - 70 * s, t, { n: 7, h: 260 * s, w: 60 * s, r: 22 * s, a: 0.14, per: 3.2 });
 }
 
 // ふたを開けた弁当箱(おにぎり3つ)。fillings を指定
