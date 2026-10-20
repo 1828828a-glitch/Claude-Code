@@ -103,6 +103,7 @@ function setFont(ctx, size, font = 'maru', weight = 700) {
 }
 // style: outline(TikTok標準) / box(背景付き) / soft(ナレーション) / plain
 function drawText(ctx, str, x, y, o = {}) {
+  if (typeof NOTEXT !== 'undefined' && NOTEXT) return;
   const size = o.size || 64, font = o.font || 'maru', weight = o.weight || 700;
   const style = o.style || 'outline';
   const lines = String(str).split('\n');

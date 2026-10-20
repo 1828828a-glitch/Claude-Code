@@ -176,7 +176,8 @@ function shotBoardTrain(ctx, lt) {
 // 冷蔵庫からウインナーを出す手(Vlog版)
 function shotFillingsVlog(ctx, lt, o = {}) {
   bgTop(ctx, 'counter', { color: '#e9e6e0' });
-  const r1 = tw(lt, 0.2, 0.6, E.outBack), r2 = tw(lt, 1.2, 1.6, E.outBack);
+  const t1 = o.t1 ?? 0.2, t2 = o.t2 ?? 1.2, tp = o.tp ?? 2.3;
+  const r1 = tw(lt, t1, t1 + 0.4, E.outBack), r2 = tw(lt, t2, t2 + 0.4, E.outBack);
   // ラップの上のご飯2つ
   [[330, 760, 'ume', r1], [750, 760, 'salmon', r2]].forEach(([x, y, f, p], i) => {
     fillEll(ctx, x, y, 190, 190, 'rgba(255,255,255,0.6)');
@@ -193,9 +194,36 @@ function shotFillingsVlog(ctx, lt, o = {}) {
   fillEll(ctx, 540, 1250, 190, 190, 'rgba(255,255,255,0.6)');
   fillEll(ctx, 540, 1250, 150, 120, RICE);
   ctx.save(); ell(ctx, 540, 1250, 150, 120); ctx.clip(); ctx.translate(540, 1250); riceTexture(ctx, 60, 70); ctx.restore();
-  const pk = tw(lt, 2.3, 2.9, E.out);
+  const pk = tw(lt, tp, tp + 0.6, E.out);
   if (pk > 0) {
     drawSausagePack(ctx, lerp(1400, 700, pk), 1560, 1.15, -0.12);
     drawHand(ctx, lerp(1650, 950, pk), 1700, 1.3, -1.25, { sleeve: '#8292a6', curl: 0.6 });
   }
+}
+
+// A 冒頭(文字なし版):息子の背中越しに、母の笑顔が曇っていく。口元を映さないので後乗せの声とずれない
+function shotOTSComplain(ctx, lt, o = {}) {
+  setLight({ side: -1, rim: '255,236,200', rimA: 0.6 });
+  const h = handheld(lt, 4, 0.8, 41);
+  const fa = o.fadeAt ?? 1.6;
+  const f = tw(lt, fa, fa + 0.9);
+  const ex = mixEx({ ...EX.smile }, { smile: 0.02, brow: -0.6, eye: 0.85, look: [-0.2, 0.2] }, f);
+  scene2d(ctx, { zoom: 1.02 + lt * 0.035, x: h.x, y: h.y, rot: h.r, dof: 6 }, c => bgHomeKitchen(c, lt), c => {
+    drawPerson(c, { x: 660, y: 980, s: 1.3, who: 'mom', outfit: 'apron', t: lt + 2, ex, afterHead: x => armsHoldBento(x, { y: 500, s: 1.0 }) });
+  });
+  // 手前の息子の背中(ピントの外)
+  withFilter(ctx, 'blur(6px)', c => drawPersonBack(c, { x: 210, y: 1460, s: 2.0, who: 'teen', outfit: 'gakuran', tilt: -0.06 + vnoise(lt, 2) * 0.01 }), 'fg');
+}
+
+// A 回想(文字なし版):手元だけで渡す→ひったくる、続けて鞄に放り込む
+function shotHandoverToss(ctx, lt, d, o = {}) {
+  const sw = o.switchAt ?? 1.7;
+  if (lt < sw) shotGrabBento(ctx, lt, { grabAt: o.grabAt ?? 1.0, tight: true });
+  else shotBagToss(ctx, lt - sw);
+}
+
+// モンタージュ(1つのセグメントを3つのカットに分ける)
+function montage3(ctx, lt, d, fns) {
+  const k = Math.min(fns.length - 1, Math.floor(lt / (d / fns.length)));
+  fns[k](ctx, lt - k * d / fns.length);
 }

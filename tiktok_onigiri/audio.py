@@ -1,6 +1,7 @@
 # 音はすべてここで合成する(BGM・効果音)。外部素材は使わない
 # 使い方: python3 audio.py out/a_cues.json out/a_audio.wav
 import json
+import os
 import sys
 import wave
 
@@ -169,6 +170,7 @@ class Mix:
         self.wet = np.zeros((2, self.n))  # リバーブに送る
         self.music = np.zeros((2, self.n))
         self.music_wet = np.zeros((2, self.n))
+        self.voice = np.zeros((2, self.n))  # ナレーション
 
     def add(self, t, y, vol=1.0, pan=0.0, rev=0.15, bus='sfx'):
         s = int(t * SR)
@@ -290,6 +292,22 @@ def sec_beat(mx, c):
         mx.add(t, band(bass, None, 600) * np.exp(-tt * 4) * 0.35, 0.8 * v, 0, 0, 'music')
 
 
+def gated(fn):
+    # セクションを一時バスに作り、終点で短くフェードして切る(ビートが止まる演出用)
+    def run(mx, c):
+        if not c.get('gate'):
+            return fn(mx, c)
+        tmp = Mix(0); tmp.n = mx.n
+        tmp.dry, tmp.wet = mx.dry, mx.wet
+        tmp.music = np.zeros_like(mx.music); tmp.music_wet = np.zeros_like(mx.music_wet)
+        fn(tmp, c)
+        e = int((c['t'] + c['dur']) * SR); f = int(0.06 * SR)
+        g = np.ones(mx.n); g[e:] = 0; g[max(0, e - f):e] = np.linspace(1, 0, min(f, e))
+        mx.music += tmp.music * g; mx.music_wet += tmp.music_wet * g
+    return run
+
+
+@gated
 def sec_lofi(mx, c):
     # ローファイ・ヒップホップ。swing付き
     t0, dur, bpm = c['t'], c['dur'], c.get('bpm', 82)
@@ -540,6 +558,16 @@ def main(cue_path, out_path):
             sec_beat(mx, c)
         elif k == 'lofi':
             sec_lofi(mx, c)
+        elif k == 'wav':
+            # ナレーション(production/ 以下の wav)
+            path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'production', c['file'])
+            with wave.open(path) as w:
+                y = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(np.float64) / 32768
+                if w.getnchannels() == 2:
+                    y = y.reshape(-1, 2).mean(axis=1)
+            s0 = int(c['t'] * SR)
+            y = y[: max(0, mx.n - s0)]
+            mx.voice[:, s0:s0 + len(y)] += y * c.get('vol', 1.0)
         else:
             y = sfx(k, c)
             mx.add(c['t'], y, c.get('vol', 1.0), c.get('pan', 0.0), c.get('rev', 0.12))
@@ -551,7 +579,20 @@ def main(cue_path, out_path):
         s, e = int(c['t0'] * SR), int(c['t1'] * SR)
         duck[s:e] = c.get('to', 0.4)
     duck = np.convolve(duck, np.ones(4800) / 4800, mode='same')
-    mixd = music * 0.55 * duck + sfxb
+    # ナレーションの下では音楽を自動で下げる(約 -10dB)、効果音も少し下げる
+    venv = np.convolve(np.abs(mx.voice[0]), np.ones(9600) / 9600, mode='same')
+    active = np.clip(venv / 0.02, 0, 1)
+    active = np.convolve(active, np.ones(14400) / 14400, mode='same')
+    vduck = 1 - 0.68 * active
+    voice = mx.voice + reverb(mx.voice * 0.12, 0.8, 7.0) * 0.5
+    mixd = music * 0.55 * duck * vduck + sfxb * (1 - 0.25 * active) + voice * 1.05
+    # 本番の組み上げ用に、BGM+効果音(ナレーション抜き)を別に書き出す
+    if np.abs(mx.voice).max() > 0:
+        bed = (music * 0.55 * duck + sfxb)[:, :int(dur * SR)]
+        bed = bed / (np.abs(bed).max() + 1e-9) * 0.85
+        with wave.open(out_path.replace('_audio.wav', '_bed.wav'), 'wb') as w:
+            w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR)
+            w.writeframes((np.clip(bed, -1, 1) * 32767).astype(np.int16).T.copy().tobytes())
     n = int(dur * SR)
     mixd = mixd[:, :n]
     fo = int(0.4 * SR)

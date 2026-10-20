@@ -2,6 +2,7 @@
 
 // 吹き出し(人物のセリフ)
 function speech(ctx, text, x, y, lt, t0, t1, o = {}) {
+  if (NOTEXT) return;
   if (lt < t0 || lt > t1) return;
   const a = Math.min(seg(lt, t0, t0 + 0.15), 1 - seg(lt, t1 - 0.15, t1));
   const sc = lerp(0.8, 1, E.outBack(seg(lt, t0, t0 + 0.25)));
@@ -197,11 +198,11 @@ function shotBentoDaily(ctx, lt, o = {}) {
 function shotGrabBento(ctx, lt, o = {}) {
   const g = o.grabAt ?? 1.2;
   const h = handheld(lt, 4, 0.8, 13);
-  camera(ctx, { zoom: 1.0 + lt * 0.02, x: h.x, y: h.y }, () => {
+  camera(ctx, { zoom: (o.tight ? 2.2 : 1.0) + lt * 0.02, x: h.x, y: h.y, cy: o.tight ? 1920 : undefined }, () => {
     withFilter(ctx, 'blur(3px)', c => bgHomeKitchen(c, lt, { rays: true }), 'dof');
     const after = tw(lt, g + 0.2, g + 0.8);
     const ex = mixEx({ ...EX.smile, open: talk(lt, 0.4, 1.1, 0.35) }, { smile: 0.2, eye: 0.8, look: [0.8, 0.2], brow: -0.3 }, after);
-    drawPerson(ctx, { x: 470, y: 1000, s: 1.3, who: 'mom', outfit: 'apron', t: lt + 3, ex });
+    drawPerson(ctx, { x: 470, y: o.tight ? 860 : 1000, s: 1.3, who: 'mom', outfit: 'apron', t: lt + 3, ex });
     ctx.fillStyle = '#c3976b'; ctx.fillRect(0, 1420, W, 40);
     ctx.fillStyle = '#e8d7bd'; ctx.fillRect(0, 1460, W, H - 1460);
     const reach = tw(lt, g - 0.35, g, E.out), away = tw(lt, g + 0.05, g + 0.3, E.in);
@@ -229,7 +230,8 @@ function shotBagToss(ctx, lt) {
 // ---- 梅・鮭・ソーセージ ----
 function shotThreeFillings(ctx, lt, o = {}) {
   bgTop(ctx, 'cloth');
-  const items = [[290, 820, 'ume', '梅', 0.15], [790, 820, 'salmon', '鮭', 0.75], [540, 1330, 'sausage', 'ソーセージ', 1.35]];
+  const tm = o.times || [0.15, 0.75, 1.35];
+  const items = [[290, 820, 'ume', '梅', tm[0]], [790, 820, 'salmon', '鮭', tm[1]], [540, 1330, 'sausage', 'ソーセージ', tm[2]]];
   items.forEach(([x, y, f, label, t0], i) => {
     const p = tw(lt, t0, t0 + 0.35, E.outBack);
     if (p <= 0) return;

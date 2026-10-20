@@ -1,3 +1,16 @@
+// 文字なしモードでは、文字の代わりに読めない帯を描く(何か書いてあることだけ伝わる)
+function textBars(ctx, lines, x, y0, lh, color, align = 'left') {
+  if (!NOTEXT) return;
+  ctx.save(); ctx.fillStyle = color;
+  lines.forEach((l, i) => {
+    const w = ctx.measureText(l).width * 0.94;
+    if (w < 2) return;
+    const bx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+    rr(ctx, bx, y0 + i * lh - 11, w, 22, 11); ctx.fill();
+  });
+  ctx.restore();
+}
+
 // スマホの画面UI。幅1080基準で描く(端末内に入れるときは縮小する)
 
 // 入力欄の文字列を時間から求める。ops: [{at,type,dur}|{at,del,dur}|{at,send}]
@@ -95,6 +108,7 @@ function chatUI(ctx, w, h, st, t) {
       rr(ctx, x, y, bw, bh, 40); ctx.fillStyle = m.me ? '#ffd39b' : '#ffffff'; ctx.fill();
       ctx.fillStyle = '#1d1d1d'; ctx.textAlign = 'left';
       lines.forEach((l, i) => ctx.fillText(l, x + 32, y + 22 + 31 + i * 62));
+      textBars(ctx, lines, x + 32, y + 22 + 31, 62, m.me ? 'rgba(120,70,20,0.3)' : 'rgba(60,55,50,0.22)');
       if (m.me) metaMe(ctx, x - 16, y + bh - 40, m);
       else {
         (st.avatar || avatarMom)(ctx, 100, y + 40, 46);
@@ -109,6 +123,7 @@ function chatUI(ctx, w, h, st, t) {
   ctx.fillStyle = '#f8f5f0'; ctx.fillRect(0, 0, w, 250);
   statusBar(ctx, w);
   ctx.fillStyle = '#222'; ctx.font = '700 52px "ZenKaku"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(st.name, w / 2, 182);
+  textBars(ctx, [st.name], w / 2, 182, 0, 'rgba(40,35,30,0.3)', 'center');
   ctx.strokeStyle = '#333'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   ctx.beginPath(); ctx.moveTo(84, 158); ctx.lineTo(58, 182); ctx.lineTo(84, 206); ctx.stroke();
   ctx.fillStyle = 'rgba(0,0,0,0.08)'; ctx.fillRect(0, 248, w, 3);
@@ -124,6 +139,7 @@ function chatUI(ctx, w, h, st, t) {
   const tw3 = ctx.measureText(st.input || '').width;
   const sx = Math.min(0, (w - 340) - 150 - tw3);
   ctx.fillStyle = '#1d1d1d'; ctx.fillText(st.input || '', 150 + sx, iy + 86);
+  textBars(ctx, [st.input || ''], 150 + sx, iy + 86, 0, 'rgba(40,35,30,0.35)');
   if (st.caret !== false && Math.floor(t * 2) % 2 === 0) { ctx.fillStyle = '#e07b2c'; ctx.fillRect(152 + sx + tw3, iy + 58, 4, 54); }
   ctx.restore();
   // 送信ボタン
@@ -188,9 +204,11 @@ function notifBanner(ctx, w, y, title, body, a = 1, k = 1) {
   ctx.beginPath(); ctx.moveTo(x0 + 68, 104); ctx.lineTo(x0 + 60, 124); ctx.lineTo(x0 + 84, 110); ctx.fill();
   ctx.fillStyle = '#111'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
   ctx.font = '700 46px "ZenKaku"'; ctx.fillText(title, x0 + 166, 70);
+  textBars(ctx, [title], x0 + 166, 70, 0, 'rgba(30,30,30,0.4)');
   ctx.fillStyle = '#8a8580'; ctx.font = '500 34px "ZenKaku"'; ctx.textAlign = 'right'; ctx.fillText('今', x0 + bw - 40, 70);
   ctx.fillStyle = '#222'; ctx.textAlign = 'left'; ctx.font = '500 42px "ZenKaku"';
   lines.forEach((l, i) => ctx.fillText(l, x0 + 166, 136 + i * 56));
+  textBars(ctx, lines, x0 + 166, 136, 56, 'rgba(30,30,30,0.22)');
   ctx.restore();
 }
 

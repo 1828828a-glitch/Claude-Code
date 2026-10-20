@@ -1,0 +1,169 @@
+{
+ "version": "C",
+ "duration": 41,
+ "shots": [
+  {
+   "id": "C-S01",
+   "key": "SH-ALARM",
+   "t0": 0,
+   "sec": 3.2,
+   "treat": ""
+  },
+  {
+   "id": "C-S02",
+   "key": "C-S02",
+   "t0": 3.2,
+   "sec": 2.8,
+   "treat": ""
+  },
+  {
+   "id": "C-S03",
+   "key": "SH-POT",
+   "t0": 6,
+   "sec": 2.5,
+   "treat": ""
+  },
+  {
+   "id": "C-S04",
+   "key": "C-S04",
+   "t0": 8.5,
+   "sec": 4.27,
+   "treat": ""
+  },
+  {
+   "id": "C-S05a",
+   "key": "SH-FILLINGS",
+   "t0": 12.77,
+   "sec": 4.26,
+   "treat": "polaroid-memory"
+  },
+  {
+   "id": "C-S05b",
+   "key": "SH-MOMNOD",
+   "t0": 17.03,
+   "sec": 3.22,
+   "treat": "polaroid-memory"
+  },
+  {
+   "id": "C-S05c",
+   "key": "SH-BITE",
+   "t0": 20.24,
+   "sec": 4.66,
+   "treat": "polaroid"
+  },
+  {
+   "id": "C-S06",
+   "key": "SH-MAKE",
+   "t0": 24.9,
+   "sec": 3,
+   "treat": ""
+  },
+  {
+   "id": "C-S07",
+   "key": "C-S07",
+   "t0": 27.9,
+   "sec": 2.1,
+   "treat": ""
+  },
+  {
+   "id": "C-S08",
+   "key": "SH-PHONE",
+   "t0": 30,
+   "sec": 4.2,
+   "treat": ""
+  },
+  {
+   "id": "C-S09",
+   "key": "C-S09",
+   "t0": 34.2,
+   "sec": 1.7,
+   "treat": ""
+  },
+  {
+   "id": "C-S10",
+   "key": "C-S10",
+   "t0": 35.9,
+   "sec": 2.9,
+   "treat": ""
+  },
+  {
+   "id": "C-S11",
+   "key": "SH-END",
+   "t0": 38.8,
+   "sec": 2.2,
+   "treat": ""
+  }
+ ],
+ "narration": [
+  {
+   "t": 0.7,
+   "file": "narration/C/C01.wav",
+   "line": "C01"
+  },
+  {
+   "t": 3.5,
+   "file": "narration/C/C02.wav",
+   "line": "C02"
+  },
+  {
+   "t": 6.2,
+   "file": "narration/C/C03.wav",
+   "line": "C03"
+  },
+  {
+   "t": 8.7,
+   "file": "narration/C/C04.wav",
+   "line": "C04"
+  },
+  {
+   "t": 11.494,
+   "file": "narration/C/C05.wav",
+   "line": "C05"
+  },
+  {
+   "t": 13.167,
+   "file": "narration/C/C06.wav",
+   "line": "C06"
+  },
+  {
+   "t": 17.032,
+   "file": "narration/C/C08.wav",
+   "line": "C08"
+  },
+  {
+   "t": 20.253,
+   "file": "narration/C/C09.wav",
+   "line": "C09"
+  },
+  {
+   "t": 25.3,
+   "file": "narration/C/C10.wav",
+   "line": "C10"
+  },
+  {
+   "t": 28.5,
+   "file": "narration/C/C11.wav",
+   "line": "C11"
+  },
+  {
+   "t": 30.3,
+   "file": "narration/C/C12.wav",
+   "line": "C12"
+  },
+  {
+   "t": 34.7,
+   "file": "narration/C/C13.wav",
+   "line": "C13"
+  },
+  {
+   "t": 37.1,
+   "file": "narration/C/C14.wav",
+   "line": "C14"
+  },
+  {
+   "t": 39.15,
+   "file": "narration/C/C15.wav",
+   "line": "C15"
+  }
+ ]
+}

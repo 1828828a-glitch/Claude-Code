@@ -19,7 +19,21 @@ const path = require('path');
   await page.goto('file://' + path.join(__dirname, 'src', 'player.html') + '?v=' + v);
   await page.waitForFunction(() => window.READY !== undefined, null, { timeout: 30000 });
   if ((await page.evaluate(() => window.READY)) !== true) throw new Error('video script failed');
-  const meta = await page.evaluate(() => ({ duration: VIDEO.duration, audio: VIDEO.audio || [] }));
+  const meta = await page.evaluate(() => ({ duration: VIDEO.duration, audio: VIDEO.audio || [], duck: VIDEO.duck || [], shotlist: VIDEO.shotlist || null }));
+  if (meta.shotlist) fs.writeFileSync(path.join(outDir, `${v}_shotlist.json`), JSON.stringify(meta.shotlist, null, 1));
+  // --storyboard: 各カットの中ほどの静止画を書き出す(絵コンテ用)
+  const sbIdx = args.indexOf('--storyboard');
+  if (sbIdx >= 0 && meta.shotlist) {
+    const dir = args[sbIdx + 1]; fs.mkdirSync(dir, { recursive: true });
+    for (const r of meta.shotlist) {
+      const t = r.t0 + r.sec * (r.sbAt ?? 0.6);
+      const url = await page.evaluate(t => frameAt(t, 'image/jpeg', 0.88), t);
+      fs.writeFileSync(path.join(dir, `${r.id}.jpg`), Buffer.from(url.split(',')[1], 'base64'));
+    }
+    console.log('storyboard', meta.shotlist.length, 'frames');
+    await browser.close();
+    return;
+  }
   if (stills) {
     for (const t of stills) {
       const url = await page.evaluate(t => frameAt(t, 'image/png'), t);

@@ -1,0 +1,180 @@
+{
+ "version": "A",
+ "duration": 43.06666666666667,
+ "shots": [
+  {
+   "id": "A-S01",
+   "key": "A-S01",
+   "t0": 0,
+   "sec": 3,
+   "treat": ""
+  },
+  {
+   "id": "A-S02",
+   "key": "SH-MOMNOD",
+   "t0": 3,
+   "sec": 2.3,
+   "treat": ""
+  },
+  {
+   "id": "A-S03",
+   "key": "SH-BITE",
+   "t0": 5.3,
+   "sec": 5.17,
+   "treat": ""
+  },
+  {
+   "id": "A-S04a",
+   "key": "SH-POT",
+   "t0": 10.47,
+   "sec": 1.1,
+   "treat": ""
+  },
+  {
+   "id": "A-S04b",
+   "key": "SH-ALARM",
+   "t0": 11.57,
+   "sec": 1.1,
+   "treat": ""
+  },
+  {
+   "id": "A-S04c",
+   "key": "A-S04c",
+   "t0": 12.67,
+   "sec": 1.1,
+   "treat": ""
+  },
+  {
+   "id": "A-S05",
+   "key": "A-S05",
+   "t0": 13.77,
+   "sec": 3.3,
+   "treat": "memory"
+  },
+  {
+   "id": "A-S06a",
+   "key": "A-S06a",
+   "t0": 17.07,
+   "sec": 1.71,
+   "treat": "memory"
+  },
+  {
+   "id": "A-S06b",
+   "key": "A-S06b",
+   "t0": 18.77,
+   "sec": 2.36,
+   "treat": "memory"
+  },
+  {
+   "id": "A-S07",
+   "key": "SH-FILLINGS",
+   "t0": 21.13,
+   "sec": 3.47,
+   "treat": "memory"
+  },
+  {
+   "id": "A-S08",
+   "key": "A-S08",
+   "t0": 24.6,
+   "sec": 3.2,
+   "treat": "memory"
+  },
+  {
+   "id": "A-S09",
+   "key": "A-S09",
+   "t0": 27.8,
+   "sec": 3,
+   "treat": ""
+  },
+  {
+   "id": "A-S10",
+   "key": "A-S10",
+   "t0": 30.8,
+   "sec": 3.07,
+   "treat": ""
+  },
+  {
+   "id": "A-S11",
+   "key": "SH-MAKE",
+   "t0": 33.87,
+   "sec": 2.4,
+   "treat": ""
+  },
+  {
+   "id": "A-S12",
+   "key": "SH-PHONE",
+   "t0": 36.27,
+   "sec": 4.6,
+   "treat": ""
+  },
+  {
+   "id": "A-S13",
+   "key": "SH-END",
+   "t0": 40.87,
+   "sec": 2.2,
+   "treat": ""
+  }
+ ],
+ "narration": [
+  {
+   "t": 0.1,
+   "file": "narration/A/A01.wav",
+   "line": "A01"
+  },
+  {
+   "t": 3.05,
+   "file": "narration/A/A02.wav",
+   "line": "A02"
+  },
+  {
+   "t": 6.55,
+   "file": "narration/A/A04.wav",
+   "line": "A04"
+  },
+  {
+   "t": 10.517,
+   "file": "narration/A/A05.wav",
+   "line": "A05"
+  },
+  {
+   "t": 13.867,
+   "file": "narration/A/A06.wav",
+   "line": "A06"
+  },
+  {
+   "t": 18.067,
+   "file": "narration/A/A08.wav",
+   "line": "A08"
+  },
+  {
+   "t": 21.183,
+   "file": "narration/A/A09.wav",
+   "line": "A09"
+  },
+  {
+   "t": 24.7,
+   "file": "narration/A/A10.wav",
+   "line": "A10"
+  },
+  {
+   "t": 28.5,
+   "file": "narration/A/A11.wav",
+   "line": "A11"
+  },
+  {
+   "t": 31.5,
+   "file": "narration/A/A12.wav",
+   "line": "A12"
+  },
+  {
+   "t": 37.267,
+   "file": "narration/A/A15.wav",
+   "line": "A15"
+  },
+  {
+   "t": 41.217,
+   "file": "narration/A/A16.wav",
+   "line": "A16"
+  }
+ ]
+}

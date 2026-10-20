@@ -1,0 +1,63 @@
+おにぎり篇 A・C 文字なし版の進め方
+
+ここにあるのは、Veo で生成する前の設計一式です。プレビズ(out/a_nt.mp4、out/c_nt.mp4)は尺と構図とナレーションの位置を決めるための仮映像で、絵柄はそのまま使いません。ナレーションも仮の声(Open JTalk)なので、声の質ではなく間合いを見てください。
+
+
+1. 参照画像を作る
+
+refs.md のプロンプトで、母・息子17歳・息子23歳・ルックの4枚を作り、refs/ に置きます。息子23歳は、17歳の画像を参照に入れて「同じ人の6年後」として作ると顔がそろいます。
+
+
+2. 生成する
+
+generation_list.md の21本を、prompts_A.md と prompts_C.md のブロックをそのまま貼って生成します。共用カット(SH- で始まるもの)は A と C で1回だけ。見積もりは420クレジット、撮り直しを見込んで630クレジットです。
+
+生成のたびに review.md の項目で審査して記録します。とくに見るのは、赤ウインナーが鮭に見えないか、提灯や看板に文字が出ていないか、口元が見える状態でしゃべっていないか、の3点です。
+
+合格した動画は shots/ に「生成キー.mp4」の名前で置きます(例 shots/SH-BITE.mp4、shots/A-S01.mp4)。
+
+
+3. 本番のナレーションを作る
+
+お手元の PC で次を実行します(この制作環境からは Edge TTS に接続できませんでした)。
+
+  pip install edge-tts
+  python3 make_narration.py A --engine edge
+  python3 make_narration.py C --engine edge
+
+Edge TTS は無料ですが、商用で使ってよいという許諾はありません。クライアント案件で納品するなら、同じ Keita と Nanami の声を正規に使える Azure Speech の有料版に置き換えてください。母の声(A12)を入れない場合は、narration/A.json の A12 を「母さんから、メッセージが来た。」に変えて男性の声にします。
+
+
+4. 尺を本番の声に合わせ直す
+
+声を差し替えると各行の秒数が変わるので、プレビズとカット表を作り直します。尺はナレーションから自動で決まるので、ほかに手で直すところはありません。
+
+  cd ..
+  ./build.sh a_nt
+  ./build.sh c_nt
+  cd production
+  python3 make_docs.py
+
+
+5. 組み上げる
+
+  python3 assemble.py A
+  python3 assemble.py C
+
+shots/ にある素材をカット表の秒数で切ってつなぎ、回想には色調補正、C の回想にはポラロイド枠を合成し、ナレーションと BGM を重ねて final_A.mp4 / final_C.mp4 を書き出します。まだ生成していないカットはプレビズの絵で埋まるので、途中の仮組みにも使えます。最後に機械チェック(尺・無音・黒い画面)が走ります。素材の何秒目から使うかを変えたいときは、inpoints_A.csv(shot_id,in の2列)を置きます。
+
+
+ファイルの一覧
+
+  brief.md               狙い・全体設計・ルール
+  refs.md                参照画像のプロンプトと、全カット共通のルック宣言・ネガティブ
+  shotlist_A.csv / _C.csv  カット表(スキルの列 + ナレーション・仕上げ処理・生成キー)
+  prompts_A.md / _C.md   カット別プロンプト
+  generation_list.md     生成リストとクレジット見積もり
+  review.md              監督審査の記録表
+  storyboard/            カットごとの絵コンテ(プレビズの静止画)
+  narration/             ナレーション原稿(A.json、C.json)と音声
+  make_narration.py      ナレーションの音声を作る
+  make_docs.py           カット表・プロンプト・生成リストを作り直す
+  assemble.py            最終動画を組み上げる
+  timeline_A.json / _C.json  組み上げ用の秒数(make_docs.py が作る)

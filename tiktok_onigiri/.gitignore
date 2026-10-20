@@ -4,3 +4,8 @@ out/*_video.mp4
 out/*_audio.wav
 out/*_cues.json
 out/*.log
+out/*_bed.wav
+production/shots/
+production/refs/
+production/final_*.mp4
+production/*_sheet.jpg

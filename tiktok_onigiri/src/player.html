@@ -20,6 +20,7 @@ canvas{display:block}
 <script src="timeline.js"></script>
 <script src="shots.js"></script>
 <script src="shots2.js"></script>
+<script src="shared_meta.js"></script>
 <script>
 (async () => {
   const v = new URLSearchParams(location.search).get('v');
@@ -27,11 +28,10 @@ canvas{display:block}
     ['500 20px "ZenMaru"'], ['700 20px "ZenMaru"'], ['900 20px "ZenMaru"'], ['600 20px "Klee"'],
     ['400 20px "Yomogi"'], ['500 20px "ZenKaku"'], ['700 20px "ZenKaku"'],
   ].map(([f]) => document.fonts.load(f, 'あア亜A')));
-  const s = document.createElement('script');
-  s.src = `videos/${v}.js`;
-  s.onload = () => { window.READY = true; };
-  s.onerror = e => { window.READY = 'error'; };
-  document.body.appendChild(s);
+  const load = src => new Promise(res => { const s = document.createElement('script'); s.src = src; s.onload = () => res(true); s.onerror = () => res(false); document.body.appendChild(s); });
+  // ナレーション尺のファイルがあれば先に読む(文字なし版プレビズ用)
+  await load(`videos/${v}.narr.js`);
+  window.READY = (await load(`videos/${v}.js`)) ? true : 'error';
 })();
 const CANVAS = document.getElementById('c');
 const CTX = CANVAS.getContext('2d');
