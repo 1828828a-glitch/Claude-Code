@@ -139,7 +139,7 @@ body.render #ui{display:none}
     <div id="s2-mark"></div>
     <div class="txt center" id="s2-l3" style="top:700px;font-size:140px">体験できる。</div>
     <div class="badge" id="s2-bd2" style="left:220px;top:955px;font-size:62px">資格<br>不要</div>
-    <div class="badge" id="s2-bd1" style="left:610px;top:955px">高校生も<br>OK！</div>
+    <div class="badge" id="s2-bd1" style="left:610px;top:955px;font-size:58px">中高生<br>歓迎！</div>
   </section>
 
   <!-- S3 タイトル 15–20 -->
@@ -165,11 +165,11 @@ body.render #ui{display:none}
       <div class="p-spot"></div>
       <div class="p-ill"><svg viewBox="0 0 800 800">
         <ellipse cx="400" cy="690" rx="330" ry="24" fill="#4E3A2E" opacity=".07"/>
-        <line x1="80" y1="676" x2="720" y2="676" stroke="#E5BF62" stroke-width="10" stroke-linecap="round"/>
+        <line x1="80" y1="676" x2="760" y2="676" stroke="#E5BF62" stroke-width="10" stroke-linecap="round"/>
         <g id="p1-b1"><rect x="150" y="476" width="200" height="200" rx="28" fill="#86C2EC"/><text x="250" y="618" font-size="124" text-anchor="middle" fill="#fff" font-weight="900">あ</text></g>
         <g id="p1-b2"><rect x="372" y="506" width="170" height="170" rx="26" fill="#F47C5C"/><text x="457" y="627" font-size="106" text-anchor="middle" fill="#fff" font-weight="900">そ</text></g>
         <g id="p1-b3"><path d="M164 462 L336 462 L250 326 Z" fill="#7CCBA2" stroke="#7CCBA2" stroke-width="22" stroke-linejoin="round"/></g>
-        <g id="p1-ball"><circle cx="644" cy="616" r="60" fill="#B9A3E3"/><path d="M586 600 Q644 640 702 600" stroke="#fff" stroke-width="13" fill="none" stroke-linecap="round"/><path d="M644 556 Q620 616 644 676" stroke="#fff" stroke-width="13" fill="none" stroke-linecap="round"/></g>
+        <g id="p1-b4"><rect x="562" y="516" width="160" height="160" rx="24" fill="#B9A3E3"/><text x="642" y="633" font-size="104" text-anchor="middle" fill="#fff" font-weight="900">び</text></g>
         <g transform="translate(470 70) scale(1.15)"><g id="p1-kid"></g></g>
       </svg></div>
       <div class="p-no">01</div>
@@ -589,11 +589,10 @@ const PT = [21.6, 25.6, 29.6, 33.6];
   tl.to('#p1-b2', { y: 0, duration: .75, ease: 'bounce.out' }, t0 + .4);
   tl.to('#p1-b3', { y: 0, duration: .75, ease: 'bounce.out' }, t0 + .7);
   [.1, .4, .7].forEach((d, i) => cue(t0 + d + .28, 'tap', .8 + i * .15, .7));
-  gsap.set('#p1-ball', { x: 460, y: -340, transformOrigin: '50% 50%' });
-  tl.to('#p1-ball', { x: 0, duration: 1.5, ease: 'power1.out' }, t0 + 1.0);
-  tl.to('#p1-ball', { y: 0, duration: 1.5, ease: 'bounce.out' }, t0 + 1.0);
-  tl.to('#p1-ball', { rotation: -420, duration: 1.5, ease: 'power1.out' }, t0 + 1.0);
-  cue(t0 + 1.55, 'boing', .9, .5);
+  // あ・そ・び と並ぶように「び」の積み木を最後に落とす
+  gsap.set('#p1-b4', { y: -760 });
+  tl.to('#p1-b4', { y: 0, duration: .75, ease: 'bounce.out' }, t0 + 1.0);
+  cue(t0 + 1.28, 'tap', 1.25, .7);
   gsap.set('#p1-kid', { scale: 0, transformOrigin: '50% 60%' });
   tl.to('#p1-kid', { scale: 1, duration: .6, ease: 'back.out(2.2)' }, t0 + .9);
   tl.to('#p1-kid', { rotation: 10, duration: .35, yoyo: true, repeat: 5, ease: 'sine.inOut' }, t0 + 1.6);
@@ -675,8 +674,8 @@ const PT = [21.6, 25.6, 29.6, 33.6];
   tl.to('#s5-mark', { scaleX: 1, duration: .6, ease: 'power2.inOut' }, 38.4);
 
   const ROWS = [
-    { y: 600, c: '#F47C5C', t: 'スマホで研修', s: 'オンライン・約1時間',
-      icon: `<svg viewBox="0 0 150 150"><rect x="38" y="10" width="74" height="130" rx="16" fill="#4E3A2E"/><rect x="45" y="24" width="60" height="100" rx="6" fill="#FFE7A3"/><path class="n-play" d="M66 58 L90 74 L66 90Z" fill="#F47C5C"/><rect x="52" y="108" width="46" height="7" rx="3.5" fill="#fff"/><rect class="n-bar" x="52" y="108" width="46" height="7" rx="3.5" fill="#F47C5C"/></svg>` },
+    { y: 600, c: '#F47C5C', t: 'オリエンテーション', s: 'はじめてでも安心',
+      icon: `<svg viewBox="0 0 150 150"><g class="n-p2"><circle cx="100" cy="46" r="22" fill="#FFC94A"/><path d="M60 122 C60 88 78 74 100 74 C122 74 140 88 140 122Z" fill="#FFC94A"/></g><g class="n-p1" stroke="#fff" stroke-width="6"><circle cx="54" cy="60" r="26" fill="#F47C5C"/><path d="M8 140 C8 102 30 88 54 88 C78 88 100 102 100 140Z" fill="#F47C5C"/></g></svg>` },
     { y: 747, c: '#3B88C7', t: '日にちを相談', s: '施設といっしょに決める',
       icon: `<svg viewBox="0 0 150 150"><rect x="16" y="26" width="118" height="108" rx="16" fill="#fff" stroke="#4E3A2E" stroke-width="7"/><rect x="16" y="26" width="118" height="30" rx="14" fill="#86C2EC"/><rect x="44" y="14" width="10" height="26" rx="5" fill="#4E3A2E"/><rect x="96" y="14" width="10" height="26" rx="5" fill="#4E3A2E"/>${[0,1,2,3].map(c=>[0,1].map(r=>`<circle cx="${40+c*24}" cy="${80+r*28}" r="6" fill="#4E3A2E" opacity=".35"/>`).join('')).join('')}<circle class="n-circ draw" cx="88" cy="108" r="17" fill="none" stroke="#F47C5C" stroke-width="7" transform="rotate(-90 88 108)"/></svg>` },
     { y: 894, c: '#3E9F73', t: '保育の現場へ', s: 'コーディネーターがサポート',
@@ -711,9 +710,9 @@ const PT = [21.6, 25.6, 29.6, 33.6];
     cue(t, 'pop', [1, 1.12, 1.26, 1.5][i]);
   });
   const [r1, r2, r3, r4] = els.map(e => e.ic);
-  gsap.set(r1.querySelector('.n-bar'), { scaleX: 0, transformOrigin: '0% 50%' });
-  tl.to(r1.querySelector('.n-bar'), { scaleX: 1, duration: 2.2, ease: 'none' }, arrive[0] + .4);
-  tl.to(r1.querySelector('.n-play'), { scale: 1.25, transformOrigin: '50% 50%', duration: .3, yoyo: true, repeat: 3 }, arrive[0] + .4);
+  // 2人が向かい合って話しているように交互に弾ませる
+  tl.to(r1.querySelector('.n-p1'), { y: -8, duration: .3, yoyo: true, repeat: 3, ease: 'sine.inOut' }, arrive[0] + .4);
+  tl.to(r1.querySelector('.n-p2'), { y: -8, duration: .3, yoyo: true, repeat: 3, ease: 'sine.inOut' }, arrive[0] + .7);
   tl.to(r2.querySelector('.n-circ'), { strokeDashoffset: 0, duration: .7, ease: 'power2.inOut' }, arrive[1] + .4);
   cue(arrive[1] + .4, 'scribble', 1.8, .35);
   tl.to(r3.querySelector('.n-flag'), { scaleX: .6, transformOrigin: '0% 50%', duration: .25, yoyo: true, repeat: 7, ease: 'sine.inOut' }, arrive[2] + .3);
