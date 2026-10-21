@@ -1,7 +1,7 @@
 // 紹介動画を書き出す。index.html を1コマずつ撮って ffmpeg に流し、H.264 の MP4 と字幕（SRT）を作る
-// 先に shots.cjs で画面を撮っておく。
+// 先に shots.cjs で画面を撮り、bgm.py で out/bgm.wav を作っておくと、BGMを重ねた intro.mp4 になる。
 // 使い方:
-//   node security_portal/video/render.cjs                 → out/intro.mp4 と out/intro.srt
+//   node security_portal/video/render.cjs                 → out/intro.mp4（BGMつき）、intro_silent.mp4（音なし）、intro.srt
 //   node security_portal/video/render.cjs --stills 3,8,15 → 指定した秒の静止画だけ out/ に書く（確認用）
 const path = require("node:path");
 const fs = require("node:fs");
@@ -44,7 +44,7 @@ function srtTime(sec) {
     return;
   }
 
-  const mp4 = path.join(OUT, "intro.mp4");
+  const mp4 = path.join(OUT, "intro_silent.mp4");
   const ff = spawn("ffmpeg", ["-y", "-loglevel", "error", "-f", "image2pipe", "-framerate", String(FPS), "-c:v", "mjpeg", "-i", "-",
     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-preset", "medium", "-movflags", "+faststart", mp4], { stdio: ["pipe", "inherit", "inherit"] });
   const done = new Promise((resolve, reject) => ff.on("close", (code) => (code === 0 ? resolve() : reject(new Error("ffmpeg " + code)))));
@@ -60,7 +60,19 @@ function srtTime(sec) {
   await done;
   await browser.close();
 
+  // BGM があれば重ねる（映像は再エンコードしない）
+  const final = path.join(OUT, "intro.mp4");
+  const bgm = path.join(OUT, "bgm.wav");
+  if (fs.existsSync(bgm)) {
+    await new Promise((resolve, reject) => spawn("ffmpeg", ["-y", "-loglevel", "error", "-i", mp4, "-i", bgm, "-map", "0:v", "-map", "1:a",
+      "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", final], { stdio: "inherit" })
+      .on("close", (code) => (code === 0 ? resolve() : reject(new Error("ffmpeg mux " + code)))));
+  } else {
+    fs.copyFileSync(mp4, final);
+    console.log("out/bgm.wav がないので、音なしで書き出した（python3 security_portal/video/bgm.py で作れる）");
+  }
+
   const srt = captions.map(([s, e, text], i) => `${i + 1}\n${srtTime(s)} --> ${srtTime(e)}\n${text}\n`).join("\n");
   fs.writeFileSync(path.join(OUT, "intro.srt"), srt, "utf8");
-  console.log("wrote", mp4, "and intro.srt");
+  console.log("wrote", final, "and intro.srt");
 })();

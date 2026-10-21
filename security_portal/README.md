@@ -102,12 +102,13 @@ python3 security_portal/tools/build_preview.py            # サーバーなし�
 
 ## 紹介動画
 
-`video/` に、1920×1080・63秒の紹介動画の作り方一式がある。映像はHTMLのアニメーションで組み、1コマずつ撮って MP4 にする。字幕は焼き込み、音声はなし。ナレーション原稿と構成は `video/narration.md`。
+`video/` に、1920×1080・63秒の紹介動画の作り方一式がある。映像はHTMLのアニメーションで組み、1コマずつ撮って MP4 にする。字幕は焼き込み。BGMは `video/bgm.py` がその場で合成するオリジナル曲（96BPM・ハ長調、-16 LUFS）で、ナレーションは入っていない。ナレーション原稿と構成は `video/narration.md`。
 
 ```bash
 cd security_portal/site && python3 -m http.server 8765 &   # サイトを配信しておく
 node security_portal/video/shots.cjs                        # 実際の画面を撮る（video/shots/）
-node security_portal/video/render.cjs                       # video/out/intro.mp4 と intro.srt を書き出す
+python3 security_portal/video/bgm.py                        # BGM（video/out/bgm.wav）を作る
+node security_portal/video/render.cjs                       # video/out/intro.mp4（BGMつき）と intro.srt を書き出す
 node security_portal/video/render.cjs --stills 5,30,60      # 指定した秒の静止画だけ見る
 ```
 
