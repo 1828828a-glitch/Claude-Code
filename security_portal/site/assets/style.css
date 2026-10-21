@@ -1,4 +1,5 @@
-/* レイアウト：組合ロゴの若草色を地の色に、読み物は1段組。結果だけを濃いステータス画面にして目立たせる */
+/* レイアウト：組合ロゴの若草色を地の色に、読み物は1段組。結果だけを濃いステータス画面にして目立たせる
+   配色はブランドに合わせて明るい1種類に固定する（端末のダークモードに追従しない） */
 :root {
   --paper: #f5f7f1;
   --surface: #ffffff;
@@ -38,27 +39,6 @@
   --gutter-r: max(16px, env(safe-area-inset-right, 0px));
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #121611; --surface: #1a2018; --surface-2: #232b20; --ink: #e9efe3; --muted: #a8b3a1; --line: #323c2e;
-    --brand: #c9dfb3; --brand-ink: #a6d08a; --brand-ink-hover: #bfe0a6; --on-brand-ink: #13210d;
-    --panel: #0c110b; --panel-2: #172014; --panel-ink: #eef4e6; --panel-muted: #a7b69e;
-    --lv1: #85d3a0; --lv1-bg: #1d3626; --lv2: #e9c75d; --lv2-bg: #3a3015; --lv3: #f2a46c; --lv3-bg: #3e2717; --lv4: #ff8f84; --lv4-bg: #45201c;
-    --crisis: #ff7b66; --safe: #7cc46f; --use: #86b4ef; --focus: #8ab4ff;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 18px rgba(0, 0, 0, .25);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --paper: #121611; --surface: #1a2018; --surface-2: #232b20; --ink: #e9efe3; --muted: #a8b3a1; --line: #323c2e;
-  --brand: #c9dfb3; --brand-ink: #a6d08a; --brand-ink-hover: #bfe0a6; --on-brand-ink: #13210d;
-  --panel: #0c110b; --panel-2: #172014; --panel-ink: #eef4e6; --panel-muted: #a7b69e;
-  --lv1: #85d3a0; --lv1-bg: #1d3626; --lv2: #e9c75d; --lv2-bg: #3a3015; --lv3: #f2a46c; --lv3-bg: #3e2717; --lv4: #ff8f84; --lv4-bg: #45201c;
-  --crisis: #ff7b66; --safe: #7cc46f; --use: #86b4ef; --focus: #8ab4ff;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 18px rgba(0, 0, 0, .25);
-  color-scheme: dark;
-}
-
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
@@ -175,8 +155,6 @@ main { display: block; }
 .news-label {
   font-size: var(--fs-xs); font-weight: 900; color: #fff; background: var(--lv4); border-radius: 4px; padding: 0 8px; letter-spacing: .08em;
 }
-:root[data-theme="dark"] .news-label { color: #1a0c0a; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .news-label { color: #1a0c0a; } }
 .news-date { font-family: var(--font-latin); font-size: var(--fs-s); color: var(--muted); }
 .news-open { font-size: var(--fs-xs); color: var(--lv4); text-decoration: underline; }
 .news details[open] .news-open { display: none; }
