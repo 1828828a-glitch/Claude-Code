@@ -140,7 +140,8 @@ test("AIに聞く：注意喚起の質問文には公式発表のURLが入り、
     const p = T.buildPrompt(config, n.ask_kind || "news", { url: n.ask_url });
     assert.ok(p.includes(n.ask_url), n.id);
     assert.ok(!p.includes("{"), n.id);
-    assert.ok(T.fits(config, T.buildLinks(config, p)), n.id);
+    // 上限ぎりぎりだとサービスによっては途中で切れるので、1割の余裕を持たせる
+    T.buildLinks(config, p).forEach((l) => assert.ok(l.length <= config.ai.max_url_length * 0.9, `${n.id} ${l.name}: ${l.length}`));
   });
 });
 

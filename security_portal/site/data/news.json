@@ -5,7 +5,7 @@
       "date": "2026-10-21",
       "label": "緊急",
       "title": "PHPに重大な脆弱性2件。修正版が公開されました",
-      "body": "ログインなしで外からサーバーを乗っ取られうる脆弱性です（CVE-2026-109618、CVE-2026-109619、深刻度9.2）。WordPressなどPHPで動くサイトはすべて対象で、修正版は8.5.12・8.4.27・8.3.36・8.2.35です。国内でも、更新に備えてサービスを一時止める企業が相次ぎました。発見について、OpenAIは自社のAIモデルが研究者を助けたと発表し、AIがインターネット規模の影響を持つ脆弱性を見つける段階に入ったとしています。",
+      "body": "ログインなしで外からサーバーを乗っ取られうる脆弱性です（CVE-2026-109618、CVE-2026-109619、深刻度9.2）。WordPressなどPHPで動くサイトはすべて対象で、修正版は8.5.12・8.4.27・8.3.36・8.2.35です。国内でも、更新に備えてサービスを一時止める企業が相次ぎました。OpenAIによると、セキュリティ企業CalifがOpenAIのAI（GPT-5.6 Sol）を使って見つけ、Wizも別に見つけて報告しました。OpenAIは、同じような発見が今後数か月で急増するとの見通しを示しています。",
       "todo": [
         "運用中のサイトと、PHPのバージョンを洗い出す",
         "バックアップを取ってから修正版へ更新する（8.1以前は公式の更新が終わっています。提供元の修正版を使うか、バージョンを上げてください）",
@@ -20,8 +20,8 @@
           "url": "https://www.php.net/archive/2026.php"
         },
         {
-          "label": "OpenAIの発表（X）",
-          "url": "https://x.com/OpenAI/status/2112907856018309586"
+          "label": "OpenAIの発表（英語）",
+          "url": "https://openai.com/index/coordinated-disclosure-of-critical-vulnerabilities/"
         },
         {
           "label": "国家サイバー統括室の呼びかけ（X）",
@@ -63,28 +63,41 @@
     {
       "id": "emudhra-2026-10",
       "date": "2026-10-20",
-      "label": "確認",
-      "level": "notice",
-      "title": "認証局eMudhraの中間証明書の秘密鍵が漏えい。OSとブラウザは最新に",
-      "body": "インドの認証局eMudhraの中間証明書8本の秘密鍵が、作り方の誤りで証明書から割り出せる状態だったと公表されました。悪用されると、どのサイトにもなりすませる偽の証明書を作れます。ただ、FirefoxとChromeは10月17日、Appleは19日、Microsoftは20日にこの証明書を締め出しており、証明書の発行記録を確かめる主要ブラウザ（Chrome・Edge・Firefox・Safari）では攻撃は成り立たなかったとされています。注意が要るのは、ブラウザ以外のアプリや機器、開発ツールです。",
+      "label": "重要",
+      "level": "important",
+      "title": "認証局eMudhraの中間証明書の秘密鍵が漏えい。サイトの証明書とOSを確認",
+      "body": "インドの認証局eMudhraの中間証明書8本の秘密鍵が、作り方の誤りで証明書から割り出せる状態でした（Mozillaの調査では、いずれも256未満の整数）。悪用されると、どのサイトにもなりすませる偽の証明書を作れます。FirefoxとChromeは10月17日、Appleは19日、Microsoftは20日にこの証明書を締め出しており、証明書の発行記録を確かめる主要ブラウザ（Chrome・Edge・Firefox・Safari）では攻撃は成り立たなかったとされています。悪用も報告されていません。注意が要るのは、ブラウザ以外のアプリや機器、開発ツールです。Chromeは10月27日に大もとのルート証明書（emSign ECC Root CA - G3）を信頼リストから外すため、これにつながる証明書を使うサイトは開けなくなります。",
       "todo": [
-        "パソコンとスマホのOS、ブラウザを最新の状態に更新する",
+        "自社サイトやキャンペーンサイトのSSL証明書の発行元を確かめる。ブラウザの鍵マークから証明書を開き、発行元に「eMudhra」「emSign」とあれば、10月27日までに別の発行元の証明書へ切り替える",
+        "パソコンとスマホのOS、ブラウザを最新の状態に更新する（Androidは再起動すると対策がすぐ届きます）",
         "業務で使うアプリや社内のシステムが更新済みか、提供元や情報システムの担当に確かめる（Node.js・Python・Goなどの開発ツールも対象です）",
-        "公表したサイトを開くと、使っているブラウザがこの証明書を締め出しているかを確かめられる",
-        "サイトで証明書の警告が出たら、そのまま先へ進まない",
+        "更新のあとに証明書のエラーが出ても、確認を無効にして回避しない。制作会社や開発チームにも伝える",
+        "公表したサイトを開くと、使っているブラウザがこの証明書を締め出しているかを確かめられる（サイトのソースコードは公開されています）",
         "在宅勤務で使う自宅のWi-Fiルーターも、本体ソフトの更新とサポートの期限を確かめる（偽サイトへ誘導される入口になるため）"
       ],
       "links": [
         {
+          "label": "Googleの発表（英語）",
+          "url": "https://blog.google/security/protecting-chrome-and-android-users-from-compromised-emudhra-intermediate-ca-certificates/"
+        },
+        {
+          "label": "ITmedia NEWSの解説",
+          "url": "https://www.itmedia.co.jp/news/article/2610/21/2000002444/"
+        },
+        {
           "label": "公表したサイト（英語）",
           "url": "https://emudhra.we-have-a-problem.com/"
+        },
+        {
+          "label": "公表サイトのソースコード",
+          "url": "https://github.com/galadran/we-have-a-problem.com"
         },
         {
           "label": "Node.js公式の発表",
           "url": "https://nodejs.org/en/blog/vulnerability/october-2026-security-releases"
         }
       ],
-      "ask_url": "https://emudhra.we-have-a-problem.com/",
+      "ask_url": "https://blog.google/security/protecting-chrome-and-android-users-from-compromised-emudhra-intermediate-ca-certificates/",
       "ask_kind": "news_device",
       "ask_lead": "発表をAIに読ませて、自分のパソコンやスマホ、業務のアプリで何を確かめればよいかを相談できます。",
       "question": "Q7",
