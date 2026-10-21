@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>紹介動画｜ブランドを守るセキュリティ相談室</title>
+<!--
+  1920x1080・約63秒の紹介動画。アニメーションはすべて Web Animations API で作り、
+  window.VIDEO.seek(秒) で任意の時刻の絵にできる。render.cjs がこれを1コマずつ撮って MP4 にする。
+  ブラウザで普通に開くと、そのまま再生される（確認用）。
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=Noto+Sans+JP:wght@400;500;700;900&display=block">
+<style>
+:root {
+  --paper: #f5f7f1; --surface: #ffffff; --surface-2: #eaf0e2; --ink: #1b1f1a; --muted: #566052; --line: #d6dece;
+  --brand: #d6e8c4; --brand-ink: #2f5a22; --panel: #1c2819; --panel-ink: #eef4e6; --panel-muted: #b2c0a8;
+  --red: #c8402f; --green: #2b7448;
+  --jp: "Noto Sans JP", "IPAGothic", sans-serif; --latin: "Jost", "Noto Sans JP", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #000; }
+#stage {
+  position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--paper); color: var(--ink);
+  font-family: var(--jp); font-feature-settings: "palt" 1;
+}
+.scene { position: absolute; inset: 0; opacity: 0; }
+.bg-brand { background: var(--brand); }
+.bg-panel { background: var(--panel); color: var(--panel-ink); }
+.bg-paper { background: var(--paper); }
+.eyebrow { font-size: 34px; font-weight: 700; color: var(--brand-ink); letter-spacing: .04em; }
+.bg-panel .eyebrow { color: #a6d08a; }
+
+/* 場面の吹き出し（サイトと同じ形） */
+.bubble-card {
+  position: absolute; background: var(--surface); border-radius: 28px; padding: 26px 34px 30px; width: 980px;
+  box-shadow: 0 2px 4px rgba(27,31,26,.06), 0 18px 40px rgba(27,31,26,.10);
+}
+.bubble-card .who { display: flex; gap: 18px; align-items: baseline; font-size: 28px; color: var(--muted); margin-bottom: 8px; }
+.bubble-card .who b { font-size: 34px; color: var(--ink); }
+.bubble-card p { margin: 0; font-size: 40px; line-height: 1.6; font-weight: 500; }
+.q-mark {
+  position: absolute; right: -26px; top: -26px; width: 72px; height: 72px; border-radius: 50%; background: var(--red); color: #fff;
+  display: grid; place-items: center; font-size: 46px; font-weight: 900; font-family: var(--latin);
+}
+
+/* タイトル */
+.title-wrap { position: absolute; left: 160px; top: 200px; }
+.title-wrap h1 { margin: 26px 0 0; font-size: 116px; line-height: 1.32; font-weight: 900; letter-spacing: .01em; }
+.title-wrap h1 span { display: block; }
+.dots { position: absolute; right: 160px; top: 150px; display: grid; grid-template-columns: repeat(2, 64px); gap: 40px 60px; }
+.dots i { width: 64px; height: 64px; border-radius: 50%; background: #fff; display: block; }
+.dots i:first-child { grid-column: 2; }
+
+/* 数字 */
+.facts { position: absolute; left: 140px; right: 140px; top: 300px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 50px; }
+.fact { border-top: 6px solid var(--ink); padding-top: 34px; }
+.fact .num { font-family: var(--latin); font-weight: 600; font-size: 150px; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.fact .num small { font-family: var(--jp); font-size: 52px; font-weight: 700; margin-left: 8px; letter-spacing: 0; }
+.fact p { margin: 26px 0 0; font-size: 36px; line-height: 1.55; }
+.fact .src { margin-top: 18px; font-size: 26px; color: var(--brand-ink); font-weight: 700; }
+.section-head { position: absolute; left: 140px; top: 150px; }
+
+/* 紹介 */
+.intro { position: absolute; left: 160px; right: 160px; top: 250px; }
+.intro h2 { margin: 30px 0 0; font-size: 104px; font-weight: 900; line-height: 1.25; }
+.intro p { margin: 34px 0 0; font-size: 44px; color: var(--panel-muted); }
+.chips { display: flex; gap: 22px; margin-top: 56px; }
+.chip { font-size: 36px; font-weight: 700; padding: 12px 32px; border-radius: 999px; background: var(--brand); color: var(--ink); }
+
+/* スマホの枠 */
+.phone { position: absolute; width: 380px; height: 846px; border-radius: 54px; background: #121611; padding: 12px; box-shadow: 0 30px 60px rgba(27,31,26,.22); }
+.phone .screen { position: relative; width: 100%; height: 100%; border-radius: 42px; overflow: hidden; background: var(--paper); }
+.phone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.phone-label { position: absolute; font-size: 32px; font-weight: 900; text-align: center; }
+
+.side { position: absolute; }
+.side h2 { margin: 18px 0 0; font-size: 76px; line-height: 1.3; font-weight: 900; }
+.list { margin: 40px 0 0; padding: 0; list-style: none; display: grid; gap: 14px; }
+.list li { font-size: 38px; display: flex; gap: 22px; align-items: baseline; }
+.list li b { font-family: var(--latin); color: var(--brand-ink); width: 40px; }
+.note { margin-top: 44px; font-size: 34px; font-weight: 700; background: var(--surface-2); padding: 16px 26px; border-radius: 14px; display: inline-block; }
+
+/* シミュレーション */
+.big-num { display: flex; align-items: baseline; gap: 30px; margin-top: 40px; font-family: var(--latin); font-weight: 600; }
+.big-num .n { font-size: 210px; line-height: 1; font-variant-numeric: tabular-nums; }
+.big-num .arrow { font-size: 90px; color: var(--muted); }
+.lv { position: relative; height: 70px; margin-top: 26px; }
+.lv span { position: absolute; left: 0; top: 0; font-size: 38px; font-weight: 900; padding: 8px 28px; border-radius: 999px; white-space: nowrap; }
+.lv3 { color: #9e440a; background: #f9e0cc; }
+.lv2 { color: #735400; background: #f8ecc2; }
+
+/* カードのスワイプ */
+.swipe-card {
+  position: absolute; left: 820px; top: 230px; width: 900px; background: var(--surface); border-radius: 36px; padding: 40px 46px 46px;
+  box-shadow: 0 30px 60px rgba(27,31,26,.16); border: 2px solid var(--line);
+}
+.swipe-card .who { display: flex; gap: 18px; align-items: baseline; font-size: 30px; color: var(--muted); }
+.swipe-card .who b { font-size: 36px; color: var(--ink); }
+.swipe-card p { margin: 18px 0 0; font-size: 46px; line-height: 1.55; font-weight: 500; }
+.swipe-card .ask { margin-top: 30px; font-size: 38px; font-weight: 900; }
+.stamp { position: absolute; top: -40px; font-size: 54px; font-weight: 900; padding: 6px 26px; border: 6px solid; border-radius: 14px; background: var(--surface); }
+.stamp.stop { right: 40px; color: var(--red); transform: rotate(8deg); }
+.stamp.pass { right: 40px; color: var(--green); transform: rotate(-8deg); }
+.controls { position: absolute; left: 820px; top: 790px; width: 900px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+.controls div { text-align: center; font-size: 44px; font-weight: 900; padding: 18px; border-radius: 22px; border: 5px solid; background: var(--surface); }
+.controls .s { color: var(--red); }
+.controls .p { color: var(--green); }
+
+/* 立ち位置 */
+.stance { position: absolute; left: 140px; right: 140px; top: 270px; display: grid; grid-template-columns: 1fr 1fr 1.5fr; border-top: 6px solid var(--ink); }
+.stance div { padding: 40px 40px 0 0; }
+.stance div + div { padding-left: 40px; border-left: 2px solid rgba(27,31,26,.2); }
+.stance h3 { margin: 0; font-size: 70px; font-weight: 900; line-height: 1.25; }
+.stance p { margin: 24px 0 0; font-size: 36px; line-height: 1.6; }
+
+/* 締め */
+.end { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; text-align: center; gap: 30px; }
+.end h2 { margin: 0; font-size: 112px; font-weight: 900; line-height: 1.2; }
+.end .org { font-size: 44px; font-weight: 700; }
+.end .org small { display: block; font-size: 30px; font-weight: 500; color: var(--muted); margin-top: 10px; font-family: var(--latin); letter-spacing: .04em; }
+.end .rule { width: 160px; height: 10px; background: var(--brand); }
+
+/* 字幕 */
+.cap {
+  position: absolute; left: 50%; bottom: 48px; transform: translateX(-50%); opacity: 0; white-space: nowrap;
+  font-size: 42px; font-weight: 700; color: #fff; background: rgba(27, 31, 26, .88); padding: 14px 34px; border-radius: 14px;
+}
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- 1. 現場の入口 -->
+  <section class="scene bg-paper" id="s1">
+    <p class="eyebrow" style="position:absolute;left:160px;top:110px;margin:0">ある日の、マーケティング部</p>
+    <div class="bubble-card" id="b1" style="left:160px;top:210px"><div class="who"><b>企画担当</b><span>社内チャット</span></div><p>素材フォルダ、「リンクを知っている全員」で共有しておきました！</p><span class="q-mark" id="q1">?</span></div>
+    <div class="bubble-card" id="b2" style="left:560px;top:450px"><div class="who"><b>媒体社を名乗る人</b><span>メール</span></div><p>【至急】広告費の振込先が変わりました。本日中に新しい口座へお願いします。</p><span class="q-mark" id="q2">?</span></div>
+    <div class="bubble-card" id="b3" style="left:260px;top:700px;width:900px"><div class="who"><b>AIアプリ</b><span>Googleのログイン画面</span></div><p>Gmail・ドライブへのアクセスを許可しますか？</p><span class="q-mark" id="q3">?</span></div>
+  </section>
+
+  <!-- 2. 問いかけ -->
+  <section class="scene bg-brand" id="s2">
+    <div class="dots" aria-hidden="true"><i id="d1"></i><i id="d2"></i><i id="d3"></i></div>
+    <div class="title-wrap">
+      <p class="eyebrow" id="t0" style="margin:0">ブランド・マーケティング担当のみなさんへ</p>
+      <h1><span id="t1">その“便利”、</span><span id="t2">ブランドの穴に</span><span id="t3">なっていませんか？</span></h1>
+    </div>
+  </section>
+
+  <!-- 3. 数字 -->
+  <section class="scene bg-paper" id="s3">
+    <div class="section-head"><p class="eyebrow" style="margin:0">いま起きていること</p></div>
+    <div class="facts">
+      <div class="fact" id="f1"><div class="num"><span data-count="3" data-from="0" data-start="11.6" data-dur="1.2"></span><small>位</small></div><p>「AIの利用をめぐるサイバーリスク」が、情報セキュリティ10大脅威に初めて入りました</p><div class="src">IPA 2026（組織編）</div></div>
+      <div class="fact" id="f2"><div class="num"><span data-count="1288" data-from="0" data-start="12.4" data-dur="1.6" data-comma="1"></span><small>億円</small></div><p>SNS型投資詐欺の被害（2025年）。最初の接点は広告が最多でした</p><div class="src">警察庁</div></div>
+      <div class="fact" id="f3"><div class="num"><span data-count="38.8" data-from="0" data-start="13.2" data-dur="1.6" data-dec="1"></span><small>億円</small></div><p>社長などを名乗って送金させる詐欺の被害（2026年1〜6月）</p><div class="src">警察庁</div></div>
+    </div>
+  </section>
+
+  <!-- 4. 紹介 -->
+  <section class="scene bg-panel" id="s4">
+    <div class="intro">
+      <p class="eyebrow" id="i0" style="margin:0">ブランド・マーケティング担当のための、3分のリスク診断</p>
+      <h2 id="i1">ブランドを守る<br>セキュリティ相談室</h2>
+      <div class="chips"><span class="chip" id="c1">無料</span><span class="chip" id="c2">登録不要</span><span class="chip" id="c3">回答は外部に送りません</span></div>
+    </div>
+  </section>
+
+  <!-- 5. 診断 -->
+  <section class="scene bg-paper" id="s5">
+    <div class="phone" id="p5" style="left:240px;top:56px"><div class="screen"><img src="shots/question.png" alt=""><img src="shots/result-status.png" alt="" id="p5b"></div></div>
+    <div class="side" style="left:820px;top:120px;width:960px">
+      <p class="eyebrow" style="margin:0">リスク診断</p>
+      <h2 id="h5">18の質問で、<br>7つの守りを点検</h2>
+      <ul class="list">
+        <li id="l1"><b>A</b>生成AIの使い方</li>
+        <li id="l2"><b>B</b>顧客データとマーケツール</li>
+        <li id="l3"><b>C</b>サイト・ドメイン・メール</li>
+        <li id="l4"><b>D</b>SNS・広告アカウント</li>
+        <li id="l5"><b>E</b>なりすまし・詐欺</li>
+        <li id="l6"><b>F</b>制作物の権利と委託先</li>
+        <li id="l7"><b>G</b>事故への備え・広報</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 6. 放置シミュレーション -->
+  <section class="scene bg-paper" id="s6">
+    <div class="phone" id="p6a" style="left:150px;top:56px"><div class="screen"><img src="shots/sim-neglect.png" alt=""></div></div>
+    <div class="phone" id="p6b" style="left:600px;top:56px"><div class="screen"><img src="shots/sim-fixed.png" alt=""></div></div>
+    <div class="side" style="left:1110px;top:150px;width:700px">
+      <p class="eyebrow" style="margin:0">このまま1年、放置したら</p>
+      <h2 id="h6">放置した1年と、<br>対策した1年</h2>
+      <div class="big-num" id="n6"><span class="n" style="color:var(--muted)">68</span><span class="arrow" id="a6">→</span><span class="n" data-count="34" data-from="68" data-start="35.6" data-dur="1.6"></span></div>
+      <div class="lv"><span class="lv3" id="lv3">レベル3（高）</span><span class="lv2" id="lv2">レベル2（中）</span></div>
+      <p class="note" id="nt6" style="font-size:32px">リスク指数：弱点の上位5項目を対策した場合</p>
+    </div>
+  </section>
+
+  <!-- 7. 止める？通す？ -->
+  <section class="scene bg-paper" id="s7">
+    <div class="phone" id="p7" style="left:240px;top:56px"><div class="screen"><img src="shots/game-card.png" alt=""><img src="shots/game-year.png" alt="" id="p7b"></div></div>
+    <p class="eyebrow" style="position:absolute;left:820px;top:120px;margin:0">止める？ 通す？</p>
+    <div class="swipe-card" id="k1"><span class="stamp stop" id="st1">止める</span><div class="who"><b>SNS担当</b><span>SNSの設定画面</span></div><p>ログインのたびにコードを入れるのが面倒なので、公式アカウントの二段階認証を切ります。</p><div class="ask">この場面、止めますか？ 通しますか？</div></div>
+    <div class="swipe-card" id="k2"><span class="stamp pass" id="st2">通す</span><div class="who"><b>制作会社</b><span>メール</span></div><p>PHPの修正版が出たので、バックアップを取ってから今夜のうちに更新します。</p><div class="ask">この場面、止めますか？ 通しますか？</div></div>
+    <div class="side" id="k3" style="left:820px;top:300px;width:900px"><h2 style="font-size:68px">通してしまった危険は、<br>「1年後の総括」に<br>出てきます。</h2></div>
+    <div class="controls"><div class="s" id="cs">← 止める</div><div class="p" id="cp">通す →</div></div>
+  </section>
+
+  <!-- 8. その他の機能 -->
+  <section class="scene bg-paper" id="s8">
+    <div class="phone" id="m1" style="left:150px;top:44px;width:340px;height:757px"><div class="screen"><img src="shots/cases.png" alt=""></div></div>
+    <div class="phone" id="m2" style="left:570px;top:44px;width:340px;height:757px"><div class="screen"><img src="shots/risks.png" alt=""></div></div>
+    <div class="phone" id="m3" style="left:990px;top:44px;width:340px;height:757px"><div class="screen"><img src="shots/now.png" alt=""></div></div>
+    <div class="phone" id="m4" style="left:1410px;top:44px;width:340px;height:757px"><div class="screen"><img src="shots/ask.png" alt=""></div></div>
+    <p class="phone-label" id="ml1" style="left:150px;top:828px;width:340px">直近の事例</p>
+    <p class="phone-label" id="ml2" style="left:570px;top:828px;width:340px">リスクと対策</p>
+    <p class="phone-label" id="ml3" style="left:990px;top:828px;width:340px">今すぐできること</p>
+    <p class="phone-label" id="ml4" style="left:1410px;top:828px;width:340px">AIに聞く</p>
+  </section>
+
+  <!-- 9. 立ち位置 -->
+  <section class="scene bg-brand" id="s9">
+    <p class="eyebrow" style="position:absolute;left:140px;top:150px;margin:0;color:#1b1f1a">このサイトの立ち位置</p>
+    <div class="stance">
+      <div id="v1"><h3>中立</h3><p>特定の製品やサービスは勧めません。根拠は公的機関の発表です。</p></div>
+      <div id="v2"><h3>率直</h3><p>必要のない対策は、必要ないとお伝えします。</p></div>
+      <div id="v3"><h3>必要なときだけ、<br>専門家チーム</h3><p>組合員の専門家が、分野を超えてチームを組みます。</p></div>
+    </div>
+  </section>
+
+  <!-- 10. 締め -->
+  <section class="scene bg-paper" id="s10">
+    <div class="end">
+      <p class="eyebrow" id="e0" style="margin:0">3分・無料・登録不要</p>
+      <h2 id="e1">ブランドを守る<br>セキュリティ相談室</h2>
+      <div class="rule" id="e2"></div>
+      <p class="org" id="e3" style="margin:0">運営　企画・宣伝協同組合（経済産業省認可）<small>Planning Advertising Cooperative Association</small></p>
+    </div>
+  </section>
+
+  <div id="caps"></div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const DURATION = 63;
+  // 字幕（秒）。render.cjs が SRT の書き出しにも使う
+  const CAPTIONS = [
+    [0.6, 5.8, "マーケティングの現場には、会社の外から見える入口が集まっています。"],
+    [11.4, 17.8, "AIの使い方、なりすまし広告、送金詐欺。被害はもう身近にあります。"],
+    [18.4, 22.8, "ブランド・マーケティング担当のための、無料の診断ポータルです。"],
+    [23.4, 30.8, "18の質問に答えるだけ。回答はブラウザの外に送りません。"],
+    [31.4, 38.8, "弱点を放置した1年と、対策した1年を見比べられます。"],
+    [39.4, 45.8, "「止める？通す？」で、現場の判断を1分で体験できます。"],
+    [46.4, 51.8, "直近の事例、対策、今日できること。普段使っているAIにも、そのまま相談できます。"],
+    [52.4, 56.8, "売り込みはしません。必要なときだけ、組合員の専門家がチームを組みます。"]
+  ];
+  const SCENES = [["s1", 0, 6.2], ["s2", 6.0, 11.2], ["s3", 11.0, 18.2], ["s4", 18.0, 23.2], ["s5", 23.0, 31.2],
+    ["s6", 31.0, 39.2], ["s7", 39.0, 46.2], ["s8", 46.0, 52.2], ["s9", 52.0, 57.2], ["s10", 57.0, DURATION]];
+
+  const $ = (id) => document.getElementById(id);
+  const anims = [];
+  const EASE = "cubic-bezier(.2,.7,.2,1)";
+  function anim(el, start, dur, frames, easing = EASE) {
+    const a = el.animate(frames, { duration: dur * 1000, delay: start * 1000, fill: "both", easing });
+    a.pause();
+    anims.push(a);
+    return a;
+  }
+  // 出てきて、しばらく見せて、消える（不透明度は1本のアニメーションにまとめる）
+  function hold(el, s, e, fade = 0.4) {
+    const d = e - s;
+    anim(el, s, d, [{ opacity: 0, offset: 0 }, { opacity: 1, offset: fade / d }, { opacity: 1, offset: 1 - fade / d }, { opacity: 0, offset: 1 }], "linear");
+  }
+  const rise = (el, t, d = 0.7, y = 40) => anim(el, t, d, [{ opacity: 0, transform: `translateY(${y}px)` }, { opacity: 1, transform: "none" }]);
+  const pop = (el, t, d = 0.45) => anim(el, t, d, [{ opacity: 0, transform: "scale(.6)" }, { opacity: 1, transform: "scale(1.08)", offset: 0.7 }, { opacity: 1, transform: "scale(1)" }]);
+  // [時刻, 状態, そこへ向かう緩急] の並びを、1本のアニメーションにする
+  function seq(el, steps) {
+    const s = steps[0][0], e = steps[steps.length - 1][0];
+    const frames = steps.map(([t, props, easing]) => Object.assign({ offset: (t - s) / (e - s) }, props, easing ? { easing } : {}));
+    // keyframe の easing は「その区間の入り方」なので、ひとつ前のキーフレームに付け替える
+    for (let i = frames.length - 1; i > 0; i--) { if (frames[i].easing) { frames[i - 1].easing = frames[i].easing; delete frames[i].easing; } }
+    if (frames[frames.length - 1].easing) delete frames[frames.length - 1].easing;
+    return anim(el, s, e - s, frames, "linear");
+  }
+  const fadeIn = (el, t, d = 0.6) => anim(el, t, d, [{ opacity: 0 }, { opacity: 1 }], "linear");
+  const slideX = (el, t, x, d = 0.8) => anim(el, t, d, [{ opacity: 0, transform: `translateX(${x}px)` }, { opacity: 1, transform: "none" }]);
+
+  SCENES.forEach(([id, s, e]) => hold($(id), s, e, id === "s1" ? 0.01 : 0.4));
+  const caps = $("caps");
+  CAPTIONS.forEach(([s, e, text]) => {
+    const el = document.createElement("div");
+    el.className = "cap";
+    el.textContent = text;
+    caps.appendChild(el);
+    hold(el, s, e, 0.3);
+  });
+
+  // 1
+  rise($("b1"), 0.3); rise($("b2"), 1.3); rise($("b3"), 2.3);
+  pop($("q1"), 3.6); pop($("q2"), 3.9); pop($("q3"), 4.2);
+  anim($("s1"), 0, 6.2, [{ transform: "scale(1)" }, { transform: "scale(1.03)" }], "linear");
+  // 2
+  rise($("t0"), 6.3); rise($("t1"), 6.6, 0.8, 60); rise($("t2"), 7.1, 0.8, 60); rise($("t3"), 7.6, 0.8, 60);
+  pop($("d1"), 8.4); pop($("d2"), 8.6); pop($("d3"), 8.8);
+  // 3
+  rise($("f1"), 11.3); rise($("f2"), 12.1); rise($("f3"), 12.9);
+  // 4
+  rise($("i0"), 18.3); rise($("i1"), 18.6, 0.9, 60); pop($("c1"), 19.8); pop($("c2"), 20.1); pop($("c3"), 20.4);
+  // 5
+  slideX($("p5"), 23.2, -80); rise($("h5"), 23.6);
+  ["l1", "l2", "l3", "l4", "l5", "l6", "l7"].forEach((id, i) => rise($(id), 24.4 + i * 0.25, 0.5, 24));
+  fadeIn($("p5b"), 27.6, 0.7);
+  // 6
+  slideX($("p6a"), 31.2, -80); slideX($("p6b"), 33.0, 80); rise($("h6"), 31.6); rise($("n6"), 34.6);
+  seq($("lv3"), [[34.8, { opacity: 0 }], [35.1, { opacity: 1 }], [37.0, { opacity: 1 }], [37.4, { opacity: 0 }]]);
+  fadeIn($("lv2"), 37.1, 0.4);
+  fadeIn($("a6"), 35.2, 0.4); rise($("nt6"), 37.6);
+  // 7
+  slideX($("p7"), 39.2, -80);
+  const SWIPE = "cubic-bezier(.5,0,.8,.4)";
+  seq($("k1"), [[39.5, { opacity: 0, transform: "translateY(40px)" }], [40.1, { opacity: 1, transform: "none" }, EASE],
+    [41.4, { opacity: 1, transform: "none" }], [42.1, { opacity: 0, transform: "translateX(-900px) rotate(-14deg)" }, SWIPE]]);
+  rise($("cs"), 39.8, 0.5, 20); rise($("cp"), 39.9, 0.5, 20);
+  pop($("st1"), 40.9, 0.35);
+  anim($("cs"), 40.9, 0.5, [{ background: "#ffffff" }, { background: "#f7d6d2", offset: 0.4 }, { background: "#ffffff" }], "linear");
+  seq($("k2"), [[42.0, { opacity: 0, transform: "translateY(40px)" }], [42.6, { opacity: 1, transform: "none" }, EASE],
+    [43.8, { opacity: 1, transform: "none" }], [44.5, { opacity: 0, transform: "translateX(900px) rotate(14deg)" }, SWIPE]]);
+  pop($("st2"), 43.3, 0.35);
+  anim($("cp"), 43.3, 0.5, [{ background: "#ffffff" }, { background: "#dcefe2", offset: 0.4 }, { background: "#ffffff" }], "linear");
+  fadeIn($("p7b"), 44.4, 0.6);
+  rise($("k3"), 44.6, 0.7);
+  // 8
+  ["m1", "m2", "m3", "m4"].forEach((id, i) => rise($(id), 46.2 + i * 0.35, 0.7, 70));
+  ["ml1", "ml2", "ml3", "ml4"].forEach((id, i) => fadeIn($(id), 46.6 + i * 0.35, 0.5));
+  // 9
+  rise($("v1"), 52.3); rise($("v2"), 52.9); rise($("v3"), 53.5);
+  // 10
+  rise($("e0"), 57.3); rise($("e1"), 57.6, 0.9, 50); anim($("e2"), 58.4, 0.6, [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }]); rise($("e3"), 58.8);
+
+  const counters = [...document.querySelectorAll("[data-count]")];
+  function fmt(el, v) {
+    if (el.dataset.dec) return v.toFixed(1);
+    const n = Math.round(v);
+    return el.dataset.comma ? n.toLocaleString("en-US") : String(n);
+  }
+  function seek(t) {
+    anims.forEach((a) => { a.currentTime = t * 1000; });
+    counters.forEach((el) => {
+      const from = Number(el.dataset.from), to = Number(el.dataset.count);
+      const k = Math.min(1, Math.max(0, (t - Number(el.dataset.start)) / Number(el.dataset.dur)));
+      const e = 1 - Math.pow(1 - k, 3);
+      el.textContent = fmt(el, from + (to - from) * e);
+    });
+  }
+  window.VIDEO = { duration: DURATION, seek, captions: CAPTIONS };
+  seek(0);
+
+  // 普通に開いたときは再生する（render.cjs は ?render を付けて開く）
+  if (!/[?&]render/.test(location.search)) {
+    const fit = () => { const s = Math.min(innerWidth / 1920, innerHeight / 1080); document.getElementById("stage").style.transform = `scale(${s})`; document.getElementById("stage").style.transformOrigin = "0 0"; };
+    fit(); addEventListener("resize", fit);
+    let t0 = null;
+    const tick = (now) => { if (t0 == null) t0 = now; seek(((now - t0) / 1000) % DURATION); requestAnimationFrame(tick); };
+    document.fonts.ready.then(() => requestAnimationFrame(tick));
+  }
+})();
+</script>
+</body>
+</html>

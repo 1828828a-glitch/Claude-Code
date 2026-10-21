@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 .pytest_cache/
 security_portal/dist/
+security_portal/video/shots/
+security_portal/video/out/
