@@ -261,6 +261,7 @@ main { display: block; }
   display: grid; grid-template-columns: 7.2em minmax(0, 1fr); gap: 4px 18px; padding: 18px 0; border-top: 1px solid var(--line);
 }
 .case:last-child { border-bottom: 1px solid var(--line); }
+.case { scroll-margin-top: 130px; }
 @media (max-width: 600px) { .case { grid-template-columns: minmax(0, 1fr); } }
 .case-date { font-family: var(--font-latin); font-weight: 600; font-size: var(--fs-m); color: var(--muted); font-variant-numeric: tabular-nums; }
 .case h3 { font-size: var(--fs-l); font-weight: 900; }
