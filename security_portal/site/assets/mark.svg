@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" role="img" aria-label="企画・宣伝協同組合">
+  <!-- 仮のマーク。組合の正式なロゴファイルに差し替えてください -->
+  <rect width="160" height="100" fill="#d6e8c4"/>
+  <rect x="14" y="44" width="56" height="12" fill="#ffffff"/>
+  <rect x="36" y="22" width="12" height="56" fill="#ffffff"/>
+  <circle cx="113" cy="29" r="9" fill="#ffffff"/>
+  <circle cx="97" cy="70" r="9" fill="#ffffff"/>
+  <circle cx="132" cy="70" r="9" fill="#ffffff"/>
+</svg>
