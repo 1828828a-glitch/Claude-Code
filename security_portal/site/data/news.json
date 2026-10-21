@@ -14,10 +14,44 @@
         "便乗した偽メールに注意。パスワードの変更はメールのリンクではなく公式サイトから"
       ],
       "links": [
-        { "label": "PHP公式の発表", "url": "https://www.php.net/archive/2026.php" },
-        { "label": "国家サイバー統括室の呼びかけ（X）", "url": "https://x.com/cyber_forecast/status/2112756056678134169" },
-        { "label": "国内サービスの停止状況（Impress Watch）", "url": "https://www.watch.impress.co.jp/docs/news/2150159.html" }
+        {
+          "label": "PHP公式の発表",
+          "url": "https://www.php.net/archive/2026.php"
+        },
+        {
+          "label": "国家サイバー統括室の呼びかけ（X）",
+          "url": "https://x.com/cyber_forecast/status/2112756056678134169"
+        },
+        {
+          "label": "国内サービスの停止状況（Impress Watch）",
+          "url": "https://www.watch.impress.co.jp/docs/news/2150159.html"
+        }
       ],
+      "question": "Q7",
+      "show_until": "2026-12-31",
+      "level": "urgent",
+      "ask_url": "https://www.php.net/archive/2026.php"
+    },
+    {
+      "id": "nodejs-2026-10",
+      "date": "2026-10-21",
+      "label": "重要",
+      "level": "important",
+      "title": "Node.jsにも深刻度「高」の脆弱性。修正版が公開されました",
+      "body": "Node.jsの26.x・24.x・22.xに、外からプログラムを実行されうる不具合（CVE-2026-111497）や、証明書の確認をすり抜けられる不具合など10件が見つかり、修正版（v26.12.1・v24.22.1・v22.23.4）が公開されました。認証局eMudhraの中間証明書が危殆化したことを受けて、信頼する証明書の一覧も更新されています。サポートが終わったバージョンは、こうした発表のたびに影響を受けます。",
+      "todo": [
+        "Next.jsなど、Node.jsで動いているサイトやツールがあるか、制作会社やサーバー会社に確かめる",
+        "修正版（v26.12.1・v24.22.1・v22.23.4）へ更新する予定を聞く",
+        "今回の修正版が出ていない古いバージョン（20.x以前）で動いているものは、バージョンを上げる計画を立てる",
+        "パソコンやスマホのOS・ブラウザも最新の状態に保つ"
+      ],
+      "links": [
+        {
+          "label": "Node.js公式の発表",
+          "url": "https://nodejs.org/en/blog/vulnerability/october-2026-security-releases"
+        }
+      ],
+      "ask_url": "https://nodejs.org/en/blog/vulnerability/october-2026-security-releases",
       "question": "Q7",
       "show_until": "2026-12-31"
     }

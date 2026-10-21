@@ -9,23 +9,61 @@
     "url": "https://www.pac-or.jp/",
     "contact_url": "https://www.pac-or.jp/contact.html",
     "experts": [
-      { "name": "Web制作・サイト保守", "confirmed": false },
-      { "name": "広告運用・SNS運用", "confirmed": false },
-      { "name": "広報・危機管理", "confirmed": false },
-      { "name": "法務・知的財産", "confirmed": false },
-      { "name": "情報セキュリティ", "confirmed": false },
-      { "name": "AI活用・社内研修", "confirmed": false }
+      {
+        "name": "Web制作・サイト保守",
+        "confirmed": false
+      },
+      {
+        "name": "広告運用・SNS運用",
+        "confirmed": false
+      },
+      {
+        "name": "広報・危機管理",
+        "confirmed": false
+      },
+      {
+        "name": "法務・知的財産",
+        "confirmed": false
+      },
+      {
+        "name": "情報セキュリティ",
+        "confirmed": false
+      },
+      {
+        "name": "AI活用・社内研修",
+        "confirmed": false
+      }
     ]
   },
   "ga4_id": "",
   "ai": {
     "max_url_length": 2000,
     "services": [
-      { "id": "chatgpt", "name": "ChatGPT", "url": "https://chatgpt.com/?hints=search&q={q}" },
-      { "id": "claude", "name": "Claude", "url": "https://claude.ai/new?q={q}" },
-      { "id": "grok", "name": "Grok", "url": "https://grok.com/?q={q}" },
-      { "id": "perplexity", "name": "Perplexity", "url": "https://www.perplexity.ai/search?q={q}" },
-      { "id": "google", "name": "Google AI モード", "url": "https://www.google.com/search?udm=50&q={q}" }
+      {
+        "id": "chatgpt",
+        "name": "ChatGPT",
+        "url": "https://chatgpt.com/?hints=search&q={q}"
+      },
+      {
+        "id": "claude",
+        "name": "Claude",
+        "url": "https://claude.ai/new?q={q}"
+      },
+      {
+        "id": "grok",
+        "name": "Grok",
+        "url": "https://grok.com/?q={q}"
+      },
+      {
+        "id": "perplexity",
+        "name": "Perplexity",
+        "url": "https://www.perplexity.ai/search?q={q}"
+      },
+      {
+        "id": "google",
+        "name": "Google AI モード",
+        "url": "https://www.google.com/search?udm=50&q={q}"
+      }
     ],
     "refs": "次の資料を読んでください。\n{site_url}\n{site_url}llms-full.txt\n",
     "unread": "資料が読めなかった場合は、最初にその旨を答えてください。",
@@ -33,7 +71,8 @@
       "general": "{refs}ブランド・マーケティング担当として、自社の情報セキュリティで優先すべきことを率直に教えてください。まず私の会社の状況を2〜3問質問してから答えてください。特定の会社やサービスを勧める必要はありません。{unread}",
       "result": "{refs}私の会社の自己診断の結果です。{result}\nこの結果から、今週やるべきことを優先順に3つ、理由と一緒に率直に教えてください。不要な対策や過剰な投資は勧めないでください。{unread}",
       "risk": "{refs}「{topic}」について、ブランド・マーケティング担当の立場で、自社に当てはまるかを確かめる質問を3つしてから、今日できる対策を教えてください。{unread}",
-      "free": "{refs}{question}\n特定の会社やサービスを勧める必要はありません。{unread}"
+      "free": "{refs}{question}\n特定の会社やサービスを勧める必要はありません。{unread}",
+      "news": "次の公式発表を読んでください。\n{url}\n私はブランド・マーケティング担当で、技術の専門家ではありません。自社のサイトや使っているツールが影響を受けるかを確かめるために、制作会社やサーバー会社に何を聞けばよいかを、そのまま送れる質問文にして教えてください。発表が読めなかった場合は、最初にその旨を答えてください。"
     }
   }
 }

@@ -146,7 +146,7 @@
     return `<div class="bar ${cls}"><span>${esc(label)}</span><span class="bar-track"><i style="width:${v}%"></i></span><span class="bar-val">${esc(value)}${esc(suffix)}</span></div>`;
   }
 
-  function askBox(prompt, links, lead) {
+  function askBox(prompt, links, lead, opts = {}) {
     const cfg = D.config;
     const tooLong = !T.fits(cfg, links);
     return `<div class="ask-box">
@@ -154,7 +154,7 @@
       <div class="ai-buttons">${links.map((l) => `<a class="ai-btn" href="${esc(l.url)}" target="_blank" rel="noopener" data-act="ai" data-ai="${esc(l.id)}"${tooLong ? ' aria-disabled="true"' : ""}>${esc(l.name)}に聞く</a>`).join("")}</div>
       <details><summary>AIに渡す質問文を見る</summary><pre>${esc(prompt)}</pre></details>
       <p class="fine">普段お使いのAIサービスが新しいタブで開きます（各サービスへのログインが必要です）。このサイトにAIは入っていません。回答の正しさを組合が保証するものではありません。社名や個人情報は入れないでください。</p>
-      ${cfg.site_url ? "" : '<p class="draft">公開URLが未設定のため、質問文にこのサイトの資料のURLが入っていません。config.json の site_url を設定してください。</p>'}
+      ${cfg.site_url || opts.noSite ? "" : '<p class="draft">公開URLが未設定のため、質問文にこのサイトの資料のURLが入っていません。config.json の site_url を設定してください。</p>'}
     </div>`;
   }
 
@@ -167,16 +167,23 @@
   function renderNews() {
     const slot = $("#news-slot");
     const items = D.news.items.filter((n) => !n.show_until || today() <= n.show_until);
-    slot.innerHTML = items.map((n) => `<aside class="news" aria-label="注意喚起">
+    slot.innerHTML = items.map((n) => `<aside class="news news-${esc(n.level || "urgent")}" aria-label="注意喚起">
       <div class="news-inner"><details>
         <summary><span class="news-label">${esc(n.label)}</span><span class="news-date">${esc(dotDate(n.date))}</span><span>${esc(n.title)}</span><span class="news-open">くわしく</span></summary>
         <div class="news-body">
           <p>${esc(n.body)}</p>
           <ol>${n.todo.map((t) => `<li>${esc(t)}</li>`).join("")}</ol>
           <div class="row">${n.links.map((l) => ext(l.url, l.label + " ↗")).join("")}</div>
+          ${n.ask_url ? newsAsk(n) : ""}
         </div>
       </details></div>
     </aside>`).join("");
+  }
+
+  // 公式発表をそのままAIに読ませて、制作会社などに何を聞けばよいかを聞く
+  function newsAsk(n) {
+    const prompt = T.buildPrompt(D.config, "news", { url: n.ask_url });
+    return askBox(prompt, T.buildLinks(D.config, prompt), "公式発表をAIに読ませて、制作会社やサーバー会社に何を聞けばよいかを相談できます。", { noSite: true });
   }
 
   // ---------- ホーム ----------

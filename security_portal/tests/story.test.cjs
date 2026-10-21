@@ -135,6 +135,15 @@ test("AIに聞く：リスクごとの質問文もURLの上限に収まる", () 
   });
 });
 
+test("AIに聞く：注意喚起の質問文には公式発表のURLが入り、上限に収まる", () => {
+  news.items.filter((n) => n.ask_url).forEach((n) => {
+    const p = T.buildPrompt(config, "news", { url: n.ask_url });
+    assert.ok(p.includes(n.ask_url), n.id);
+    assert.ok(!p.includes("{"), n.id);
+    assert.ok(T.fits(config, T.buildLinks(config, p)), n.id);
+  });
+});
+
 test("相談メモには結果の要約だけが入る", () => {
   const result = S.compute(data, NEUTRAL, Object.assign(all(0), { Q1: 2, Q13: 2 }));
   const memo = T.resultMemo(data, NEUTRAL, result);
