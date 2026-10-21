@@ -148,21 +148,27 @@ main { display: block; }
   background: var(--lv4-bg); color: var(--ink); border-bottom: 1px solid var(--line);
 }
 .news-inner { max-width: 1120px; margin: 0 auto; padding: 12px var(--gutter-r) 12px var(--gutter); }
-.news-inner > details > summary {
-  list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-weight: 700;
-}
+.news-inner > details > summary { list-style: none; cursor: pointer; display: block; line-height: 1.7; }
 .news-inner > details > summary::-webkit-details-marker { display: none; }
 .news-label {
-  font-size: var(--fs-xs); font-weight: 900; color: #fff; background: var(--lv4); border-radius: 4px; padding: 0 8px; letter-spacing: .08em;
+  font-size: var(--fs-xs); font-weight: 900; color: #fff; background: var(--lv4); border-radius: 4px; padding: 0 8px; margin-right: 8px; display: inline-block; letter-spacing: .08em;
 }
-.news-date { font-family: var(--font-latin); font-size: var(--fs-s); color: var(--muted); }
-.news-open { font-size: var(--fs-xs); color: var(--lv4); text-decoration: underline; }
+.news-date { font-family: var(--font-latin); font-size: var(--fs-s); color: var(--muted); margin-right: 8px; }
+.news-title { font-weight: 700; }
+.news-open { font-size: var(--fs-xs); color: var(--lv4); text-decoration: underline; margin-left: 8px; white-space: nowrap; }
+@media (max-width: 600px) {
+  .news-inner { padding-block: 8px; }
+  .news-inner > details > summary { font-size: var(--fs-s); }
+}
 .news-inner > details[open] .news-open { display: none; }
 .news-body { display: grid; gap: 10px; padding-top: 10px; max-width: 52em; }
 .news + .news { border-top: 1px solid var(--line); }
 .news-important { background: var(--lv3-bg); }
 .news-important .news-label { background: var(--lv3); }
 .news-important .news-open { color: var(--lv3); }
+.news-notice { background: var(--lv2-bg); }
+.news-notice .news-label { background: var(--lv2); }
+.news-notice .news-open { color: var(--lv2); }
 .news-body .ask-box { margin-top: 4px; }
 .news-body ol { margin: 0; padding-left: 1.4em; }
 .news-body .row a { font-size: var(--fs-s); font-weight: 700; }

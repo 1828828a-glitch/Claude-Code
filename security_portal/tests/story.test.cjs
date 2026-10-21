@@ -137,7 +137,7 @@ test("AIに聞く：リスクごとの質問文もURLの上限に収まる", () 
 
 test("AIに聞く：注意喚起の質問文には公式発表のURLが入り、上限に収まる", () => {
   news.items.filter((n) => n.ask_url).forEach((n) => {
-    const p = T.buildPrompt(config, "news", { url: n.ask_url });
+    const p = T.buildPrompt(config, n.ask_kind || "news", { url: n.ask_url });
     assert.ok(p.includes(n.ask_url), n.id);
     assert.ok(!p.includes("{"), n.id);
     assert.ok(T.fits(config, T.buildLinks(config, p)), n.id);

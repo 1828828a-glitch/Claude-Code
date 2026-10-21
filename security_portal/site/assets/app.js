@@ -169,7 +169,7 @@
     const items = D.news.items.filter((n) => !n.show_until || today() <= n.show_until);
     slot.innerHTML = items.map((n) => `<aside class="news news-${esc(n.level || "urgent")}" aria-label="注意喚起">
       <div class="news-inner"><details>
-        <summary><span class="news-label">${esc(n.label)}</span><span class="news-date">${esc(dotDate(n.date))}</span><span>${esc(n.title)}</span><span class="news-open">くわしく</span></summary>
+        <summary><span class="news-label">${esc(n.label)}</span><span class="news-date">${esc(dotDate(n.date))}</span><span class="news-title">${esc(n.title)}</span><span class="news-open">くわしく</span></summary>
         <div class="news-body">
           <p>${esc(n.body)}</p>
           <ol>${n.todo.map((t) => `<li>${esc(t)}</li>`).join("")}</ol>
@@ -182,8 +182,9 @@
 
   // 公式発表をそのままAIに読ませて、制作会社などに何を聞けばよいかを聞く
   function newsAsk(n) {
-    const prompt = T.buildPrompt(D.config, "news", { url: n.ask_url });
-    return askBox(prompt, T.buildLinks(D.config, prompt), "公式発表をAIに読ませて、制作会社やサーバー会社に何を聞けばよいかを相談できます。", { noSite: true });
+    const prompt = T.buildPrompt(D.config, n.ask_kind || "news", { url: n.ask_url });
+    const lead = n.ask_lead || "公式発表をAIに読ませて、制作会社やサーバー会社に何を聞けばよいかを相談できます。";
+    return askBox(prompt, T.buildLinks(D.config, prompt), lead, { noSite: true });
   }
 
   // ---------- ホーム ----------
