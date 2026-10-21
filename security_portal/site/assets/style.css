@@ -297,6 +297,9 @@ main { display: block; }
 .signs { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
 .signs li { padding-left: 1.4em; position: relative; font-size: var(--fs-s); }
 .signs li::before { content: "!"; position: absolute; left: 0; top: .1em; width: 1.1em; height: 1.1em; border-radius: 50%; background: var(--lv3-bg); color: var(--lv3); font-weight: 900; font-size: .8em; display: grid; place-items: center; line-height: 1; }
+.policy { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.policy li { padding-left: 1.5em; position: relative; }
+.policy li::before { content: "✓"; position: absolute; left: 0; color: var(--brand-ink); font-weight: 900; }
 .measures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 @media (max-width: 760px) { .measures { grid-template-columns: minmax(0, 1fr); } }
 .measure { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }

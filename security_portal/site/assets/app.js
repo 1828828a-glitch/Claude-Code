@@ -158,6 +158,11 @@
     </div>`;
   }
 
+  function consultLink(org, small) {
+    if (!org.contact_url) return '<p class="draft">問い合わせ先が未設定です。config.json の org.contact_url を設定してください。</p>';
+    return `<a class="btn btn-primary${small ? " btn-small" : ""}" href="${esc(org.contact_url)}" target="_blank" rel="noopener" data-act="consult">組合に相談する ↗</a>`;
+  }
+
   // ---------- 注意喚起 ----------
   function renderNews() {
     const slot = $("#news-slot");
@@ -493,7 +498,7 @@
       ${support.experts.length ? `<p>この結果に関わりやすい分野：${support.experts.map((e) => `<span class="chip">${esc(e)}</span>`).join(" ")}</p>
       <p>${esc(org.name)}には、さまざまな分野の組合員がいます。必要なときだけ、分野を超えて専門家チームを組み、相談に応じます。こちらから営業の連絡はしません。</p>
       <div class="row">
-        <a class="btn btn-primary btn-small" href="${esc(org.contact_url)}" target="_blank" rel="noopener" data-act="consult">組合に相談する ↗</a>
+        ${consultLink(org, true)}
         <button type="button" class="btn btn-ghost btn-small" data-act="memo">相談用に結果をコピー</button>
       </div>
       <textarea class="ask-input" id="memo-area" readonly hidden aria-label="相談用の結果の要約">${esc(memo)}</textarea>
@@ -789,13 +794,13 @@
       <div class="about-org">
         <p class="eyebrow">運営</p>
         <h2>${esc(org.name)}</h2>
-        <p>${esc(org.approval)}　<span lang="en">${esc(org.name_en)}</span></p>
+        ${org.approval || org.name_en ? `<p>${esc(org.approval)}　<span lang="en">${esc(org.name_en)}</span></p>` : ""}
         <p>${esc(org.about)}</p>
         <p>${ext(org.url, "組合のサイトを見る ↗")}</p>
       </div>
       <section style="margin-top:28px">
         <h2 class="block-title">中立の立場で運営しています</h2>
-        <ul class="signs" style="gap:8px">
+        <ul class="policy">
           <li>特定の製品やサービスは勧めません。紹介する無料ツールは公的機関のものだけです。</li>
           <li>診断の回答は外部に送りません。連絡先を入力する欄もありません。</li>
           <li>必要のない対策は、必要ないとお伝えします。</li>
@@ -812,7 +817,7 @@
         <p style="margin:16px 0 8px">組合員の主な分野</p>
         <div class="experts">${org.experts.map((e) => `<span class="chip">${esc(e.name)}</span>`).join("")}</div>
         ${unconfirmed ? '<p class="draft" style="margin-top:10px">分野は仮の表示です。組合員の実際の分野に合わせて config.json を直してください。</p>' : ""}
-        <div class="row" style="margin-top:18px"><a class="btn btn-primary" href="${esc(org.contact_url)}" target="_blank" rel="noopener" data-act="consult">組合に相談する ↗</a><a class="btn btn-ghost" href="#check">先に診断する</a></div>
+        <div class="row" style="margin-top:18px">${consultLink(org, false)}<a class="btn btn-ghost" href="#check">先に診断する</a></div>
         <p class="fine" style="margin-top:12px">事故が起きた直後で急ぐ場合は、IPAの相談窓口もあわせて使ってください。${ext("https://www.ipa.go.jp/security/support/soudan.html", "IPA 相談窓口 ↗")}</p>
       </section>`;
   }
