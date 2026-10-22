@@ -6,7 +6,7 @@
   const T = window.PortalStory;
   const STATE_KEY = "pac-portal:diag:v1";
   const TODO_KEY = "pac-portal:todo:v1";
-  const VIEWS = ["home", "check", "cases", "risks", "now", "ask", "game", "about"];
+  const VIEWS = ["home", "check", "site", "cases", "risks", "now", "ask", "game", "about"];
 
   let D = null; // questions, scenes, cases, risks, actions, news, config
   let advanceTimer = 0;
@@ -97,7 +97,7 @@
   async function loadData() {
     const embedded = document.getElementById("portal-data");
     if (embedded) return JSON.parse(embedded.textContent);
-    const names = ["questions", "scenes", "cases", "risks", "actions", "news", "config"];
+    const names = ["questions", "scenes", "cases", "risks", "actions", "news", "config", "sitecheck"];
     const out = {};
     await Promise.all(names.map(async (n) => {
       const r = await fetch(`data/${n}.json`, { cache: "no-cache" });
@@ -125,7 +125,7 @@
       if (a.dataset.nav === view) a.setAttribute("aria-current", "page");
       else a.removeAttribute("aria-current");
     });
-    ({ home: renderHome, check: renderCheck, cases: renderCases, risks: renderRisks, now: renderNow, ask: renderAsk, game: renderGame, about: renderAbout })[view]();
+    ({ home: renderHome, check: renderCheck, site: renderSite, cases: renderCases, risks: renderRisks, now: renderNow, ask: renderAsk, game: renderGame, about: renderAbout })[view]();
     const target = anchor && document.getElementById(anchor);
     if (target) target.scrollIntoView();
     else window.scrollTo(0, 0);
@@ -794,6 +794,156 @@
     card.addEventListener("pointercancel", end);
   }
 
+  // ---------- サイトのリスクチェック ----------
+  const SC = window.PortalSiteCheck;
+  const site = { phase: "idle", input: "", steps: {}, report: null, error: "", sample: false, offline: false };
+  const SITE_STEPS = [["dns", "メールの設定（DNS）"], ["ct", "証明書の公開記録"], ["names", "名前の向き先"]];
+
+  function renderSite() {
+    const cfg = D.sitecheck;
+    $("#site-root").innerHTML = `<h1 class="page-title">サイトのリスクチェック</h1>
+      <p class="page-lead">自社サイトやブランドサイトのアドレスを入れると、外からだれでも見られる公開情報だけで、なりすましメール対策・証明書・忘れられたサイトの手がかりを確かめます。</p>
+      <div class="check-rules">
+        <p><b>調べるのは、自社のサイトか、管理を任されているサイトだけにしてください。</b></p>
+        <ul class="policy">
+          <li>サイトに攻撃を試みることはしません。公開されているDNSと、証明書の公開記録を読むだけです。</li>
+          <li>入力したドメイン名は、問い合わせ先（${esc(cfg.doh.map((d) => d.name).concat(cfg.ct.map((x) => x.name)).join("、"))}）に送られます。組合には送られません。</li>
+          <li>外から見える一部の情報で判断するため、安全を保証するものではありません。</li>
+        </ul>
+      </div>
+      <form id="site-form" class="site-form" novalidate>
+        <label for="site-input">サイトのアドレス</label>
+        <div class="site-row">
+          <input id="site-input" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://www.example.co.jp/" value="${esc(site.input)}"${site.phase === "run" ? " disabled" : ""}>
+          <button type="submit" class="btn btn-primary"${site.phase === "run" ? " disabled" : ""}>チェックする</button>
+        </div>
+        <p class="len-note over" id="site-error"${site.error ? "" : " hidden"}>${esc(site.error)}</p>
+        <p class="fine">証明書の公開記録の問い合わせに、30秒ほどかかることがあります。</p>
+      </form>
+      <p><button type="button" class="btn btn-quiet btn-small" data-act="site-sample">サンプルの結果を見る</button></p>
+      <div id="site-progress" aria-live="polite">${siteProgress()}</div>
+      <div id="site-result">${site.report ? siteReport(site.report) : ""}</div>`;
+  }
+
+  function siteProgress() {
+    if (site.phase === "idle" || site.sample) return "";
+    const label = { run: "調べています…", done: "済み", fail: "確認できず" };
+    return `<ol class="site-steps">${SITE_STEPS.map(([k, name]) => {
+      const st = site.steps[k] || "wait";
+      return `<li class="step-${st}"><span>${esc(name)}</span><b>${st === "wait" ? "待機中" : label[st]}</b></li>`;
+    }).join("")}</ol>`;
+  }
+
+  function sitePrompt(report) {
+    const cfg = D.config;
+    const lines = SC.summaryLines(report, D.sitecheck);
+    for (let n = lines.length; n >= 0; n--) {
+      let summary = lines.slice(0, n).join("\n") || "対応が必要な項目は見つかりませんでした。";
+      if (n < lines.length) summary += `\n（ほか${lines.length - n}件）`;
+      const prompt = T.buildPrompt(cfg, "site", { summary });
+      const links = T.buildLinks(cfg, prompt);
+      // 上限ぎりぎりだとサービスによっては途中で切れるので、1割の余裕を持たせる
+      if (links.every((l) => l.length <= cfg.ai.max_url_length * 0.9) || n === 0) return { prompt, links };
+    }
+  }
+
+  function siteItem(i) {
+    const L = D.sitecheck.status_labels;
+    const linkText = i.link.startsWith("#case-") ? "関連する事例" : "関連するリスクと対策";
+    return `<article class="site-item site-${i.status}">
+      <p class="st-chip st-${i.status}">${esc(L[i.status])}</p>
+      <h3>${esc(i.title)}</h3>
+      <p>${esc(i.found)}</p>
+      ${i.why ? `<p class="site-why">${esc(i.why)}</p>` : ""}
+      ${i.todo.length ? `<ul>${i.todo.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+      ${i.link ? `<p><a href="${esc(i.link)}">${linkText}</a></p>` : ""}
+    </article>`;
+  }
+
+  function siteReport(rep) {
+    const cfg = D.sitecheck;
+    const L = cfg.status_labels;
+    const c = rep.counts;
+    let lead;
+    if (c.bad) lead = `外から見える範囲で、対応が必要な項目が${c.bad}つ、確認が必要な項目が${c.warn}つ見つかりました。`;
+    else if (c.warn) lead = `対応が必要な項目はありませんでしたが、確認が必要な項目が${c.warn}つあります。`;
+    else if (c.unknown) lead = "一部の項目を確認できませんでした。時間をおいてもう一度お試しください。";
+    else lead = "外から見える範囲では、気になる点は見つかりませんでした。";
+    const ask = sitePrompt(rep);
+    const when = new Date(rep.checkedAt);
+    return `<section class="site-report" aria-labelledby="site-report-title">
+      ${site.sample ? `<p class="notice">${esc(cfg.sample.label)}</p>` : ""}
+      ${site.offline ? '<p class="notice">外部への問い合わせができませんでした。ネットワークの状態を確かめて、もう一度お試しください。この画面が試作版（claude.ai上のページ）の場合は、仕組み上、外部に問い合わせできません。「サンプルの結果を見る」で表示の見本を確かめられます。</p>' : ""}
+      <div class="site-summary">
+        <h2 id="site-report-title" class="block-title">${esc(rep.host)} の結果</h2>
+        <p>${esc(lead)}</p>
+        <p class="site-counts">${["bad", "warn", "ok", "unknown"].filter((k) => c[k]).map((k) => `<span class="st-chip st-${k}">${esc(L[k])} ${c[k]}</span>`).join("")}</p>
+        <p class="fine">確かめた日時：${when.getFullYear()}年${when.getMonth() + 1}月${when.getDate()}日 ${String(when.getHours()).padStart(2, "0")}:${String(when.getMinutes()).padStart(2, "0")}</p>
+      </div>
+      <div class="site-items">${rep.items.map(siteItem).join("")}</div>
+      ${rep.hosts.length ? `<details class="site-hosts"><summary>外から見えている名前（${rep.hosts.length}件）</summary>
+        <div class="table-wrap"><table>
+          <thead><tr><th scope="col">名前</th><th scope="col">目印</th><th scope="col">向き先</th></tr></thead>
+          <tbody>${rep.hosts.map((h) => `<tr><td>${esc(h.name)}</td><td>${[h.flagged ? "テスト用・期間限定らしき名前" : "", h.thirdParty ? "外部サービス" : ""].filter(Boolean).join("、") || "―"}</td><td>${esc(h.cname || "―")}</td></tr>`).join("")}</tbody>
+        </table></div>
+        <p class="fine">今も有効な証明書がついている名前です。証明書をまとめて取っている（ワイルドカード）場合は、ここに出ない名前もあります。</p>
+      </details>` : ""}
+      <div class="row">
+        <button type="button" class="btn btn-ghost btn-small" data-act="site-copy">制作会社への確認依頼をコピー</button>
+      </div>
+      <textarea class="ask-input" id="site-memo" readonly hidden aria-label="制作会社への確認依頼">${esc(SC.vendorMemo(rep, cfg))}</textarea>
+      <section aria-labelledby="site-ask-title" style="margin-top:22px">
+        <h2 id="site-ask-title" class="block-title">この結果をAIに相談する</h2>
+        <p class="block-lead">見つかった項目の見出しだけを質問文に入れます。ドメイン名は入りません。</p>
+        ${askBox(ask.prompt, ask.links)}
+      </section>
+      <p class="disclaimer">このチェックは、外から見える公開情報（DNSと証明書の公開記録）だけを使った簡易的な確認で、安全を保証するものではありません。サイトの中身や、サーバーのソフトの古さまでは分かりません。気になる点は、制作会社や専門家に確かめてください。</p>
+    </section>`;
+  }
+
+  function setStep(k, st) {
+    site.steps[k] = st;
+    const box = $("#site-progress");
+    if (box && current === "site") box.innerHTML = siteProgress();
+  }
+
+  async function runSite(input) {
+    const cfg = D.sitecheck;
+    const t = SC.normalize(input, cfg);
+    site.input = input;
+    site.sample = false;
+    site.offline = false;
+    if (!t.ok) { site.error = t.error; renderSite(); return; }
+    site.error = "";
+    site.phase = "run";
+    site.steps = {};
+    site.report = null;
+    renderSite();
+    const raw = await SC.collect(t, cfg, { onStep: setStep });
+    site.offline = !raw.dns && !raw.certs;
+    site.report = SC.evaluate(raw, cfg);
+    site.phase = "done";
+    track("site_check", { bad: site.report.counts.bad, warn: site.report.counts.warn });
+    if (current === "site") {
+      renderSite();
+      const head = $(".site-report");
+      if (head) head.scrollIntoView({ block: "start" });
+    }
+  }
+
+  function showSiteSample() {
+    const cfg = D.sitecheck;
+    const s = cfg.sample;
+    const t = SC.normalize(s.input, cfg);
+    site.sample = true;
+    site.offline = false;
+    site.error = "";
+    site.phase = "done";
+    site.report = SC.evaluate(Object.assign({ host: t.host, domain: t.domain }, s), cfg, s.now);
+    renderSite();
+    $(".site-report").scrollIntoView({ block: "start" });
+  }
+
   // ---------- 組合について ----------
   function renderAbout() {
     const org = D.config.org;
@@ -919,6 +1069,8 @@
       case "game-start": startGame(); break;
       case "choose": choose(el.dataset.choice); break;
       case "game-next": gameNext(); break;
+      case "site-sample": showSiteSample(); break;
+      case "site-copy": copyText($("#site-memo").value, $("#site-memo")); track("cta_click", { cta_type: "site_memo_copy" }); break;
     }
   });
 
@@ -930,6 +1082,13 @@
     else delete done[el.dataset.id];
     saveTodos(done);
     renderNow();
+  });
+
+  document.addEventListener("submit", (e) => {
+    if (e.target.id !== "site-form") return;
+    e.preventDefault();
+    if (site.phase === "run") return;
+    runSite($("#site-input").value);
   });
 
   document.addEventListener("input", (e) => {

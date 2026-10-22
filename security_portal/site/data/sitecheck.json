@@ -1,0 +1,227 @@
+{
+  "updated": "2026-10-22",
+  "doh": [
+    { "name": "Google Public DNS", "url": "https://dns.google/resolve", "style": "google" },
+    { "name": "Cloudflare DNS", "url": "https://cloudflare-dns.com/dns-query", "style": "cloudflare" }
+  ],
+  "ct": [
+    { "name": "crt.sh", "url": "https://crt.sh/", "style": "crtsh" },
+    { "name": "Cert Spotter", "url": "https://api.certspotter.com/v1/issuances", "style": "certspotter" }
+  ],
+  "timeout_ms": { "dns": 10000, "ct": 35000 },
+  "max_cname_lookups": 25,
+  "expiring_days": 21,
+  "many_hosts": 15,
+  "multi_level_suffixes": ["co.jp", "or.jp", "ne.jp", "ac.jp", "ad.jp", "ed.jp", "go.jp", "gr.jp", "lg.jp", "co.uk", "org.uk", "ac.uk", "com.au", "net.au", "org.au", "co.nz", "com.cn", "com.tw", "co.kr", "com.sg", "com.br"],
+  "host_flags": ["stg", "stage", "staging", "dev", "develop", "test", "tst", "demo", "old", "bk", "bak", "backup", "tmp", "temp", "beta", "preview", "cp", "campaign", "lp", "event", "sandbox", "qa", "trial", "sample"],
+  "third_party_cname": ["herokuapp.com", "herokudns.com", "github.io", "netlify.app", "vercel.app", "vercel-dns.com", "azurewebsites.net", "cloudapp.net", "trafficmanager.net", "cloudfront.net", "amazonaws.com", "elasticbeanstalk.com", "firebaseapp.com", "web.app", "pages.dev", "myshopify.com", "wixdns.net", "squarespace.com", "ghost.io", "readthedocs.io", "zendesk.com", "freshdesk.com", "helpscoutdocs.com", "unbouncepages.com", "hubspot.net"],
+  "status_labels": { "bad": "要対応", "warn": "要確認", "ok": "対応済み", "info": "参考", "unknown": "確認できず" },
+  "messages": {
+    "spf_missing": {
+      "status": "bad",
+      "title": "なりすましメール対策（SPF）がありません",
+      "found": "{domain} に SPF の設定が見つかりませんでした。",
+      "why": "SPFがないと、だれでも自社のドメインを名乗ったメールを送りやすくなります。",
+      "todo": ["メールを送っているサービス（社内のメール、配信ツール、CRMなど）を洗い出し、SPFを設定する", "メールを送らないドメインなら「v=spf1 -all」を設定する"],
+      "link": "#risk-C"
+    },
+    "spf_multiple": {
+      "status": "warn",
+      "title": "SPFの設定が複数あり、正しく働いていない可能性があります",
+      "found": "{domain} に SPF の設定が {n} 件あります。SPFは1件にまとめる決まりです。",
+      "why": "複数あると、受け取る側でSPFの確認が失敗し、正規のメールまで迷惑メール扱いになることがあります。",
+      "todo": ["制作会社やサーバー会社に、SPFを1件にまとめてもらう"],
+      "link": "#risk-C"
+    },
+    "spf_pass_all": {
+      "status": "bad",
+      "title": "SPFが「だれが送ってもよい」設定になっています",
+      "found": "{domain} の SPF が「{all}」で終わっています。",
+      "why": "この設定では、SPFがなりすましを防ぐ役に立ちません。",
+      "todo": ["最後を「~all」か「-all」に直してもらう"],
+      "link": "#risk-C"
+    },
+    "spf_soft": {
+      "status": "warn",
+      "title": "SPFの最後の指定が弱い設定です",
+      "found": "{domain} の SPF の最後が「{all}」です。",
+      "why": "なりすましメールを「判断できない」と扱うため、守りが弱くなります。",
+      "todo": ["正規の送信元がそろっているか確かめたうえで、最後を「~all」か「-all」にする"],
+      "link": "#risk-C"
+    },
+    "spf_ok": {
+      "status": "ok",
+      "title": "SPFは設定されています",
+      "found": "{domain} の SPF は「{all}」で終わっています。",
+      "why": "",
+      "todo": [],
+      "link": ""
+    },
+    "dmarc_missing": {
+      "status": "bad",
+      "title": "なりすましメール対策（DMARC）がありません",
+      "found": "_dmarc.{domain} に DMARC の設定が見つかりませんでした。",
+      "why": "DMARCがないと、自社を名乗る偽メールを受け取った側が、止めるべきかどうか判断できません。お客様に届く偽の「お詫びメール」も防げません。",
+      "todo": ["まず監視（p=none）で始め、レポートで正規の送信元を確かめる", "そのうえで、隔離（quarantine）、拒否（reject）へ段階的に強める"],
+      "link": "#risk-C"
+    },
+    "dmarc_invalid": {
+      "status": "warn",
+      "title": "DMARCの書き方に誤りがある可能性があります",
+      "found": "_dmarc.{domain} に DMARC の設定はありますが、方針（p=）が読み取れませんでした。",
+      "why": "方針が読めないと、受け取る側はDMARCを使えません。",
+      "todo": ["制作会社やサーバー会社に、DMARCの書き方を確かめてもらう"],
+      "link": "#risk-C"
+    },
+    "dmarc_none": {
+      "status": "warn",
+      "title": "DMARCが「監視だけ（p=none）」です",
+      "found": "_dmarc.{domain} の方針が「none」です。",
+      "why": "監視だけでは、自社を名乗る偽メールは相手に届きます。",
+      "todo": ["配信ツールなど正規の送信元がSPF・DKIMを通っているか、レポートで確かめる", "段階的に「quarantine」、「reject」へ強める"],
+      "link": "#risk-C"
+    },
+    "dmarc_partial": {
+      "status": "warn",
+      "title": "DMARCは強めの設定ですが、一部のメールにしか効いていません",
+      "found": "_dmarc.{domain} の方針は「{p}」ですが、適用する割合（pct）が {pct}% です。",
+      "why": "残りのメールには方針が効かないため、偽メールが届く余地が残ります。",
+      "todo": ["問題がなければ、適用する割合を100%に上げる"],
+      "link": "#risk-C"
+    },
+    "dmarc_ok": {
+      "status": "ok",
+      "title": "DMARCはなりすましを止める設定です",
+      "found": "_dmarc.{domain} の方針は「{p}」です。",
+      "why": "",
+      "todo": [],
+      "link": ""
+    },
+    "mx_none": {
+      "status": "info",
+      "title": "このドメインには、メールの受け口（MX）がありません",
+      "found": "{domain} に MX の設定が見つかりませんでした。",
+      "why": "メールを送らないドメインでも、名前だけ使われてなりすましメールが送られることがあります。",
+      "todo": ["メールを送らないなら、SPFに「v=spf1 -all」、DMARCに「p=reject」を設定する"],
+      "link": "#risk-C"
+    },
+    "dns_unknown": {
+      "status": "unknown",
+      "title": "メールの設定を確認できませんでした",
+      "found": "DNSへの問い合わせに失敗しました。時間をおいてもう一度お試しください。",
+      "why": "",
+      "todo": [],
+      "link": ""
+    },
+    "caa_none": {
+      "status": "info",
+      "title": "証明書を発行できる認証局を限定する設定（CAA）はありません",
+      "found": "{domain} に CAA の設定が見つかりませんでした。",
+      "why": "必須ではありませんが、設定しておくと、決めた認証局以外から証明書を発行されにくくなります。",
+      "todo": ["必要なら、使っている認証局だけを許可するCAAを設定する"],
+      "link": ""
+    },
+    "caa_ok": {
+      "status": "info",
+      "title": "証明書を発行できる認証局が限定されています（CAA）",
+      "found": "許可されている認証局：{list}",
+      "why": "",
+      "todo": [],
+      "link": ""
+    },
+    "cert_emudhra": {
+      "status": "bad",
+      "title": "eMudhra（emSign）が発行した証明書が使われています",
+      "found": "{list} の証明書の発行元が eMudhra（emSign）です。",
+      "why": "Chromeは2026年10月27日に、問題のあったeMudhraのルート証明書を信頼リストから外します。これにつながる証明書を使うサイトは、Chromeで開けなくなります。",
+      "todo": ["制作会社やサーバー会社に連絡し、別の発行元の証明書へ切り替えてもらう"],
+      "link": "#case-emudhra-2026-10"
+    },
+    "cert_none": {
+      "status": "warn",
+      "title": "このサイトの有効な証明書が、公開記録に見つかりませんでした",
+      "found": "{host} を対象にした、今も有効な証明書が見つかりませんでした。",
+      "why": "HTTPS（鍵マーク）で開けない状態か、公開記録に載らない形の証明書を使っている可能性があります。",
+      "todo": ["ブラウザで https:// から開けるか確かめる", "開けない場合は、制作会社やサーバー会社に証明書の設定を頼む"],
+      "link": "#risk-C"
+    },
+    "cert_expiring": {
+      "status": "warn",
+      "title": "証明書の期限が近づいています",
+      "found": "{host} の証明書（発行元：{issuer}）は {date} までです。",
+      "why": "期限が切れると、ブラウザに警告が出てサイトを開けなくなります。",
+      "todo": ["自動更新の設定になっているか、制作会社やサーバー会社に確かめる"],
+      "link": "#risk-C"
+    },
+    "cert_ok": {
+      "status": "ok",
+      "title": "証明書は有効です",
+      "found": "{host} の証明書は {issuer} が発行し、{date} まで有効です。",
+      "why": "",
+      "todo": [],
+      "link": ""
+    },
+    "cert_unknown": {
+      "status": "unknown",
+      "title": "証明書の公開記録を確認できませんでした",
+      "found": "証明書の公開記録のサービスが混み合っているか、応答しませんでした。時間をおいてもう一度お試しください。",
+      "why": "",
+      "todo": [],
+      "link": ""
+    },
+    "hosts_flagged": {
+      "status": "warn",
+      "title": "テスト用や期間限定らしき名前のサイトが、今も見えています",
+      "found": "今も有効な証明書がついている名前のうち、{n} 件がテスト用や期間限定らしき名前です：{list}",
+      "why": "終わったキャンペーンサイトや検証用のサイトは、更新されないまま攻撃の入口になりがちです。",
+      "todo": ["一覧を制作会社と見て、使っていないものは閉じる", "閉じたサイトは、DNSの登録も消す"],
+      "link": "#risk-C"
+    },
+    "hosts_many": {
+      "status": "warn",
+      "title": "外から見えている名前（サブドメイン）が多くあります",
+      "found": "今も有効な証明書がついている名前が {n} 件あります。",
+      "why": "数が多いほど、管理の抜けや、忘れられたサイトが出やすくなります。",
+      "todo": ["一覧に心当たりのない名前がないか、制作会社と確かめる"],
+      "link": "#risk-C"
+    },
+    "hosts_listed": {
+      "status": "info",
+      "title": "外から見えている名前（サブドメイン）",
+      "found": "今も有効な証明書がついている名前が {n} 件あります。",
+      "why": "",
+      "todo": ["心当たりのない名前がないか、ときどき確かめる"],
+      "link": ""
+    },
+    "cname_thirdparty": {
+      "status": "warn",
+      "title": "外部のサービスを指している名前があります",
+      "found": "{n} 件の名前が外部のサービスを指しています：{list}",
+      "why": "使い終わった外部サービスを指す名前が残っていると、第三者にその名前を乗っ取られる入口になることがあります。",
+      "todo": ["今も使っているサービスか確かめ、使っていない名前はDNSから消す"],
+      "link": "#risk-C"
+    }
+  },
+  "sample": {
+    "label": "サンプル（架空のドメイン example.jp の結果です）",
+    "input": "https://www.example.jp/",
+    "now": "2026-10-22T09:00:00Z",
+    "dns": {
+      "txt": ["v=spf1 include:_spf.example-mail.jp ~all", "google-site-verification=xxxx"],
+      "dmarc": ["v=DMARC1; p=none; rua=mailto:dmarc@example.jp"],
+      "mx": ["10 mx.example.jp."],
+      "caa": []
+    },
+    "certs": [
+      { "names": ["www.example.jp", "example.jp"], "issuer": "Let's Encrypt", "notBefore": "2026-09-20T00:00:00Z", "notAfter": "2026-12-19T00:00:00Z" },
+      { "names": ["shop.example.jp"], "issuer": "GlobalSign", "notBefore": "2026-03-01T00:00:00Z", "notAfter": "2026-11-05T00:00:00Z" },
+      { "names": ["campaign2024.example.jp"], "issuer": "Let's Encrypt", "notBefore": "2026-09-01T00:00:00Z", "notAfter": "2026-11-30T00:00:00Z" },
+      { "names": ["stg.example.jp"], "issuer": "Let's Encrypt", "notBefore": "2026-08-25T00:00:00Z", "notAfter": "2026-11-23T00:00:00Z" },
+      { "names": ["form.example.jp"], "issuer": "Let's Encrypt", "notBefore": "2026-10-01T00:00:00Z", "notAfter": "2026-12-30T00:00:00Z" }
+    ],
+    "cnames": {
+      "campaign2024.example.jp": "example-campaign.netlify.app",
+      "form.example.jp": "cname.example-form.jp"
+    }
+  }
+}

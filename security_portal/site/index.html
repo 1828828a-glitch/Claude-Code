@@ -64,6 +64,7 @@
     </a>
     <nav class="site-nav" aria-label="メニュー">
       <a href="#check" data-nav="check">診断</a>
+      <a href="#site" data-nav="site">サイトチェック</a>
       <a href="#cases" data-nav="cases">直近の事例</a>
       <a href="#risks" data-nav="risks">リスクと対策</a>
       <a href="#now" data-nav="now">今すぐできること</a>
@@ -153,12 +154,14 @@
     <section class="band" aria-labelledby="menu-title">
       <h2 id="menu-title" class="section-title">このサイトでできること</h2>
       <div class="menu-grid">
-        <a class="menu-card" href="#check"><b>リスク診断</b><span>18問で、7つの領域の守りを点検。弱点トップ3と、放置した場合のシナリオを表示します。</span></a>
+        <a class="menu-card menu-wide" href="#check"><b>リスク診断</b><span>18問で、7つの領域の守りを点検。弱点トップ3と、放置した場合のシナリオを表示します。</span></a>
+        <a class="menu-card" href="#site"><b>サイトのリスクチェック</b><span>サイトのアドレスを入れるだけ。なりすましメール対策や証明書、忘れられたサイトの手がかりを公開情報から確かめます。</span></a>
         <a class="menu-card" href="#cases"><b>直近の事例</b><span>公式発表と報道で確かめた事例を、マーケ担当が学べる点と一緒に紹介します。</span></a>
         <a class="menu-card" href="#risks"><b>リスクと対策</b><span>7つのリスクごとに、要注意のサインと、今日・今月・仕組みの対策をまとめました。</span></a>
         <a class="menu-card" href="#now"><b>今すぐできること</b><span>15分で終わる確認から。チェックした項目はこの端末に残ります。</span></a>
         <a class="menu-card" href="#ask"><b>AIに聞く</b><span>このサイトの資料を読ませたうえで、普段使っているAIに相談できます。</span></a>
         <a class="menu-card" href="#game"><b>止める？通す？</b><span>現場の10場面を左右に仕分ける1分の体験。通した危険は「1年後の総括」に出てきます。</span></a>
+        <a class="menu-card" href="#about"><b>組合と専門家チーム</b><span>運営の方針と、自社だけで判断がつかないときの相談のしかたです。</span></a>
       </div>
     </section>
 
@@ -204,6 +207,7 @@
   </section>
 
   <section data-view="check" class="view" hidden><div id="check-root" class="narrow"></div></section>
+  <section data-view="site" class="view" hidden><div id="site-root" class="narrow"></div></section>
   <section data-view="cases" class="view" hidden><div id="cases-root"></div></section>
   <section data-view="risks" class="view" hidden><div id="risks-root"></div></section>
   <section data-view="now" class="view" hidden><div id="now-root" class="narrow"></div></section>
@@ -236,6 +240,7 @@
 
 <script src="assets/scoring.js"></script>
 <script src="assets/story.js"></script>
+<script src="assets/sitecheck.js"></script>
 <script src="assets/app.js"></script>
 </body>
 </html>

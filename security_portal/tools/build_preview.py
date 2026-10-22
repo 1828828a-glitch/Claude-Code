@@ -13,7 +13,7 @@ SITE = Path(__file__).resolve().parents[1] / "site"
 html = (SITE / "index.html").read_text(encoding="utf-8")
 
 data = {n: json.loads((SITE / "data" / f"{n}.json").read_text(encoding="utf-8"))
-        for n in ("questions", "scenes", "cases", "risks", "actions", "news", "config")}
+        for n in ("questions", "scenes", "cases", "risks", "actions", "news", "config", "sitecheck")}
 blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
 css = (SITE / "assets" / "style.css").read_text(encoding="utf-8")

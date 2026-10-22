@@ -40,6 +40,7 @@ head = [
     "## ページ",
     f"- {link('トップ', base)}",
     f"- {link('リスク診断（18問）', base + '#check')}",
+    f"- {link('サイトのリスクチェック（公開DNSと証明書の公開記録を読む）', base + '#site')}",
     f"- {link('直近の事例', base + '#cases')}",
     f"- {link('リスクと対策', base + '#risks')}",
     f"- {link('今すぐできること', base + '#now')}",
