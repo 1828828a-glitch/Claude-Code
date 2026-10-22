@@ -4,11 +4,12 @@
 
 環境変数:
     GEMINI_API_KEY     必須
-    GEMINI_TTS_MODEL   省略時 gemini-2.5-flash-preview-tts
+    GEMINI_TTS_MODEL   省略時 gemini-2.5-pro-preview-tts
+                       (gemini-3.8-flash-tts は声の指示まで読み上げてしまうため使わない)
     GEMINI_TTS_VOICE   省略時 Achernar (やわらかい声)
 必要: ffmpeg (Python は標準ライブラリのみ)
 生成した音声は narration_cache/ にセリフ単位で保存し、同じセリフは再生成しない。
-各セリフは開始時刻から「終わらせたい秒」までに収まるよう、長い場合だけ ffmpeg で少し速める (最大 1.25 倍)。
+各セリフは置きたい秒から並べ、前のセリフと重なれば後ろへずらす。場面の終わりに収まらなければ、場面ごと少し速める (最大 1.25 倍)。
 """
 import base64
 import hashlib
@@ -26,32 +27,23 @@ SR = 24000
 HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(HERE, 'narration_cache')
 
-STYLE = ('次のセリフを、家庭菜園を案内するやさしく落ち着いた声で、'
-         '聞き取りやすくはっきり日本語で読み上げてください。セリフ以外は何も話さないでください。')
+# 「指示: セリフ」の形にすると、指示部分は読まずに声の調子だけに反映される
+STYLE = 'やさしく明るい声で、テンポよく、聞き取りやすく読んでください'
 
-# (開始秒, セリフ, 終わらせたい秒)
+# 無料枠はモデルごとに 1 日 10 回ほどなので、場面ごとにまとめて 1 回で生成し、無音の位置で 1 文ずつに切り分ける。
+# (場面の開始秒, 場面の終了秒, [(セリフを置きたい秒, セリフ), ...])
 SCRIPTS = {
     'tulip': {
         'duration': 60,
-        'lines': [
-            (0.6, '秋に植えて、春に咲く。', 2.7),
-            (2.9, 'チューリップの育て方を、ご紹介します。', 5.7),
-            (6.4, '植えどきは、紅葉が見頃を迎えるころ。', 8.9),
-            (9.0, '北海道・東北は10月、九州は11月下旬からが目安です。', 12.6),
-            (12.8, '遅くとも、年内には植えつけましょう。', 14.9),
-            (15.5, '球根は、ずっしり重くて、押してもへこまないもの。', 18.9),
-            (19.0, '傷や汚れがないかも、確かめてください。', 21.8),
-            (22.4, '地植えなら、深さは球根3個分。間隔は10センチほどです。', 25.9),
-            (26.1, '鉢植えは浅めに、3から5センチ間隔で並べます。', 29.3),
-            (29.5, '植えてから2週間は、たっぷり水やりを。', 32.8),
-            (33.5, 'きれいに見せるコツは、球根の向き。', 35.8),
-            (36.0, '平らな面を外側に向けると、大きな葉が外へ広がります。', 39.7),
-            (40.4, '鉢植えの土は、赤玉土6、腐葉土3、パーライト1。', 43.3),
-            (43.5, '冬は5度ほどの寒さに、2か月当てるのがポイントです。', 46.8),
-            (47.5, '春になると、わせは3月下旬から、おくては4月下旬に咲きます。', 51.0),
-            (51.2, '花びらが散る前に、花首をカットしましょう。', 53.8),
-            (54.4, '秋に植えて、春を待とう。', 56.4),
-            (56.6, '植えどきは、もうすぐです。', 59.2),
+        'scenes': [
+            (0, 6, [(0.6, '秋に植えて、春に咲く。'), (3.0, 'チューリップの育て方です。')]),
+            (6, 15, [(6.4, '植えどきは、紅葉が見頃のころ。'), (9.2, '北海道・東北は10月、九州は11月下旬から。'), (12.9, '遅くとも年内に植えましょう。')]),
+            (15, 22, [(15.5, 'きゅうこんは、ずっしり重くて、へこまないもの。'), (19.0, '傷や汚れもチェックしましょう。')]),
+            (22, 33, [(22.4, '地植えは、きゅうこん3個分の深さに、10センチ間隔。'), (26.1, '鉢植えは浅めに、3から5センチ間隔で。'), (29.6, '植えてから2週間は、たっぷり水やりを。')]),
+            (33, 40, [(33.5, 'コツは、球根の向き。'), (35.6, '平らな面を外側にすると、大きな葉が外へ広がります。')]),
+            (40, 47, [(40.5, '土の配合は、6対3対1。'), (43.4, '冬は5度ほどの寒さに、2か月当てて。')]),
+            (47, 54, [(47.5, '春になると、わせから順に咲きはじめます。'), (50.8, '花が散る前に、花首をカットしましょう。')]),
+            (54, 60, [(54.4, '秋に植えて、春を待とう。'), (56.7, '植えどきは、もうすぐです。')]),
         ],
     },
 }
@@ -64,7 +56,7 @@ def tts(text, model, voice, key):
     if os.path.exists(path):
         return array('h', open(path, 'rb').read())
     body = json.dumps({
-        'contents': [{'parts': [{'text': f'{STYLE}\n{text}'}]}],
+        'contents': [{'parts': [{'text': f'{STYLE}: {text}'}]}],
         'generationConfig': {
             'responseModalities': ['AUDIO'],
             'speechConfig': {'voiceConfig': {'prebuiltVoiceConfig': {'voiceName': voice}}},
@@ -83,9 +75,22 @@ def tts(text, model, voice, key):
                 continue
             raise SystemExit(f'Gemini API error {e.code}: {e.read().decode()[:500]}')
     part = data['candidates'][0]['content']['parts'][0]['inlineData']
-    pcm = base64.b64decode(part['data'])
+    pcm = to_pcm24k(base64.b64decode(part['data']), part['mimeType'])
     open(path, 'wb').write(pcm)
     return array('h', pcm)
+
+
+def to_pcm24k(raw, mime):
+    # モデルによって WAV (ヘッダー付き) か生の L16 で返ってくるので、24kHz モノラルの s16le に揃える
+    mime = mime.lower()
+    if 'wav' in mime:
+        fmt = ['-f', 'wav']
+    else:
+        rate = next((p.split('=')[1] for p in mime.replace(' ', '').split(';') if p.startswith('rate=')), '24000')
+        fmt = ['-f', 's16le', '-ar', rate, '-ac', '1']
+    p = subprocess.run(['ffmpeg', '-loglevel', 'error', *fmt, '-i', '-', '-ar', str(SR), '-ac', '1', '-f', 's16le', '-'],
+                       input=raw, capture_output=True, check=True)
+    return p.stdout
 
 
 def trim(audio):
@@ -102,28 +107,79 @@ def speed_up(audio, factor):
     return array('h', p.stdout)
 
 
+def split(audio, texts):
+    """文字数の比から切れ目の見当をつけ、その近くの無音で切って文ごとに分ける。見つからなければ None。"""
+    n = len(texts)
+    if n == 1:
+        return [audio]
+    win = 480  # 20ms
+    peak = max(1, max(abs(v) for v in audio))
+    quiet = [max(abs(v) for v in audio[i:i + win]) < peak * 0.04 for i in range(0, len(audio), win)]
+    runs, i = [], 0
+    while i < len(quiet):
+        if quiet[i]:
+            j = i
+            while j < len(quiet) and quiet[j]:
+                j += 1
+            if i > 0 and j < len(quiet) and (j - i) * win >= SR * 0.18:
+                runs.append((j - i, (i + j) // 2 * win))
+            i = j
+        else:
+            i += 1
+    if len(runs) < n - 1:
+        return None
+    total = sum(len(t) for t in texts)
+    cuts, acc, last = [], 0, 0
+    for t in texts[:-1]:
+        acc += len(t)
+        want = len(audio) * acc / total
+        cands = [c for _, c in runs if c > last]
+        if not cands:
+            return None
+        last = min(cands, key=lambda c: abs(c - want))
+        cuts.append(last)
+    bounds = [0, *cuts, len(audio)]
+    return [audio[bounds[k]: bounds[k + 1]] for k in range(n)]
+
+
+def place(parts, lines, scene_end):
+    pos, end = [], 0.0
+    for (want, _), a in zip(lines, parts):
+        start = max(want, end + 0.12)
+        end = start + len(a) / SR
+        pos.append(start)
+    return pos, end <= scene_end - 0.15
+
+
 def main(variant):
     key = os.environ.get('GEMINI_API_KEY')
     if not key:
         raise SystemExit('GEMINI_API_KEY が設定されていません')
-    model = os.environ.get('GEMINI_TTS_MODEL', 'gemini-2.5-flash-preview-tts')
+    model = os.environ.get('GEMINI_TTS_MODEL', 'gemini-2.5-pro-preview-tts')
     voice = os.environ.get('GEMINI_TTS_VOICE', 'Achernar')
     cfg = SCRIPTS[variant]
     out = array('i', bytes(4 * int(cfg['duration'] * SR)))
-    for start, text, end in cfg['lines']:
-        slot = end - start
-        audio = trim(tts(text, model, voice, key))
-        dur = len(audio) / SR
+    for s0, s1, lines in cfg['scenes']:
+        audio = tts('\n'.join(t for _, t in lines), model, voice, key)
+        parts = split(audio, [t for _, t in lines])
+        if parts is None:
+            print(f'  ({s0}s の場面は切り分けられなかったので、まとめて置きます)')
+            parts, lines = [audio], [(lines[0][0], ' / '.join(t for _, t in lines))]
+        parts = [trim(a) for a in parts]
         factor = 1.0
-        if dur > slot:
-            factor = min(1.25, dur / slot)
-            audio = speed_up(audio, factor)
-        dur2 = len(audio) / SR
-        flag = '  !! はみ出し' if dur2 > slot + 0.05 else ''
-        print(f'{start:6.2f}s  {dur2:4.2f}/{slot:4.2f}s  x{factor:.2f}  {text}{flag}')
-        s = int(start * SR)
-        for i, v in enumerate(audio[: max(0, len(out) - s)]):
-            out[s + i] += v
+        pos, ok = place(parts, lines, s1)
+        while not ok and factor < 1.25:
+            factor = round(factor + 0.05, 2)
+            sped = [speed_up(a, factor) for a in parts]
+            pos, ok = place(sped, lines, s1)
+        if factor > 1.0:
+            parts = sped
+        for (want, text), a, st in zip(lines, parts, pos):
+            flag = '' if ok else '  !! 場面からはみ出し'
+            print(f'{st:6.2f}s (予定 {want:5.2f})  {len(a) / SR:4.2f}s  x{factor:.2f}  {text}{flag}')
+            s = int(st * SR)
+            for i, v in enumerate(a[: max(0, len(out) - s)]):
+                out[s + i] += v
     peak = max(1, max(abs(v) for v in out))
     pcm = array('h', (int(v * 0.9 * 32767 / peak) for v in out)).tobytes()
     path = os.path.join(HERE, f'narration_{variant}.wav')
