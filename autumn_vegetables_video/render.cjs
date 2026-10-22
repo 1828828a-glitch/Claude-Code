@@ -4,6 +4,7 @@
 //   node render.cjs --stills 2,8,20 -> 指定秒の PNG を stills/ に出力
 //   node render.cjs --page soft.html --bgm bgm_soft.cjs --out autumn_vegetables_soft.mp4  -> やわらか版
 //   node render.cjs --page tulip.html --bgm bgm_tulip.cjs --narration narration_tulip.wav --out tulip.mp4  -> チューリップ編
+//   node render.cjs --page winter.html --bgm bgm_winter.cjs --narration narration_winter.wav --out winter.mp4  -> 冬に咲く花編
 //   --narration narration_impact.wav を足すと、ナレーション中は BGM を下げて重ねる (narration.py で生成)
 const path = require('path');
 const fs = require('fs');

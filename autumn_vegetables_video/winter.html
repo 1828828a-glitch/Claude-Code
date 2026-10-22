@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>冬に咲く花23選</title>
+<style>
+  @font-face { font-family: "Zen Maru Gothic"; src: url(fonts/ZenMaruGothic-500.ttf); font-weight: 500; }
+  @font-face { font-family: "Zen Maru Gothic"; src: url(fonts/ZenMaruGothic-700.ttf); font-weight: 700; }
+  @font-face { font-family: "Zen Maru Gothic"; src: url(fonts/ZenMaruGothic-900.ttf); font-weight: 900; }
+  html, body { margin: 0; height: 100%; background: #111; }
+  body { display: flex; align-items: center; justify-content: center; }
+  canvas { width: 100vw; max-width: calc(100vh * 16 / 9); aspect-ratio: 16 / 9; display: block; }
+</style>
+<script src="assets/logo.js"></script>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script id="main">
+// 冬に咲く花編 (やわらか版の型): ハイポネックスのロゴ色 (#008742 / #8DC21F / #E50012) をベースにした淡い配色と丸ゴシック。
+const W = 1920, H = 1080, FPS = 30, DURATION = 57;
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+
+const C = {
+  ivory: '#FBF7EC', mint: '#E3F1E2', lime: '#EEF5D8', peach: '#FBE3D2',
+  green: '#008742', deep: '#24553A', leaf: '#8DC21F', red: '#E50012', coral: '#F29B86',
+  mustard: '#F2C14E', sky: '#8FBFDF', ink: '#3A4A40',
+};
+const DISP = '"Zen Maru Gothic"', SANS = '"Zen Maru Gothic"';
+
+// ---------- easing / utils ----------
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const P = (t, a, b) => clamp((t - a) / (b - a));
+const lerp = (a, b, k) => a + (b - a) * k;
+const eOutExpo = x => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x));
+const eInExpo = x => (x <= 0 ? 0 : Math.pow(2, 10 * x - 10));
+const eOutBack = x => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const eInOut = x => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const eOutCubic = x => 1 - Math.pow(1 - x, 3);
+
+function rng(seed) { return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  let r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const f = v => Math.round(amt < 0 ? v * (1 + amt) : v + (255 - v) * amt);
+  return `rgb(${f(r)},${f(g)},${f(b)})`;
+}
+
+function setFont(size, fam = SANS, w = 700) { ctx.font = `${w} ${size}px ${fam}`; }
+
+function text(s, x, y, { size = 40, fam = SANS, w = 900, color = C.ink, align = 'left', alpha = 1 } = {}) {
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  setFont(size, fam, w);
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'alphabetic';
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+
+// マスクの下から文字がせり上がる
+function reveal(s, x, y, { size = 100, fam = DISP, w = 900, color = C.ink, align = 'left' } = {}, p) {
+  if (p <= 0) return;
+  p = eOutExpo(p);
+  ctx.save();
+  setFont(size, fam, w);
+  const mw = ctx.measureText(s).width;
+  const left = align === 'center' ? x - mw / 2 : align === 'right' ? x - mw : x;
+  ctx.beginPath(); ctx.rect(left - 30, y - size * 1.1, mw + 60, size * 1.42); ctx.clip();
+  ctx.fillStyle = color; ctx.textAlign = align;
+  ctx.fillText(s, x, y + (1 - p) * size * 1.4);
+  ctx.restore();
+}
+
+function pill(s, x, y, { size = 30, bg = C.orange, color = C.cream, p = 1 } = {}) {
+  if (p <= 0) return 0;
+  ctx.save();
+  setFont(size, SANS, 900);
+  const w = ctx.measureText(s).width + size * 1.2, h = size * 1.7;
+  const sc = eOutBack(p);
+  ctx.translate(x + w / 2, y + h / 2); ctx.scale(sc, sc);
+  ctx.fillStyle = bg;
+  ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, h / 2); ctx.fill();
+  ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(s, 0, size * 0.06);
+  ctx.restore();
+  return w;
+}
+
+function wrap(s, maxW) {
+  const lines = []; let cur = '';
+  for (const ch of s) {
+    if (ctx.measureText(cur + ch).width > maxW && cur) {
+      // 句読点を行頭に送らない
+      if ('、。）」'.includes(ch)) { cur += ch; continue; }
+      lines.push(cur); cur = ch;
+    } else cur += ch;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+// ---------- shapes ----------
+function leafPath(len, wid) {
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.bezierCurveTo(wid, -len * 0.25, wid * 0.8, -len * 0.8, 0, -len);
+  ctx.bezierCurveTo(-wid * 0.8, -len * 0.8, -wid, -len * 0.25, 0, 0);
+}
+function drawLeaf(x, y, len, wid, rot, color, vein = true) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  leafPath(len, wid); ctx.fillStyle = color; ctx.fill();
+  if (vein) {
+    ctx.strokeStyle = shade(color.startsWith('#') ? color : '#6DB33F', -0.3); ctx.lineWidth = Math.max(2, len * 0.02);
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -len * 0.85); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawSnow(x, y, r, rot, color, lw = 4) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineCap = 'round';
+  for (let i = 0; i < 6; i++) {
+    ctx.rotate(Math.PI / 3);
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -r);
+    ctx.moveTo(0, -r * 0.55); ctx.lineTo(r * 0.25, -r * 0.8);
+    ctx.moveTo(0, -r * 0.55); ctx.lineTo(-r * 0.25, -r * 0.8);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawBug(x, y, s, ang, wig) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.scale(s, s);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  for (let i = -1; i <= 1; i++) {
+    const k = Math.sin(wig + i) * 4;
+    ctx.beginPath(); ctx.moveTo(-10, i * 10); ctx.lineTo(-26, i * 14 + k); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(10, i * 10); ctx.lineTo(26, i * 14 - k); ctx.stroke();
+  }
+  ctx.fillStyle = '#3A2E2A';
+  ctx.beginPath(); ctx.ellipse(0, 4, 15, 20, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(0, -20, 9, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = C.red; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 22); ctx.stroke();
+  ctx.restore();
+}
+
+// ---------- vegetable icons (原点中心・半径およそ200) ----------
+const GREEN = '#5DAA3C';
+function leafFan(n, len, wid, spread, color, baseY) {
+  for (let i = 0; i < n; i++) {
+    const a = (i - (n - 1) / 2) * spread;
+    const l = len * (1 - Math.abs(i - (n - 1) / 2) / n * 0.5);
+    drawLeaf(0, baseY, l, wid, a, i % 2 ? shade(color, -0.12) : color);
+  }
+}
+function drawIcon(type, col) {
+  ctx.save();
+  ctx.lineJoin = 'round';
+  switch (type) {
+    case 'daikon': {
+      leafFan(5, 170, 50, 0.35, GREEN, -50);
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.moveTo(-70, -60); ctx.bezierCurveTo(-75, 60, -30, 180, 0, 230);
+      ctx.bezierCurveTo(30, 180, 75, 60, 70, -60); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#C9E3A4';
+      ctx.beginPath(); ctx.moveTo(-70, -60); ctx.lineTo(70, -60); ctx.lineTo(72, -10); ctx.lineTo(-72, -10); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,.15)'; ctx.lineWidth = 4;
+      for (const yy of [40, 100, 150]) { ctx.beginPath(); ctx.moveTo(-30, yy); ctx.lineTo(-10, yy + 4); ctx.stroke(); }
+      break;
+    }
+    case 'kabu': {
+      leafFan(5, 160, 48, 0.4, GREEN, -40);
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(0, 70, 125, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#B07CC6'; ctx.beginPath(); ctx.arc(0, 70, 125, Math.PI * 1.1, Math.PI * 1.9); ctx.lineTo(0, 0); ctx.fill();
+      ctx.strokeStyle = col; ctx.lineWidth = 8; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(0, 190); ctx.quadraticCurveTo(10, 220, 0, 245); ctx.stroke();
+      break;
+    }
+    case 'potato': {
+      ctx.rotate(-0.3);
+      ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(0, 0, 190, 135, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = shade(col, -0.25);
+      for (const [x, y] of [[-90, -40], [20, 50], [100, -30], [-30, -80], [-110, 50], [60, 90]]) { ctx.beginPath(); ctx.ellipse(x, y, 11, 7, 0.5, 0, Math.PI * 2); ctx.fill(); }
+      break;
+    }
+    case 'onion': {
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.moveTo(0, -170); ctx.bezierCurveTo(60, -80, 170, -20, 160, 70);
+      ctx.bezierCurveTo(150, 170, -150, 170, -160, 70); ctx.bezierCurveTo(-170, -20, -60, -80, 0, -170); ctx.fill();
+      ctx.strokeStyle = shade(col, -0.25); ctx.lineWidth = 5;
+      for (const k of [-0.55, 0, 0.55]) { ctx.beginPath(); ctx.moveTo(0, -160); ctx.quadraticCurveTo(160 * k, 0, 100 * k, 150); ctx.stroke(); }
+      ctx.strokeStyle = '#8A6A3A'; ctx.lineWidth = 4;
+      for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(i * 12, 148); ctx.lineTo(i * 18, 185); ctx.stroke(); }
+      break;
+    }
+    case 'garlic': {
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.moveTo(0, -175); ctx.bezierCurveTo(40, -90, 175, -40, 165, 60);
+      ctx.bezierCurveTo(155, 165, -155, 165, -165, 60); ctx.bezierCurveTo(-175, -40, -40, -90, 0, -175); ctx.fill();
+      ctx.strokeStyle = shade(col, -0.2); ctx.lineWidth = 5;
+      for (const k of [-0.75, -0.3, 0.3, 0.75]) { ctx.beginPath(); ctx.moveTo(0, -150); ctx.quadraticCurveTo(200 * k, -10, 120 * k, 145); ctx.stroke(); }
+      ctx.fillStyle = '#E2CFA8'; ctx.beginPath(); ctx.ellipse(0, 150, 70, 14, 0, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+    case 'cabbage': {
+      ctx.fillStyle = shade(col, -0.2);
+      for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; ctx.beginPath(); ctx.arc(Math.cos(a) * 80, Math.sin(a) * 80, 120, 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(0, 0, 150, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = shade(col, -0.25); ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.arc(-30, 10, 110, -1.2, 1.4); ctx.stroke();
+      ctx.beginPath(); ctx.arc(30, -10, 80, 1.8, 4.4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, 140); ctx.lineTo(10, -60); ctx.stroke();
+      break;
+    }
+    case 'hakusai': {
+      ctx.fillStyle = '#F4F1E4';
+      ctx.beginPath(); ctx.ellipse(0, 40, 115, 190, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = col;
+      for (const [x, y, r] of [[-60, -110, 75], [55, -120, 80], [0, -160, 70], [-90, -30, 60], [90, -40, 62]]) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+      ctx.strokeStyle = '#D6D0B8'; ctx.lineWidth = 6;
+      for (const x of [-45, 0, 45]) { ctx.beginPath(); ctx.moveTo(x * 0.6, 220); ctx.lineTo(x, 0); ctx.stroke(); }
+      break;
+    }
+    case 'broccoli': {
+      ctx.fillStyle = '#9CC56B';
+      ctx.beginPath(); ctx.moveTo(-45, 20); ctx.lineTo(45, 20); ctx.lineTo(35, 220); ctx.lineTo(-35, 220); ctx.closePath(); ctx.fill();
+      const fl = [[-110, -30, 75], [110, -30, 75], [0, -90, 95], [-70, -120, 70], [70, -120, 70], [0, 0, 80], [-130, -100, 50], [130, -100, 50]];
+      for (const [x, y, r] of fl) { ctx.fillStyle = shade(col, -0.15); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+      for (const [x, y, r] of fl) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x - r * 0.15, y - r * 0.15, r * 0.7, 0, Math.PI * 2); ctx.fill(); }
+      break;
+    }
+    case 'pod': case 'fava': {
+      const fava = type === 'fava';
+      ctx.rotate(-0.5);
+      ctx.fillStyle = shade(col, -0.1);
+      ctx.beginPath(); ctx.moveTo(-210, 0); ctx.bezierCurveTo(-120, fava ? -150 : -110, 120, fava ? -150 : -110, 210, 0);
+      ctx.bezierCurveTo(120, fava ? 120 : 70, -120, fava ? 120 : 70, -210, 0); ctx.fill();
+      ctx.fillStyle = fava ? '#C8E39A' : col;
+      const n = fava ? 3 : 5, r = fava ? 52 : 34;
+      for (let i = 0; i < n; i++) { const x = (i - (n - 1) / 2) * (fava ? 115 : 72); ctx.beginPath(); ctx.ellipse(x, -18, r * (fava ? 1.15 : 1), r, 0, 0, Math.PI * 2); ctx.fill(); }
+      ctx.strokeStyle = shade(col, -0.35); ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.moveTo(-210, 0); ctx.bezierCurveTo(-120, fava ? 120 : 70, 120, fava ? 120 : 70, 210, 0); ctx.stroke();
+      ctx.strokeStyle = GREEN; ctx.lineWidth = 10; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-210, 0); ctx.quadraticCurveTo(-250, -20, -245, -60); ctx.stroke();
+      break;
+    }
+    case 'grass': {
+      ctx.strokeStyle = col; ctx.lineCap = 'round';
+      for (let i = 0; i < 9; i++) {
+        const k = (i - 4) / 4;
+        ctx.lineWidth = 22; ctx.strokeStyle = i % 2 ? shade(col, -0.15) : col;
+        ctx.beginPath(); ctx.moveTo(k * 30, 210); ctx.quadraticCurveTo(k * 60, 0, k * 170, -200 + Math.abs(k) * 70); ctx.stroke();
+      }
+      ctx.fillStyle = '#F2EBD8'; ctx.beginPath(); ctx.ellipse(0, 210, 60, 26, 0, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+    case 'rosette': {
+      for (let ring = 0; ring < 2; ring++) {
+        const n = ring ? 7 : 10;
+        for (let i = 0; i < n; i++) {
+          const a = i / n * Math.PI * 2 + ring * 0.3;
+          drawLeaf(0, 0, ring ? 120 : 200, ring ? 60 : 80, a, ring ? shade(col, 0.15) : col);
+        }
+      }
+      break;
+    }
+    case 'ice': {
+      leafFan(5, 210, 70, 0.42, col, 180);
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      const r = rng(7);
+      for (let i = 0; i < 26; i++) { const a = -Math.PI / 2 + (r() - 0.5) * 2.2, d = 60 + r() * 140; ctx.beginPath(); ctx.arc(Math.cos(a) * d, 180 + Math.sin(a) * d * 1.1, 4 + r() * 6, 0, Math.PI * 2); ctx.fill(); }
+      break;
+    }
+    case 'narrow': {
+      leafFan(9, 250, 26, 0.2, col, 190);
+      break;
+    }
+    default: { // 葉物
+      const n = parseInt(type.replace('leaf', ''), 10) || 5;
+      leafFan(n, 260, n > 6 ? 55 : 80, 1.4 / n, col, 190);
+    }
+  }
+  ctx.restore();
+}
+
+// ---------- data ----------
+// 月は 7=7月 ... 13=翌1月 ... 19=翌7月頭。上旬+0, 中旬+.33, 下旬+.67
+const VEG = [
+  { n: 'ダイコン', c: '#F4F1EA', ic: 'daikon', m: '種から', pt: '深く耕して、間引きをしっかり', sow: [[8.67, 9.67]], hv: [[10.67, 13]] },
+  { n: 'ハクサイ', c: '#A8D47C', ic: 'hakusai', m: '種・苗', pt: '防虫ネットは必須', sow: [[8.67, 9.33]], pl: [[9.33, 10.67]], hv: [[10.67, 14]] },
+  { n: 'ホウレンソウ', c: '#3F9A47', ic: 'leaf5', m: '種から', pt: '土の酸度調整と間引きがカギ', sow: [[9.33, 11.67]], hv: [[10, 14]] },
+  { n: 'シュンギク', c: '#5DAA3C', ic: 'leaf7', m: '種から', pt: '摘心すれば何度も収穫できる', sow: [[9, 10.33]], hv: [[10, 14]] },
+  { n: 'ルッコラ', c: '#86C25A', ic: 'leaf4', m: '種から', pt: '30〜40日で収穫。半日陰でもOK', sow: [[9, 11]], hv: [[10, 13]] },
+  { n: 'キャベツ', c: '#A9D47C', ic: 'cabbage', m: '種・苗', pt: '秋まき春どり。とう立ちに注意', sow: [[9.33, 9.67]], pl: [[10.67, 11]], hv: [[16.33, 17.67]] },
+  { n: 'ブロッコリー', c: '#3B8A3E', ic: 'broccoli', m: '種・苗', pt: 'わき芽の花蕾も収穫できる', sow: [[7, 8.67]], pl: [[8.67, 9.67]], hv: [[10.67, 15]] },
+  { n: 'スナップエンドウ', c: '#8CC63F', ic: 'pod', m: '種から', pt: '冬越しが必要。連作は避ける', sow: [[10.33, 11.33]], pl: [[11.33, 12]], hv: [[16.33, 18.33]] },
+  { n: 'ニラ', c: '#4F9A3A', ic: 'grass', m: '種から', pt: '多年草。収穫後に追肥すれば何度も', sow: [[9.33, 10.33]], hv: [[15, 19]] },
+  { n: 'ワケギ', c: '#6CBF4E', ic: 'grass', m: '球根から', pt: '株元5cmを残して切れば再生する', pl: [[8.67, 10.33]], hv: [[11.67, 13], [15, 17]] },
+  { n: 'カブ', c: '#F2EEF6', ic: 'kabu', m: '種から', pt: '直根性なので直まき＋間引き', sow: [[9, 10.33]], hv: [[10, 13]] },
+  { n: 'リーフレタス', c: '#9ACD32', ic: 'leaf6', m: '種・苗', pt: '浅植えにして外葉から摘み取る', sow: [[9, 10.33]], pl: [[10.33, 11]], hv: [[10, 13]] },
+  { n: 'ミズナ', c: '#B5D96B', ic: 'narrow', m: '種から', pt: '水切れに注意。寒冷紗で防寒', sow: [[9, 10.67]], hv: [[10, 13]] },
+  { n: 'タアサイ', c: '#2E7D32', ic: 'rosette', m: '種から', pt: '寒さに当たるほど甘みが増す', sow: [[9, 11]], hv: [[10.33, 14.33]] },
+  { n: 'アイスプラント', c: '#8FD3BE', ic: 'ice', m: '種・苗', pt: '塩水を与えると風味アップ', sow: [[9, 10.33]], pl: [[10, 11]], hv: [[11, 16]] },
+  { n: 'エンドウマメ', c: '#7CB342', ic: 'pod', m: '種から', pt: '冬越しが必要。連作は避ける', sow: [[10, 11.67]], hv: [[16.33, 18.33]] },
+  { n: 'ソラマメ', c: '#9CCC65', ic: 'fava', m: '種から', pt: '冬場の過湿に注意', sow: [[10.33, 11.33]], pl: [[11.33, 12]], hv: [[17.33, 18.67]] },
+  { n: 'ニンニク', c: '#F3E9D2', ic: 'garlic', m: '種球から', pt: '葉ニンニクや芽も途中で楽しめる', pl: [[9, 11]], hv: [[17.33, 19]] },
+  { n: 'ジャガイモ', c: '#C8A165', ic: 'potato', m: '種イモから', pt: '芽出ししてから植え、晴れの日に収穫', pl: [[8, 10]], hv: [[11, 13]] },
+  { n: 'タマネギ', c: '#D9A05B', ic: 'onion', m: '種・苗', pt: '肥料のタイミングでとう立ちを防ぐ', pl: [[10, 12]], hv: [[16, 18]] },
+];
+const BEGIN = new Set(['ダイコン', 'ホウレンソウ', 'シュンギク', 'リーフレタス', 'ミズナ', 'カブ']);
+const PLANTER = new Set(['ルッコラ', 'ホウレンソウ', 'リーフレタス', 'シュンギク', 'ニラ', 'ワケギ']);
+
+
+// ---------- soft pattern: background ----------
+const eOutQuint = x => 1 - Math.pow(1 - x, 5);
+const eInOutSine = x => -(Math.cos(Math.PI * x) - 1) / 2;
+const eSpring = x => { const c1 = 1.1, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+
+// ぼかしから焦点が合うように文字が現れる
+function focusText(s, x, y, { size = 60, w = 700, color = C.deep, align = 'left' } = {}, p) {
+  if (p <= 0) return;
+  const e = eOutCubic(clamp(p));
+  ctx.save();
+  ctx.filter = e < 1 ? `blur(${(1 - e) * 14}px)` : 'none';
+  ctx.globalAlpha *= e;
+  setFont(size, SANS, w);
+  ctx.fillStyle = color; ctx.textAlign = align;
+  ctx.fillText(s, x, y + (1 - e) * 26);
+  ctx.restore();
+}
+
+// 1 文字ずつふわっと浮かぶ
+function floatChars(s, cx, y, size, color, start, stagger, lt) {
+  setFont(size, SANS, 900);
+  const chars = [...s], ws = chars.map(c => ctx.measureText(c).width);
+  let x = cx - ws.reduce((a, b) => a + b, 0) / 2;
+  chars.forEach((c, j) => {
+    const p = P(lt, start + j * stagger, start + j * stagger + 0.7);
+    if (p > 0) {
+      const e = eOutCubic(p);
+      ctx.save();
+      ctx.filter = e < 1 ? `blur(${(1 - e) * 10}px)` : 'none';
+      ctx.globalAlpha = e;
+      setFont(size, SANS, 900); ctx.fillStyle = color; ctx.textAlign = 'center';
+      ctx.fillText(c, x + ws[j] / 2, y + (1 - e) * 40);
+      ctx.restore();
+    }
+    x += ws[j];
+  });
+}
+
+function blob(cx, cy, r, t, seed, color, alpha = 1) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = color;
+  ctx.beginPath();
+  for (let i = 0; i <= 72; i++) {
+    const a = i / 72 * Math.PI * 2;
+    const rr = r * (1 + 0.07 * Math.sin(3 * a + t * 0.7 + seed) + 0.05 * Math.sin(5 * a - t * 0.5 + seed * 2));
+    const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr;
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.fill(); ctx.restore();
+}
+
+function softBg(t, base, cols) {
+  ctx.fillStyle = base; ctx.fillRect(0, 0, W, H);
+  const spots = [[200, 180, 320], [1750, 220, 280], [1600, 950, 360], [260, 980, 300], [980, 560, 220]];
+  spots.forEach(([x, y, r], i) => blob(x + Math.sin(t * 0.3 + i) * 40, y + Math.cos(t * 0.25 + i * 2) * 30, r, t, i * 1.7, cols[i % cols.length], 0.55));
+}
+
+function pollen(t, color, alpha = 0.5) {
+  const r = rng(99);
+  ctx.save(); ctx.fillStyle = color;
+  for (let i = 0; i < 26; i++) {
+    const x0 = r() * W, sp = 20 + r() * 40, s = 4 + r() * 8, ph = r() * 10;
+    const y = H + 40 - ((r() * H + t * sp) % (H + 80));
+    ctx.globalAlpha = alpha * (0.4 + 0.6 * Math.abs(Math.sin(t * 0.8 + ph)));
+    ctx.beginPath(); ctx.arc(x0 + Math.sin(t * 0.6 + ph) * 30, y, s, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function card(x, y, w, h, r = 36, fill = '#fff') {
+  ctx.save();
+  ctx.shadowColor = 'rgba(36,85,58,.13)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 14;
+  ctx.fillStyle = fill; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();
+  ctx.restore();
+}
+
+function heart(x, y, s, color) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = color;
+  ctx.beginPath(); ctx.moveTo(0, 30);
+  ctx.bezierCurveTo(-50, -5, -30, -45, 0, -20);
+  ctx.bezierCurveTo(30, -45, 50, -5, 0, 30); ctx.fill();
+  ctx.restore();
+}
+
+function sparkle4(x, y, r, color, alpha) {
+  if (alpha <= 0) return;
+  ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = color; ctx.translate(x, y);
+  ctx.beginPath();
+  for (let i = 0; i < 4; i++) {
+    ctx.rotate(Math.PI / 2);
+    ctx.quadraticCurveTo(r * 0.12, -r * 0.12, 0, -r);
+    ctx.quadraticCurveTo(-r * 0.12, -r * 0.12, 0, 0);
+  }
+  ctx.fill(); ctx.restore();
+}
+
+function softPill(s, x, y, { size = 28, bg = C.mint, color = C.deep, p = 1 } = {}) {
+  if (p <= 0) return 0;
+  setFont(size, SANS, 700);
+  const w = ctx.measureText(s).width + size * 1.4, h = size * 1.8;
+  ctx.save(); ctx.globalAlpha *= eOutCubic(p);
+  ctx.translate(x + w / 2, y + h / 2 + (1 - eOutCubic(p)) * 14);
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, h / 2); ctx.fill();
+  ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(s, 0, size * 0.05);
+  ctx.restore();
+  return w;
+}
+
+let LOGO = null;
+function drawLogo(cx, cy, w, alpha = 1) {
+  if (!LOGO || alpha <= 0) return;
+  const h = w * LOGO.height / LOGO.width;
+  ctx.save(); ctx.globalAlpha *= alpha;
+  card(cx - w / 2 - 36, cy - h / 2 - 26, w + 72, h + 52, 30);
+  ctx.drawImage(LOGO, cx - w / 2, cy - h / 2, w, h);
+  ctx.restore();
+}
+
+// ---------- winter flowers: illustrations (原点中心・半径およそ 200) ----------
+function petalRing(n, len, wid, col, rot = 0, off = 0) {
+  ctx.fillStyle = col;
+  for (let i = 0; i < n; i++) {
+    ctx.save(); ctx.rotate(rot + i * Math.PI * 2 / n);
+    ctx.beginPath(); ctx.ellipse(0, -off - len / 2, wid, len / 2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+}
+function dot(x, y, r, col) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+const isPale = c => /^#F[0-9A-F]F[0-9A-F]F[0-9A-F]$/i.test(c) || c === '#FFFFFF';
+function daisy(x, y, r, n, col, center = '#F2C230', layers = 1) {
+  ctx.save(); ctx.translate(x, y);
+  if (isPale(col)) petalRing(n, r + 8, r * 0.16 + 4, '#D5DCE4', 0, r * 0.12 - 4);
+  for (let l = 0; l < layers; l++) petalRing(n, r * (1 - l * 0.25), r * 0.16 * (1 + l * 0.2), l ? shade(col, -0.08) : col, l * Math.PI / n, r * 0.12);
+  dot(0, 0, r * 0.3, center);
+  ctx.fillStyle = 'rgba(0,0,0,.08)';
+  for (let i = 0; i < 8; i++) { const a = i * 0.8; dot(Math.cos(a) * r * 0.15, Math.sin(a) * r * 0.15, r * 0.04, 'rgba(0,0,0,.12)'); }
+  ctx.restore();
+}
+function stem(x1, y1, x2, y2, w = 10, col = '#5FA34A') {
+  ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.quadraticCurveTo((x1 + x2) / 2 + 20, (y1 + y2) / 2, x2, y2); ctx.stroke();
+}
+function branch(pts, w = 14, col = '#8A6248') {
+  ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+}
+
+function drawFlower(type, col) {
+  ctx.save(); ctx.lineJoin = 'round';
+  switch (type) {
+    case 'hellebore':
+      drawLeaf(-60, 150, 170, 60, -0.9, '#4E8A4A'); drawLeaf(60, 150, 170, 60, 0.9, '#5FA34A');
+      ctx.translate(0, -10);
+      petalRing(5, 160, 72, shade(col, -0.1), 0.3);
+      petalRing(5, 130, 58, col, 0.3);
+      for (let i = 0; i < 14; i++) { const a = i / 14 * 6.28; dot(Math.cos(a) * 34, Math.sin(a) * 34, 8, '#E9E28A'); }
+      dot(0, 0, 22, '#B9D47A');
+      break;
+    case 'cyclamen':
+      for (const [x, r] of [[-70, -0.4], [70, 0.4], [0, 0]]) { ctx.save(); ctx.translate(x, 150); ctx.rotate(r); blob(0, 0, 70, 0, x, '#3F7A4A'); dot(0, 0, 34, 'rgba(255,255,255,.25)'); ctx.restore(); }
+      stem(-30, 140, -60, -40, 8, '#9A5A6A'); stem(30, 140, 60, -70, 8, '#9A5A6A');
+      for (const [x, y, rot] of [[-60, -40, -0.2], [60, -70, 0.2]]) {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+        ctx.fillStyle = col;
+        for (const a of [-0.35, 0, 0.35]) { ctx.save(); ctx.rotate(a); ctx.beginPath(); ctx.ellipse(0, -70, 22, 70, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+        dot(0, 0, 16, shade(col, -0.3));
+        ctx.restore();
+      }
+      break;
+    case 'pansy': {
+      const up = col, low = '#F4D35E';
+      ctx.fillStyle = up;
+      ctx.beginPath(); ctx.ellipse(-55, -70, 80, 90, -0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(55, -70, 80, 90, 0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = shade(up, 0.25);
+      ctx.beginPath(); ctx.ellipse(-90, 20, 70, 70, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(90, 20, 70, 70, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = low; ctx.beginPath(); ctx.ellipse(0, 70, 95, 85, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#3B2A55';
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-60, 40, -30, 90); ctx.quadraticCurveTo(0, 60, 30, 90); ctx.quadraticCurveTo(60, 40, 0, 0); ctx.fill();
+      dot(0, 4, 14, '#F7E27A');
+      break;
+    }
+    case 'cineraria':
+      drawLeaf(-90, 190, 150, 70, -1.2, '#5FA34A'); drawLeaf(90, 190, 150, 70, 1.2, '#4E8A4A');
+      for (const [x, y] of [[-95, -10], [95, -10], [0, -90], [-50, 75], [55, 75], [0, 10]]) daisy(x, y, 62, 11, col, '#fff');
+      break;
+    case 'wintersweet':
+      branch([[-200, 150], [-60, 40], [60, -30], [190, -150]]);
+      branch([[-60, 40], [-120, -90]], 9);
+      for (const [x, y, s] of [[-60, 40, 1], [60, -30, 1.1], [150, -110, 0.8], [-120, -90, 0.8], [-140, 110, 0.7]]) {
+        ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+        petalRing(8, 60, 22, 'rgba(242,209,107,.92)', 0.2);
+        dot(0, 0, 14, '#B07A3A');
+        ctx.restore();
+      }
+      break;
+    case 'narcissus':
+      for (const r of [-0.25, 0.15, 0.35]) drawLeaf(0, 200, 300, 28, r, '#5FA34A');
+      ctx.translate(-10, -40);
+      petalRing(6, 118, 50, '#D5DCE4', 0, -4);
+      petalRing(6, 110, 46, col, 0);
+      dot(0, 0, 50, '#F5C531'); dot(0, 0, 38, '#F7D867');
+      ctx.strokeStyle = '#E2A21E'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(0, 0, 48, 0, Math.PI * 2); ctx.stroke();
+      break;
+    case 'sasanqua': case 'camellia': {
+      const cam = type === 'camellia';
+      for (const [x, y, r] of [[-120, 90, -0.9], [120, 80, 0.9], [-40, 150, -0.3]]) drawLeaf(x * 0.4, y * 0.6 + 60, 160, 64, r, cam ? '#2F6B3E' : '#3F7A4A');
+      ctx.translate(0, -20);
+      petalRing(cam ? 6 : 5, cam ? 140 : 160, cam ? 78 : 72, shade(col, -0.12), 0.2);
+      petalRing(cam ? 6 : 5, cam ? 110 : 120, cam ? 62 : 54, col, 0.2 + 0.5);
+      if (cam) { ctx.fillStyle = '#F2D16B'; ctx.beginPath(); ctx.roundRect(-30, -30, 60, 56, 20); ctx.fill(); }
+      else for (let i = 0; i < 18; i++) { const a = i / 18 * 6.28; dot(Math.cos(a) * 30, Math.sin(a) * 30, 7, '#F2D16B'); }
+      break;
+    }
+    case 'tsuwabuki':
+      for (const [x, y] of [[-80, 140], [80, 150]]) { blob(x, y, 80, 0, x, '#3F7A4A'); }
+      stem(0, 150, 0, -60, 9);
+      daisy(-50, -80, 80, 10, col, '#E59E1E'); daisy(70, -40, 64, 10, col, '#E59E1E');
+      break;
+    case 'nerine':
+      stem(0, 210, 0, 0, 10);
+      for (const [x, y, s] of [[-70, -40, 0.75], [70, -50, 0.75], [0, -90, 0.85]]) {
+        ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+        ctx.strokeStyle = col; ctx.lineWidth = 22; ctx.lineCap = 'round';
+        for (let i = 0; i < 6; i++) { const a = i / 6 * 6.28; ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(Math.cos(a + 0.4) * 80, Math.sin(a + 0.4) * 80, Math.cos(a) * 120, Math.sin(a) * 120); ctx.stroke(); }
+        ctx.strokeStyle = shade(col, -0.2); ctx.lineWidth = 3;
+        for (let i = 0; i < 6; i++) { const a = i / 6 * 6.28 + 0.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * 110, Math.sin(a) * 110); ctx.stroke(); }
+        ctx.restore();
+      }
+      break;
+    case 'daisyW':
+      drawLeaf(-70, 200, 160, 40, -0.9, '#5FA34A'); drawLeaf(70, 200, 160, 40, 0.9, '#4E8A4A');
+      stem(0, 200, 0, 0, 10);
+      daisy(0, -30, 150, 20, col, '#F2C230');
+      break;
+    case 'habotan':
+      blob(0, 0, 200, 0, 1, '#6E9E6A');
+      blob(0, 0, 160, 0, 2, '#8DBB86');
+      blob(0, 0, 120, 0, 3, '#F3D6E4');
+      blob(0, 0, 85, 0, 4, col);
+      blob(0, 0, 45, 0, 5, shade(col, -0.15));
+      break;
+    case 'cymbidium':
+      for (const r of [-0.5, -0.2, 0.3]) drawLeaf(0, 210, 300, 26, r, '#4E8A4A');
+      ctx.translate(0, -40);
+      ctx.fillStyle = col;
+      for (const a of [0, 2.1, -2.1]) { ctx.save(); ctx.rotate(a); ctx.beginPath(); ctx.ellipse(0, -80, 34, 80, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+      ctx.fillStyle = shade(col, -0.06);
+      for (const a of [1.1, -1.1]) { ctx.save(); ctx.rotate(a); ctx.beginPath(); ctx.ellipse(0, -70, 28, 70, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+      ctx.fillStyle = '#FFF6E8'; ctx.beginPath(); ctx.ellipse(0, 50, 46, 50, 0, 0, Math.PI * 2); ctx.fill();
+      for (let i = 0; i < 8; i++) dot(-24 + (i % 4) * 16, 40 + Math.floor(i / 4) * 24, 6, '#C8414E');
+      break;
+    case 'ume':
+      branch([[-210, 120], [-40, 30], [200, -60]], 18, '#5C4033');
+      branch([[-40, 30], [20, -150]], 10, '#5C4033');
+      for (const [x, y, s] of [[-40, 30, 1], [110, -25, 0.9], [20, -140, 0.75], [-150, 90, 0.7]]) {
+        ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+        petalRing(5, 64, 36, col, 0, 6);
+        for (let i = 0; i < 10; i++) { const a = i / 10 * 6.28; dot(Math.cos(a) * 18, Math.sin(a) * 18, 4, '#E2A21E'); }
+        dot(0, 0, 9, '#9C4A5A');
+        ctx.restore();
+      }
+      dot(170, -80, 14, shade(col, -0.2)); dot(-10, -90, 12, shade(col, -0.2));
+      break;
+    case 'zygo': {
+      // 平たい茎節が弧を描いて連なり、先端に花が下がる
+      const seg = (x, y, ang) => { ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.fillStyle = '#5FA34A'; ctx.beginPath(); ctx.roundRect(-26, -38, 52, 76, 20); ctx.fill(); ctx.fillStyle = '#4E8A4A'; ctx.fillRect(-2, -30, 4, 60); ctx.restore(); };
+      for (const side of [-1, 1]) {
+        for (let k = 0; k < 4; k++) {
+          const a = -Math.PI / 2 + side * (0.25 + k * 0.38);
+          seg(Math.cos(a) * 120 * side * side + 0, 150 + Math.sin(a) * 150, a + Math.PI / 2);
+        }
+        ctx.save(); ctx.translate(side * 150, 40); ctx.rotate(side * 0.5);
+        ctx.fillStyle = shade(col, -0.12); ctx.beginPath(); ctx.ellipse(0, -30, 20, 44, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = col;
+        for (const r of [-0.8, 0.8]) { ctx.save(); ctx.translate(0, -58); ctx.rotate(r); ctx.beginPath(); ctx.ellipse(0, -26, 15, 34, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+        ctx.restore();
+      }
+      seg(0, 170, 0);
+      break;
+    }
+    case 'primula':
+      for (let i = 0; i < 7; i++) drawLeaf(0, 120, 150, 60, -1.5 + i * 0.5, i % 2 ? '#5FA34A' : '#6DB33F');
+      [[-75, -30, col], [70, -40, '#F4D35E'], [0, -110, '#E25563'], [10, 40, '#9B7BD1']].forEach(([x, y, c]) => {
+        ctx.save(); ctx.translate(x, y);
+        petalRing(5, 58, 30, c, 0, 4); dot(0, 0, 14, '#F7E27A');
+        ctx.restore();
+      });
+      break;
+    case 'snowdrop':
+      drawLeaf(-20, 210, 260, 22, -0.15, '#6DB33F'); drawLeaf(20, 210, 230, 22, 0.25, '#5FA34A');
+      ctx.strokeStyle = '#6DB33F'; ctx.lineWidth = 8; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(0, 210); ctx.quadraticCurveTo(0, -160, 90, -120); ctx.stroke();
+      ctx.save(); ctx.translate(95, -110);
+      ctx.fillStyle = '#6DB33F'; ctx.beginPath(); ctx.ellipse(0, 0, 12, 16, 0, 0, Math.PI * 2); ctx.fill();
+      for (const a of [-0.45, 0, 0.45]) {
+        ctx.save(); ctx.rotate(a); ctx.beginPath(); ctx.ellipse(0, 75, 30, 65, 0, 0, Math.PI * 2);
+        ctx.fillStyle = col; ctx.fill(); ctx.strokeStyle = '#C9D2DC'; ctx.lineWidth = 4; ctx.stroke(); ctx.restore();
+      }
+      ctx.fillStyle = '#E7F2E0'; ctx.beginPath(); ctx.ellipse(0, 60, 16, 30, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      break;
+    case 'adonis':
+      ctx.strokeStyle = '#6DB33F'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+      for (let i = 0; i < 12; i++) { const a = Math.PI + i / 11 * Math.PI; ctx.beginPath(); ctx.moveTo(0, 90); ctx.lineTo(Math.cos(a) * 190, 90 + Math.sin(a) * 120); ctx.stroke(); }
+      ctx.translate(0, -10);
+      petalRing(16, 120, 28, shade(col, -0.08), 0.1, 10);
+      petalRing(16, 95, 24, col, 0.3, 10);
+      dot(0, 0, 40, '#E6A21A');
+      break;
+    case 'rosemary':
+      for (const [x, a] of [[-60, -0.25], [0, 0], [60, 0.25]]) {
+        ctx.save(); ctx.translate(x, 200); ctx.rotate(a);
+        ctx.strokeStyle = '#6B8A5A'; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -380); ctx.stroke();
+        for (let k = 0; k < 13; k++) { const y = -30 - k * 26; drawLeaf(0, y, 46, 7, -1.1, '#5E8A5A', false); drawLeaf(0, y - 10, 46, 7, 1.1, '#6E9E6A', false); }
+        for (let k = 0; k < 4; k++) dot((k % 2 ? 14 : -14), -120 - k * 60, 11, col);
+        ctx.restore();
+      }
+      break;
+    case 'kalanchoe':
+      for (const [x, y, r] of [[-90, 120, -0.9], [90, 120, 0.9], [-40, 170, -0.3], [40, 170, 0.3]]) {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(r); ctx.fillStyle = '#4E8A4A'; ctx.beginPath(); ctx.ellipse(0, -40, 40, 66, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      }
+      for (const [cx, cy] of [[-70, -40], [60, -60], [0, -130]]) for (let i = 0; i < 7; i++) {
+        const a = i / 7 * 6.28, d = i ? 34 : 0;
+        ctx.save(); ctx.translate(cx + Math.cos(a) * d, cy + Math.sin(a) * d);
+        petalRing(4, 26, 12, col, 0.4); dot(0, 0, 5, '#F7E27A');
+        ctx.restore();
+      }
+      break;
+    case 'euryops':
+      ctx.strokeStyle = '#B8C2B4'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+      for (let i = 0; i < 16; i++) { const a = Math.PI * 1.05 + i / 15 * Math.PI * 0.9; ctx.beginPath(); ctx.moveTo(0, 170); ctx.quadraticCurveTo(Math.cos(a) * 90, 170 + Math.sin(a) * 60, Math.cos(a) * 190, 170 + Math.sin(a) * 140); ctx.stroke(); }
+      daisy(-60, -40, 90, 13, col, '#E6A21A'); daisy(80, -10, 70, 13, col, '#E6A21A');
+      break;
+    case 'calendula':
+      drawLeaf(-70, 200, 150, 50, -0.9, '#5FA34A'); drawLeaf(70, 200, 150, 50, 0.9, '#4E8A4A');
+      stem(0, 200, 0, 0, 10);
+      daisy(0, -30, 160, 22, col, '#B5651D', 2);
+      break;
+  }
+  ctx.restore();
+}
+
+// ---------- data ----------
+// 月は 9=9月 ... 12=12月, 13=翌1月 ... 18=翌6月, 19=翌7月頭
+const SW = { 白: '#FFFFFF', ピンク: '#F4A6C0', 黄: '#F5D04A', 紫: '#9B7BD1', 緑: '#9CCB7A', 茶: '#A47551', 赤: '#E25563', オレンジ: '#F4A04A', 赤紫: '#C2508E', 青: '#6F8FD8', 薄紫: '#C7B6EA', クリーム: '#F8EBC2', 朱: '#EB6A3C' };
+const FLOWERS = [
+  { n: 'クリスマスローズ', ic: 'hellebore', c: '#D9A3C0', bloom: [[12, 16]], cols: ['白', 'ピンク', '黄', '紫', '緑', '茶'], pt: '寒さに強い。夏は涼しい半日陰へ' },
+  { n: 'ガーデンシクラメン', ic: 'cyclamen', c: '#E85A8A', bloom: [[10, 17]], cols: [], pt: '霜の当たらない場所で育てる' },
+  { n: 'パンジー・ビオラ', ic: 'pansy', c: '#7E5BB5', bloom: [[10, 17]], cols: [], pt: '花がら摘みで、花を長く楽しむ' },
+  { n: 'サイネリア', ic: 'cineraria', c: '#7A6FD6', bloom: [[11, 17]], cols: [], pt: '最低気温5℃程度が目安' },
+  { n: 'ロウバイ', ic: 'wintersweet', c: '#F2D16B', bloom: [[12, 15]], cols: ['黄'], pt: '香りのよい花。剪定は2月下旬〜3月' },
+  { n: 'スイセン', ic: 'narcissus', c: '#FFFDF3', bloom: [[11, 17]], cols: [], pt: '葉は黄色く枯れるまで残す' },
+  { n: 'サザンカ', ic: 'sasanqua', c: '#EC7FA5', bloom: [[10, 17]], cols: ['ピンク', '赤', '白'], pt: '枝が混みやすい。剪定は3〜4月' },
+  { n: 'ツバキ', ic: 'camellia', c: '#D9414E', note: '品種によりさまざま', cols: ['赤', 'ピンク', '白'], pt: '剪定は花後の3〜4月ごろ' },
+  { n: 'ツワブキ', ic: 'tsuwabuki', c: '#F2C230', bloom: [[10, 13]], cols: ['黄', 'クリーム', '朱'], pt: '半日陰でも育ち、潮風にも強い' },
+  { n: 'ネリネ', ic: 'nerine', c: '#F08FB6', bloom: [[10.67, 12]], cols: ['ピンク', '白', '赤', 'オレンジ', '紫'], pt: '乾燥気味を好む。過湿に注意' },
+  { n: 'ノースポール', ic: 'daisyW', c: '#FFFFFF', bloom: [[15, 19]], pale: [[12, 15]], cols: ['白'], pt: '冷たい風を避けて育てる' },
+  { n: 'ハボタン', ic: 'habotan', c: '#C77FB0', note: '冬に色づく葉を楽しむ', cols: [], pt: '秋からは肥料を控えて色づかせる' },
+  { n: 'シンビジウム', ic: 'cymbidium', c: '#E9E4A8', bloom: [[12, 17]], cols: ['白', '黄', 'ピンク', 'オレンジ'], pt: '冬は室内で寒さを避ける' },
+  { n: 'ウメ', ic: 'ume', c: '#F7C6D3', note: '冬に咲く', cols: [], pt: '花後に剪定。寒肥は12〜1月' },
+  { n: 'シャコバサボテン', ic: 'zygo', c: '#E9579C', bloom: [[11, 13]], cols: ['赤', '白', 'ピンク', '黄', 'オレンジ'], pt: '水はけのよい土で。秋は水を控えめに' },
+  { n: 'プリムラ・ポリアンサ', ic: 'primula', c: '#F4A04A', note: '開花期間が長い', cols: ['赤紫', '紫', 'オレンジ', '黄', '赤', 'ピンク', '青', '白'], pt: '花がらをこまめに摘む' },
+  { n: 'スノードロップ', ic: 'snowdrop', c: '#FFFFFF', bloom: [[14, 16]], cols: ['白'], pt: '植えっぱなしでも楽しめる' },
+  { n: 'マーガレット', ic: 'daisyW', c: '#FFF6F0', bloom: [[11, 18]], cols: ['白', '黄', 'ピンク', '赤', 'オレンジ'], pt: '寒さにはやや弱い。夏は乾かし気味に' },
+  { n: 'フクジュソウ', ic: 'adonis', c: '#F5C518', bloom: [[14, 17]], cols: ['黄'], pt: '夏は地上部が枯れて休眠する' },
+  { n: 'ローズマリー', ic: 'rosemary', c: '#8DA2E0', bloom: [[11, 18]], cols: ['青', '白', '薄紫', 'ピンク'], pt: '乾燥気味が好き。水の与えすぎに注意' },
+  { n: 'カランコエ', ic: 'kalanchoe', c: '#F2694B', bloom: [[10, 18]], cols: [], pt: '秋からは夜の照明に当てない' },
+  { n: 'ユリオプスデージー', ic: 'euryops', c: '#F5C518', bloom: [[11, 18]], cols: ['黄'], pt: '丈夫で手間が少ない' },
+  { n: 'カレンデュラ', ic: 'calendula', c: '#F39A2B', bloom: [[12, 18]], cols: ['黄', 'オレンジ'], pt: '冬〜春に咲かせるなら秋まき' },
+];
+const FL = Object.fromEntries(FLOWERS.map(f => [f.n, f]));
+
+function snowfall(t, alpha = 0.7) {
+  const r = rng(77);
+  ctx.save();
+  for (let i = 0; i < 40; i++) {
+    const x0 = r() * W, sp = 30 + r() * 50, s = 3 + r() * 6, ph = r() * 10;
+    const y = ((r() * H + t * sp) % (H + 40)) - 20;
+    ctx.globalAlpha = alpha * (0.5 + 0.5 * r());
+    dot(x0 + Math.sin(t * 0.7 + ph) * 26, y, s, '#fff');
+  }
+  ctx.restore();
+}
+function iconOf(f, x, y, s) { ctx.save(); ctx.translate(x, y); ctx.scale(s, s); drawFlower(f.ic, f.c); ctx.restore(); }
+
+// ---------- winter flowers: scenes ----------
+const WBG = '#F3F6FA', WBLOBS = ['#E3ECF6', '#FCE7EE', '#EEF5D8'];
+
+function w1Open(lt, t) {
+  softBg(t, WBG, WBLOBS);
+  snowfall(t, 0.9);
+  const row = [['パンジー・ビオラ', 260, 860], ['クリスマスローズ', 520, 900], ['ガーデンシクラメン', 1400, 880], ['ツバキ', 1660, 860]];
+  row.forEach(([n, x, y], i) => {
+    const p = eSpring(P(lt, 0.3 + i * 0.25, 1.0 + i * 0.25));
+    if (p <= 0) return;
+    ctx.save(); ctx.translate(x, y + Math.sin(t * 1.4 + i) * 6); ctx.scale(p, p);
+    blob(0, 0, 150, t, i, '#fff', 0.85);
+    ctx.scale(0.6, 0.6); drawFlower(FL[n].ic, FL[n].c);
+    ctx.restore();
+  });
+  focusText('可憐に冬の庭を彩る', W / 2, 300, { size: 52, w: 900, color: C.green, align: 'center' }, P(lt, 0.6, 1.4));
+  focusText('冬に咲く花', 860, 500, { size: 150, w: 900, color: C.deep, align: 'center' }, P(lt, 0.9, 1.8));
+  const bp = eSpring(P(lt, 1.6, 2.3));
+  if (bp > 0) {
+    ctx.save(); ctx.translate(1370, 455); ctx.scale(bp, bp);
+    blob(0, 0, 112, t, 3, '#E58FB0');
+    const n = Math.round(23 * eOutCubic(P(lt, 1.7, 2.6)));
+    text(String(n), 0, 44, { size: 120, fam: SANS, w: 900, color: '#fff', align: 'center' });
+    ctx.restore();
+  }
+  focusText('選', 1520, 500, { size: 110, w: 900, color: C.deep }, P(lt, 2.2, 2.8));
+  focusText('育て方と、冬の管理のポイント', W / 2, 640, { size: 42, w: 700, color: C.ink, align: 'center' }, P(lt, 2.6, 3.3));
+  drawLogo(1640, 110, 300, eOutCubic(P(lt, 3.0, 3.8)));
+}
+
+const TLW = { x0: 560, w: 940, m0: 9, m1: 19 };
+const mxw = m => TLW.x0 + (m - TLW.m0) / (TLW.m1 - TLW.m0) * TLW.w;
+
+function w2Carousel(lt, t) {
+  softBg(t, WBG, WBLOBS);
+  snowfall(t, 0.5);
+  const T0 = 0.4, D = 1.22, N = FLOWERS.length;
+  const k = Math.max(0, (lt - T0) / D);
+  const i0 = Math.min(N - 1, Math.floor(k)), f = k - Math.floor(k);
+  const s = Math.min(N - 1, i0 + (i0 < N - 1 ? eInOutSine(P(f, 0.72, 1)) : 0));
+  const idx = Math.round(s), v = FLOWERS[idx];
+
+  const head = eOutCubic(P(lt, 0, 0.6));
+  ctx.save(); ctx.globalAlpha = head;
+  text('冬に咲く花', 120, 128, { size: 44, fam: SANS, w: 900, color: C.deep });
+  text('23選', 360, 128, { size: 44, fam: SANS, w: 900, color: '#C7558A' });
+  softPill(`${String(idx + 1).padStart(2, '0')} / ${N}`, 1630, 82, { size: 30, bg: '#C7558A', color: '#fff' });
+  ctx.restore();
+
+  for (let j = 0; j < N; j++) {
+    const dx = j - s;
+    if (Math.abs(dx) > 3.3) continue;
+    const ad = Math.min(1, Math.abs(dx));
+    const x = 960 + dx * 380, y = 370 + ad * 30 + Math.sin(t * 1.6 + j) * 6;
+    const sc = lerp(1, 0.52, ad);
+    const appear = eSpring(P(lt, 0.1 + j * 0.05, 0.8 + j * 0.05));
+    ctx.save(); ctx.translate(x, y); ctx.scale(sc * appear, sc * appear);
+    ctx.globalAlpha = 1 - 0.35 * Math.min(2, Math.abs(dx)) / 2;
+    if (ad < 1) blob(0, 0, 215, t, j, FLOWERS[j].c === '#FFFFFF' || FLOWERS[j].c === '#FFFDF3' || FLOWERS[j].c === '#FFF6F0' ? '#DCE6F2' : FLOWERS[j].c, (1 - ad) * 0.45);
+    card(-180, -180, 360, 360, 180);
+    ctx.save(); ctx.scale(0.7, 0.7); drawFlower(FLOWERS[j].ic, FLOWERS[j].c); ctx.restore();
+    ctx.restore();
+  }
+
+  const a = 1 - eInOutSine(clamp(Math.abs(s - idx) * 2.2));
+  const hold = lt - T0 - idx * D;
+  ctx.save(); ctx.globalAlpha = a * head;
+  if (a < 1) ctx.filter = `blur(${(1 - a) * 10}px)`;
+  const nsz = Math.min(96, Math.floor(1000 / [...v.n].length));
+  text(v.n, W / 2, 690, { size: nsz, fam: SANS, w: 900, color: C.deep, align: 'center' });
+  ctx.restore();
+
+  ctx.save(); ctx.globalAlpha = a * head;
+  // 花色の見本
+  if (v.cols.length) {
+    const sw = 40, gap = 14, tw = 92 + v.cols.length * (sw + gap);
+    let x = W / 2 - tw / 2;
+    text('花色', x, 772, { size: 28, fam: SANS, w: 700, color: C.ink });
+    x += 92;
+    v.cols.forEach((c, i) => {
+      const p = eSpring(P(hold, 0.05 + i * 0.05, 0.4 + i * 0.05));
+      if (p <= 0) return;
+      ctx.save(); ctx.translate(x + sw / 2, 762); ctx.scale(p, p);
+      dot(0, 0, sw / 2, SW[c]);
+      if (c === '白' || c === 'クリーム') { ctx.strokeStyle = '#D6D9DE'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, sw / 2, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.restore();
+      x += sw + gap;
+    });
+  }
+  text(v.pt, W / 2, 862, { size: 42, fam: SANS, w: 700, color: C.ink, align: 'center' });
+
+  // 花の時期
+  const g = eOutQuint(P(hold, 0.1, 0.8));
+  text('花の時期', TLW.x0 - 24, 934, { size: 24, fam: SANS, w: 700, color: C.deep, align: 'right' });
+  ctx.fillStyle = 'rgba(36,85,58,.07)'; ctx.beginPath(); ctx.roundRect(TLW.x0, 910, TLW.w, 34, 17); ctx.fill();
+  ctx.fillStyle = 'rgba(143,191,223,.22)'; ctx.fillRect(mxw(12), 904, mxw(15) - mxw(12), 46);
+  text('冬', (mxw(12) + mxw(15)) / 2, 898, { size: 22, fam: SANS, w: 700, color: '#2F6E9E', align: 'center' });
+  const fc = ['#FFFFFF', '#FFFDF3', '#FFF6F0'].includes(v.c) ? '#9FB8D6' : v.c;
+  (v.pale || []).forEach(([b0, b1]) => { const w = (mxw(b1) - mxw(b0)) * g; if (w > 2) { ctx.globalAlpha = a * head * 0.4; ctx.fillStyle = fc; ctx.beginPath(); ctx.roundRect(mxw(b0), 914, w, 26, 13); ctx.fill(); ctx.globalAlpha = a * head; } });
+  (v.bloom || []).forEach(([b0, b1]) => { const w = (mxw(b1) - mxw(b0)) * g; if (w > 2) { ctx.fillStyle = fc; ctx.beginPath(); ctx.roundRect(mxw(b0), 914, w, 26, 13); ctx.fill(); } });
+  if (v.note) text(v.note, TLW.x0 + TLW.w / 2, 936, { size: 26, fam: SANS, w: 700, color: C.deep, align: 'center', alpha: g });
+  if (v.pale) text('暖地では冬から', mxw(13.5), 978, { size: 20, fam: SANS, w: 500, color: 'rgba(45,59,51,.7)', align: 'center', alpha: g });
+  for (let m = 9; m < 19; m++) text(String(((m - 1) % 12) + 1) + '月', mxw(m + 0.5), 1010, { size: 21, fam: SANS, w: 500, color: 'rgba(45,59,51,.6)', align: 'center' });
+  ctx.restore();
+}
+
+function w3Recap(lt, t) {
+  softBg(t, '#F7F1F6', ['#FCE7EE', '#fff', '#E3ECF6']);
+  snowfall(t, 0.4);
+  focusText('全23種、おさらい', W / 2, 150, { size: 72, w: 900, color: C.deep, align: 'center' }, P(lt, 0.3, 1.0));
+  const rows = [6, 6, 6, 5];
+  let i = 0;
+  rows.forEach((n, r) => {
+    for (let c = 0; c < n; c++, i++) {
+      const f = FLOWERS[i];
+      const x = W / 2 + (c - (n - 1) / 2) * 270, y = 290 + r * 205;
+      const ap = eSpring(P(lt, 0.3 + (c + r) * 0.08, 1.0 + (c + r) * 0.08));
+      if (ap <= 0) continue;
+      ctx.save(); ctx.translate(x, y + Math.sin(t * 1.5 + i) * 4); ctx.scale(ap, ap);
+      card(-62, -62, 124, 124, 62);
+      ctx.save(); ctx.scale(0.25, 0.25); drawFlower(f.ic, f.c); ctx.restore();
+      text(f.n, 0, 100, { size: Math.min(26, Math.floor(250 / [...f.n].length)), fam: SANS, w: 700, color: C.deep, align: 'center' });
+      ctx.restore();
+    }
+  });
+}
+
+function w4Tips(lt, t) {
+  softBg(t, WBG, WBLOBS);
+  snowfall(t, 0.5);
+  blob(420, 520, 320, t, 5, '#E3ECF6', 0.9);
+  focusText('冬の花を長く楽しむ', 150, 470, { size: 60, w: 900, color: C.deep }, P(lt, 0.2, 0.9));
+  focusText('3つのコツ', 150, 610, { size: 120, w: 900, color: '#C7558A' }, P(lt, 0.45, 1.15));
+  const tips = [
+    ['霜や冷たい風を避ける', ['ガーデンシクラメン', 'ノースポール', 'ユリオプスデージー']],
+    ['冬の水やりは控えめに', ['パンジー・ビオラ', 'カランコエ', 'ローズマリー']],
+    ['花がらをこまめに摘む', ['パンジー・ビオラ', 'プリムラ・ポリアンサ', 'カレンデュラ']],
+  ];
+  tips.forEach(([title, names], i) => {
+    const a0 = 0.8 + i * 2.2;
+    const p = eOutQuint(P(lt, a0, a0 + 0.8));
+    if (p <= 0) return;
+    const x = 860, y = 200 + i * 255, w = 940, h = 220;
+    ctx.save(); ctx.globalAlpha = p; ctx.translate((1 - p) * 90, 0);
+    card(x, y, w, h, 44);
+    ctx.fillStyle = '#C7558A'; ctx.beginPath(); ctx.arc(x + 70, y + 70, 34, 0, Math.PI * 2); ctx.fill();
+    text(String(i + 1), x + 70, y + 86, { size: 44, fam: SANS, w: 900, color: '#fff', align: 'center' });
+    text(title, x + 130, y + 88, { size: 50, fam: SANS, w: 900, color: C.deep });
+    names.forEach((n, k) => {
+      const q = eSpring(P(lt, a0 + 0.5 + k * 0.15, a0 + 1.0 + k * 0.15));
+      if (q <= 0) return;
+      const ix = x + 110 + k * 285, iy = y + 160;
+      ctx.save(); ctx.translate(ix, iy); ctx.scale(q, q);
+      dot(0, 0, 38, '#F3F6FA'); ctx.save(); ctx.scale(0.17, 0.17); drawFlower(FL[n].ic, FL[n].c); ctx.restore();
+      ctx.restore();
+      text(n, ix + 48, iy + 9, { size: [...n].length > 9 ? 18 : [...n].length > 7 ? 20 : 24, fam: SANS, w: 700, color: C.ink, alpha: q });
+    });
+    ctx.restore();
+  });
+}
+
+function w5Close(lt, t) {
+  softBg(t, '#F7F1F6', ['#FCE7EE', '#fff', '#E3ECF6']);
+  snowfall(t, 0.7);
+  [['パンジー・ビオラ', 190], ['スイセン', 360], ['カレンデュラ', 1560], ['クリスマスローズ', 1730]].forEach(([n, x], k) => {
+    const p = eSpring(P(lt, 0.4 + k * 0.15, 1.1 + k * 0.15));
+    if (p <= 0) return;
+    ctx.save(); ctx.translate(x, 930 + Math.sin(t * 1.4 + k) * 6); ctx.scale(0.5 * p, 0.5 * p); drawFlower(FL[n].ic, FL[n].c); ctx.restore();
+  });
+  floatChars('冬の庭にも、', W / 2, 330, 92, C.deep, 0.2, 0.07, lt);
+  floatChars('花の色を。', W / 2, 520, 160, '#C7558A', 0.7, 0.09, lt);
+  focusText('秋のうちに、準備をはじめよう。', W / 2, 640, { size: 46, w: 700, color: C.ink, align: 'center' }, P(lt, 1.8, 2.5));
+  const lp = eSpring(P(lt, 2.4, 3.2));
+  if (lp > 0) {
+    ctx.save(); ctx.translate(W / 2, 830); ctx.scale(lp, lp); ctx.translate(-W / 2, -830);
+    drawLogo(W / 2, 830, 520);
+    ctx.restore();
+  }
+  text('参考：PLANTIA（ハイポネックス）「可憐に冬の庭を彩る！冬に咲く花23選」', W / 2, 1040, { size: 22, fam: SANS, w: 500, color: C.deep, align: 'center', alpha: P(lt, 3.0, 3.6) * 0.8 });
+}
+
+const SCENES = [
+  { s: 0, f: w1Open },
+  { s: 6, f: w2Carousel, o: [960, 370], c: '#C7558A' },
+  { s: 35, f: w3Recap, o: [960, 540], c: '#9FB8D6' },
+  { s: 42, f: w4Tips, o: [300, 900], c: '#C7558A' },
+  { s: 51, f: w5Close, o: [960, 540], c: '#fff' },
+];
+const TR = 0.8;
+
+function render(t) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1; ctx.setLineDash([]); ctx.filter = 'none';
+  let i = 0;
+  SCENES.forEach((s, k) => { if (t >= s.s) i = k; });
+  const cur = SCENES[i], next = SCENES[i + 1];
+  ctx.save(); cur.f(t - cur.s, t); ctx.restore();
+  if (next && t > next.s - TR) {
+    const p = eInOutSine(P(t, next.s - TR, next.s));
+    const r = p * 2300;
+    const [ox, oy] = next.o;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(ox, oy, r, 0, Math.PI * 2); ctx.clip();
+    next.f(t - next.s, t);
+    ctx.restore();
+    ctx.save(); ctx.strokeStyle = next.c; ctx.lineWidth = 26 * (1 - p) + 4; ctx.globalAlpha = 0.8 * (1 - p);
+    ctx.beginPath(); ctx.arc(ox, oy, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// ---------- boot ----------
+window.DURATION = DURATION; window.FPS = FPS; window.render = render;
+window.frameJPEG = t => { render(t); return cv.toDataURL('image/jpeg', 0.95).split(',')[1]; };
+(async () => {
+  const src = document.getElementById('main').textContent;
+  if (window.LOGO_SRC) { const img = new Image(); img.src = window.LOGO_SRC; await img.decode(); LOGO = img; }
+  await Promise.all([500, 700, 900].map(w => document.fonts.load(`${w} 100px "Zen Maru Gothic"`, src)));
+  await document.fonts.ready;
+  window.__ready = true;
+  if (new URLSearchParams(location.search).has('render')) return;
+  const t0 = performance.now();
+  const loop = now => { render(((now - t0) / 1000) % DURATION); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
