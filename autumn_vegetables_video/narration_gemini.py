@@ -41,7 +41,7 @@ SCRIPTS = {
             (0, 6, [(0.6, '秋に植えて、春に咲く。'), (3.0, 'チューリップの育て方です。')]),
             (6, 15, [(6.4, '植えどきは、紅葉が見頃のころ。'), (9.2, '北海道・東北は10月、九州は11月下旬から。'), (12.9, '遅くとも年内に植えましょう。')]),
             (15, 22, [(15.5, 'きゅうこんは、ずっしり重くて、へこまないもの。'), (19.0, '傷や汚れもチェックしましょう。')]),
-            (22, 33, [(22.4, '地植えは、きゅうこん3個分の深さに、10センチ間隔。'), (26.1, '鉢植えは浅めに、3から5センチ間隔で。'), (29.6, '植えてから2週間は、たっぷり水やりを。')]),
+            (22, 33, [(22.4, 'じうえは、きゅうこん3個分の深さに、10センチ間隔。'), (26.1, 'はちうえは浅めに、3から5センチ間隔で。'), (29.6, '植えてから2週間は、たっぷり水やりを。')]),
             (33, 40, [(33.5, 'コツは、球根の向き。'), (35.6, '平らな面を外側にすると、大きな葉が外へ広がります。')]),
             (40, 47, [(40.5, '土の配合は、6対3対1。'), (43.4, '冬は5度ほどの寒さに、2か月当てて。')]),
             (47, 54, [(47.5, '春になると、わせから順に咲きはじめます。'), (50.8, '花が散る前に、花首をカットしましょう。')]),
@@ -51,9 +51,12 @@ SCRIPTS = {
     # 23 種の名前は 1 回で生成すると切り分けを誤りやすいので、8・8・7 種の 3 回に分ける
     'winter': {
         'duration': 57,
+        # 読みが崩れた語だけを 1 回でまとめて録り直す (台本の文 → 録り直しで読ませる文)
+        'retakes': {'ロウバイ。': 'ろうばい。', 'シャコバサボテン。': 'しゃこばさぼてん。',
+                    'スノードロップ。': 'スノードロップ。', 'カレンデュラ。': 'カレンデュラ。'},
         'scenes': [
             (0, 6, [(0.6, '可憐に冬の庭を彩る。'), (2.8, '冬に咲く花、23選です。')]),
-            *[(6 if k == 0 else round(6.4 + k * 8 * 1.22 - 0.1, 2), round(6.4 + min(23, (k + 1) * 8) * 1.22 - 0.1, 2) if k < 2 else 35,
+            *[(6 if k == 0 else round(6.4 + k * 8 * 1.22 - 0.1, 2), round(6.4 + (k + 1) * 8 * 1.22 + 0.05, 2) if k < 2 else 35,
                [(round(6.4 + i * 1.22, 2), n + '。') for i, n in enumerate(WINTER_NAMES) if k * 8 <= i < (k + 1) * 8])
               for k in range(3)],
             (35, 42, [(35.4, '全23種を、おさらい。'), (38.0, '寒い季節も、こんなに楽しめます。')]),
@@ -174,12 +177,22 @@ def main(variant):
     voice = os.environ.get('GEMINI_TTS_VOICE', 'Achernar')
     cfg = SCRIPTS[variant]
     out = array('i', bytes(4 * int(cfg['duration'] * SR)))
+    retake = {}
+    if cfg.get('retakes'):
+        src, alt = zip(*cfg['retakes'].items())
+        audio = tts('\n'.join(alt), model, voice, key)
+        parts = split(audio, list(alt))
+        if parts is None:
+            print('  (録り直しを切り分けられなかったので、元の音声を使います)')
+        else:
+            retake = dict(zip(src, parts))
     for s0, s1, lines in cfg['scenes']:
         audio = tts('\n'.join(t for _, t in lines), model, voice, key)
         parts = split(audio, [t for _, t in lines])
         if parts is None:
             print(f'  ({s0}s の場面は切り分けられなかったので、まとめて置きます)')
             parts, lines = [audio], [(lines[0][0], ' / '.join(t for _, t in lines))]
+        parts = [retake.get(t, a) for (_, t), a in zip(lines, parts)] if len(parts) == len(lines) else parts
         parts = [trim(a) for a in parts]
         factor = 1.0
         pos, ok = place(parts, lines, s1)
