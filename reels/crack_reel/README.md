@@ -24,6 +24,17 @@ out/cover.png は落ち着いた版の、out/cover_motion.png はモーション
 
 確認用に node render.mjs --stills 12,54.5 で指定秒のフレームを、--range 50,60 で区間だけを書き出せます。
 
+ナレーション（Irodori-TTS）
+
+narration/ に3本ぶんの台本があります。voices.json が声の設計で、語り手3人（落ち着いた版、文字カット版、モーショングラフィックス版）と、娘、田中さん、求職者、鉄道会社の人、お客さん、取引先の声を、実在の人をまねずに説明文（caption）だけで作ります。役ごとに一度だけ声の見本を作り、あとの行はそれを参照音声にして同じ声を保ちます。chic.json などの各行は、say が読ませる文（読み間違えやすい語はかなにしてある）、at が動画の何秒から話し始めるかです。
+
+    ./setup_irodori.sh                        # 初回だけ。Irodori-TTS を CPU で動かす環境をリポジトリの外に作る
+    PYTHONPATH=../../../aratako/silentcipher/src ../../../aratako/venv/bin/python narrate_tts.py \
+        narration/voices.json narration/chic.json narration/mojicut.json narration/motion.json
+    python3 narrate_mix.py narration/chic.json narration/mojicut.json narration/motion.json
+
+narrate_tts.py は Aratako/Irodori-TTS-v4.1-Small-MF（MIT、4ステップ生成）で各行を out/narration/ に書き出します。できている行は飛ばすので、直したい行の wav だけ消して再実行します。narrate_mix.py は各行を at の位置に置き、ナレーションの間だけ BGM を下げて out/*_narr.mp4 を作ります。次の行に食い込むと1.15倍までテンポを上げ、それでも収まらない行は OVERLAP と表示します。--dry-run を付けると、文字数から長さを見積もった仮の音でタイミングだけ確かめられます。生成した音声には SilentCipher の透かしが入ります。
+
 必要なのは Playwright（Node 版）、ffmpeg、fluidsynth と fluid-soundfont-gm、Python の numpy、scipy、mido です。
 
 文字はリールの上の見出し、下のキャプション、右のボタンにかからない範囲に収めています。ロゴは書体で組んだ仮のものです。

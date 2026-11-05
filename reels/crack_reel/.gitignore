@@ -2,3 +2,5 @@ fonts/
 out/still_*.png
 out/preview_*.mp4
 out/*.wav
+out/narration/
+out/*_dry.mp4
