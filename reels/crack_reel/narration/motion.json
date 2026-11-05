@@ -2,24 +2,130 @@
   "video": "out/crack_reel_motion.mp4",
   "bgm": "out/bgm_motion.wav",
   "output": "out/crack_reel_motion_narr.mp4",
-  "duck_db": -9,
+  "duck_db": -13,
   "lines": [
-    {"id": "v01", "at": 3.15, "voice": "narrator_motion", "text": "あなたの会社のすごさ、言えますか？", "say": "あなたの会社のすごさ、言えますか？"},
-    {"id": "v02", "at": 9.35, "voice": "narrator_motion", "text": "答えられたのは、約2%。", "say": "答えられたのは、やく、にパーセント。"},
-    {"id": "v03", "at": 12.60, "voice": "narrator_motion", "text": "毎朝、駅を磨く田中さん。", "say": "毎朝、駅を磨く、田中さん。"},
-    {"id": "v04", "at": 14.60, "voice": "narrator_motion", "text": "肩書きは、お掃除の人。", "say": "肩書きは、お掃除の人。"},
-    {"id": "v05", "at": 17.20, "voice": "narrator_motion", "text": "その肩書き、本当？", "say": "🤔その肩書き、本当？"},
-    {"id": "v06", "at": 20.60, "voice": "narrator_motion", "text": "寿司屋の大将も、自分の寿司のすごさは案外わからない。", "say": "すし屋の大将も、自分のすしのすごさは、案外わからない。"},
-    {"id": "v07", "at": 25.15, "voice": "narrator_motion", "text": "価値は、外の人が知っている。", "say": "価値は、そとの人が知っている。"},
-    {"id": "v08", "at": 28.70, "voice": "narrator_motion", "text": "だからcrackは、聞きに行く。", "say": "だからクラックは、聞きに行く。"},
-    {"id": "v09", "at": 31.10, "voice": "railway", "text": "「いつも計画どおり」", "say": "いつも、計画どおり。"},
-    {"id": "v10", "at": 33.10, "voice": "customer", "text": "「町がきれい」", "say": "😊まちが、きれい。"},
-    {"id": "v11", "at": 35.10, "voice": "partner", "text": "「任せられる」", "say": "😎任せられる。"},
-    {"id": "v12", "at": 37.80, "voice": "narrator_motion", "text": "その声が、肩書きを書き換える。", "say": "その声が、肩書きを書き換える。"},
-    {"id": "v13", "at": 42.45, "voice": "narrator_motion", "text": "お掃除の人は、町づくりのパートナーだった。", "say": "😊お掃除の人は、まちづくりの、パートナーだった。"},
-    {"id": "v14", "at": 47.10, "voice": "narrator_motion", "text": "誇りは、かたちになる。", "say": "誇りは、かたちになる。"},
-    {"id": "v15", "at": 50.95, "voice": "narrator_motion", "text": "採用ページに、グッズに、名刺に。", "say": "採用ページに、グッズに、名刺に。"},
-    {"id": "v16", "at": 54.50, "voice": "narrator_motion", "text": "自社を自慢できない社員を、ゼロに。", "say": "自社を自慢できない社員を、⏸️ゼロに。"},
-    {"id": "v17", "at": 58.25, "voice": "narrator_motion", "text": "crack", "say": "クラック。"}
+    {
+      "id": "v01",
+      "at": 3.15,
+      "voice": "narrator_motion",
+      "text": "あなたの会社のすごさ、言えますか？",
+      "say": "あなたの会社のすごさ、言えますか？"
+    },
+    {
+      "id": "v02",
+      "at": 9.35,
+      "voice": "narrator_motion",
+      "text": "答えられたのは、約2%。",
+      "say": "答えられたのは、やく、にパーセント。"
+    },
+    {
+      "id": "v03",
+      "at": 12.6,
+      "voice": "narrator_motion",
+      "text": "毎朝、駅を磨く田中さん。",
+      "say": "毎朝、駅を磨く、田中さん。",
+      "duration_scale": 0.85
+    },
+    {
+      "id": "v04",
+      "at": 14.6,
+      "voice": "narrator_motion",
+      "text": "肩書きは、お掃除の人。",
+      "say": "肩書きは、お掃除の人。"
+    },
+    {
+      "id": "v05",
+      "at": 17.2,
+      "voice": "narrator_motion",
+      "text": "その肩書き、本当？",
+      "say": "その肩書き、本当？",
+      "seconds": 1.6
+    },
+    {
+      "id": "v06",
+      "at": 20.6,
+      "voice": "narrator_motion",
+      "text": "寿司屋の大将も、自分の寿司のすごさは案外わからない。",
+      "say": "すし屋の大将も、自分のすしのすごさは、案外わからない。"
+    },
+    {
+      "id": "v07",
+      "at": 25.15,
+      "voice": "narrator_motion",
+      "text": "価値は、外の人が知っている。",
+      "say": "その価値は、そとの人が知っている。"
+    },
+    {
+      "id": "v08",
+      "at": 28.7,
+      "voice": "narrator_motion",
+      "text": "だからcrackは、聞きに行く。",
+      "say": "だからクラックは、聞きに行く。"
+    },
+    {
+      "id": "v09",
+      "at": 31.0,
+      "voice": "railway",
+      "text": "「いつも計画どおり」",
+      "say": "いつも計画どおり。",
+      "seed": 6
+    },
+    {
+      "id": "v10",
+      "at": 33.2,
+      "voice": "customer",
+      "text": "「町がきれい」",
+      "say": "😊まちが、きれい。"
+    },
+    {
+      "id": "v11",
+      "at": 35.1,
+      "voice": "partner",
+      "text": "「任せられる」",
+      "say": "😎任せられる。"
+    },
+    {
+      "id": "v12",
+      "at": 37.8,
+      "voice": "narrator_motion",
+      "text": "その声が、肩書きを書き換える。",
+      "say": "その声が、肩書きを書き換える。"
+    },
+    {
+      "id": "v13",
+      "at": 42.45,
+      "voice": "narrator_motion",
+      "text": "お掃除の人は、町づくりのパートナーだった。",
+      "say": "😊お掃除の人は、まちづくりの、パートナーだった。"
+    },
+    {
+      "id": "v14",
+      "at": 47.1,
+      "voice": "narrator_motion",
+      "text": "誇りは、かたちになる。",
+      "say": "誇りは、かたちになる。"
+    },
+    {
+      "id": "v15",
+      "at": 50.95,
+      "voice": "narrator_motion",
+      "text": "採用ページに、グッズに、名刺に。",
+      "say": "採用ページに、グッズに、名刺に。"
+    },
+    {
+      "id": "v16",
+      "at": 54.5,
+      "voice": "narrator_motion",
+      "text": "自社を自慢できない社員を、ゼロに。",
+      "say": "自社を自慢できない社員を、⏸️ゼロに。"
+    },
+    {
+      "id": "v17",
+      "at": 58.25,
+      "voice": "narrator_motion",
+      "text": "crack",
+      "say": "クラック。",
+      "seconds": 1.0
+    }
   ]
 }

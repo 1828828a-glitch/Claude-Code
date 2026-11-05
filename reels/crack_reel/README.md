@@ -2,6 +2,8 @@ crack リール動画（田中さんの話）
 
 台本ちがいで3本つくっています。どれも 1080x1920、30fps、H.264 で、BGM 入りのままインスタのリールに上げられます。
 
+ナレーション入りは out/crack_reel_narr.mp4、out/crack_reel_mojicut_narr.mp4、out/crack_reel_motion_narr.mp4 です。ナレーションなしの BGM だけの版も、元のファイル名のまま残してあります。
+
 out/crack_reel.mp4 は落ち着いた版で、約1分41秒あります。黒地に明朝体が一字ずつ浮かび、背景の色で朝から夜へ移っていきます。曲はピアノと弦です。
 
 out/crack_reel_mojicut.mp4 は文字カット版で、84秒です。原稿用紙、小説の扉ページ、色紙のタイトルカード、単色のフラッシュを、BPM100 の拍に合わせて切り替えます。曲はピチカートとチェンバロで、カットの切り替わりに効果音が入ります。
@@ -34,6 +36,8 @@ narration/ に3本ぶんの台本があります。voices.json が声の設計�
     python3 narrate_mix.py narration/chic.json narration/mojicut.json narration/motion.json
 
 narrate_tts.py は Aratako/Irodori-TTS-v4.1-Small-MF（MIT、4ステップ生成）で各行を out/narration/ に書き出します。できている行は飛ばすので、直したい行の wav だけ消して再実行します。narrate_mix.py は各行を at の位置に置き、ナレーションの間だけ BGM を下げて out/*_narr.mp4 を作ります。次の行に食い込むと1.15倍までテンポを上げ、それでも収まらない行は OVERLAP と表示します。--dry-run を付けると、文字数から長さを見積もった仮の音でタイミングだけ確かめられます。生成した音声には SilentCipher の透かしが入ります。
+
+narrate_check.py は耳で聴く前の点検用です。各行を音声認識（kotoba-whisper）で文字に起こして台本とのずれに印を付け、声の見本の高さを測ります。同じ音の別の漢字（求職者と給食者、町と街など）でも印が付くので、印の付いた行は中身を見て判断します。短すぎる行は崩れやすいので、seconds で長さを明示しています。voices.json の f0 は声の高さの許容範囲で、外れたら narrate_tts.py がシードを変えて作り直します。
 
 必要なのは Playwright（Node 版）、ffmpeg、fluidsynth と fluid-soundfont-gm、Python の numpy、scipy、mido です。
 

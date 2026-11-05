@@ -50,7 +50,7 @@ def load_runtime():
     )
 
 
-def synth(rt, text, out_path, caption=None, ref=None, seed=0, duration_scale=1.0):
+def synth(rt, text, out_path, caption=None, ref=None, seed=0, duration_scale=1.0, seconds=None):
     use_caption = bool(caption)
     req = SamplingRequest(
         text=text,
@@ -65,7 +65,7 @@ def synth(rt, text, out_path, caption=None, ref=None, seed=0, duration_scale=1.0
         ref_ensure_max=True,
         num_candidates=1,
         decode_mode="sequential",
-        seconds=None,
+        seconds=None if seconds is None else float(seconds),
         duration_scale=float(duration_scale),
         max_ref_seconds=None,
         max_text_len=None,
@@ -101,6 +101,16 @@ def synth(rt, text, out_path, caption=None, ref=None, seed=0, duration_scale=1.0
     return res.audio.shape[-1] / res.sample_rate
 
 
+def median_f0(path):
+    import librosa
+    import numpy as np
+
+    y, sr = librosa.load(str(path), sr=16000)
+    f, voiced, _ = librosa.pyin(y, fmin=65, fmax=500, sr=sr)
+    f = f[voiced & ~np.isnan(f)]
+    return float(np.median(f)) if len(f) else 0.0
+
+
 def main(paths):
     voices = {}
     jobs = []
@@ -113,16 +123,30 @@ def main(paths):
 
     rt = None
 
-    # 役ごとの声の見本
+    # 役ごとの声の見本。f0 の範囲があれば、声の高さがそこに入るまでシードを変えて作り直す
     for vid, v in voices.items():
         path = OUT / "voices" / f"{vid}.wav"
         v["ref"] = path
         if path.exists():
             continue
         rt = rt or load_runtime()
-        t0 = time.time()
-        sec = synth(rt, v["sample"], path, caption=v["caption"], ref=None, seed=v.get("seed", 0))
-        print(f"voice {vid}: {sec:.1f}s audio in {time.time() - t0:.1f}s", flush=True)
+        lo, hi = v.get("f0", [0, 1000])
+        best = None
+        for k in range(v.get("tries", 6)):
+            seed = v.get("seed", 0) + k
+            tmp = OUT / "voices" / f"{vid}.try{k}.wav"
+            t0 = time.time()
+            sec = synth(rt, v["sample"], tmp, caption=v["caption"], ref=None, seed=seed)
+            hz = median_f0(tmp)
+            print(f"voice {vid} seed {seed}: {sec:.1f}s audio, F0 {hz:.0f} Hz ({time.time() - t0:.1f}s)", flush=True)
+            miss = 0 if lo <= hz <= hi else min(abs(hz - lo), abs(hz - hi))
+            if best is None or miss < best[0]:
+                best = (miss, tmp)
+            if miss == 0:
+                break
+        best[1].rename(path)
+        for f in (OUT / "voices").glob(f"{vid}.try*.wav"):
+            f.unlink()
 
     for name, line in jobs:
         path = OUT / name / f"{line['id']}.wav"
@@ -132,7 +156,8 @@ def main(paths):
         rt = rt or load_runtime()
         t0 = time.time()
         sec = synth(rt, line["say"], path, caption=line.get("caption", v["caption"]), ref=v["ref"],
-                    seed=line.get("seed", 0), duration_scale=line.get("duration_scale", 1.0))
+                    seed=line.get("seed", 0), duration_scale=line.get("duration_scale", v.get("duration_scale", 1.0)),
+                    seconds=line.get("seconds"))
         print(f"{name}/{line['id']}: {sec:.1f}s audio in {time.time() - t0:.1f}s", flush=True)
 
 
