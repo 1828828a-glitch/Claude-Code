@@ -69,11 +69,12 @@ class Overlay {
     it.el.style.setProperty('--tail', clamp(p.x - left, 18, w - 18) + 'px');
     it.el.style.transform = `translate(0, -100%) scale(${popScale(t, it.t0)})`;
   }
-  fx(it, t) {
+  fx(it, t, view) {
     const s = popScale(t, it.t0, 0.14);
     const j = it.shake ? Math.sin(t * 47) * 4 : 0, k = it.shake ? Math.cos(t * 39) * 3 : 0;
-    it.el.style.left = it.x + j + 'px';
-    it.el.style.top = it.y + k + 'px';
+    const p = it.anchor ? project(it.anchor(), view.camera) : { x: 0, y: 0 };
+    it.el.style.left = p.x + (it.x || 0) + j + 'px';
+    it.el.style.top = p.y + (it.y || 0) + k + 'px';
     it.el.style.fontSize = (it.size || 58) + 'px';
     it.el.style.transform = `translate(-50%, -50%) rotate(${it.rot || 0}deg) scale(${s})`;
   }
@@ -96,7 +97,7 @@ class Overlay {
   }
   badge(it, t) { it.el.style.transform = `scale(${popScale(t, it.t0)})`; }
   counter(it, t) {
-    const txt = yen(it.value(t));
+    const txt = (it.format || yen)(it.value(t));
     const b = it.el.lastChild;
     if (b.textContent !== txt) b.textContent = txt;
     it.el.classList.toggle('done', !!(it.done && it.done(t)));

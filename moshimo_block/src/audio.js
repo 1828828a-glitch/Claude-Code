@@ -32,6 +32,13 @@ const SFX = {
   rotor: (t, dur) => [noise(t, dur, { filter: 'lowpass', freq: 420, gain: 0.16, am: 13, amDepth: 0.12, long: true, fade: 0.6 })],
   jingle: (t) => ['G4', 'C5', 'E5', 'G5', 'C6'].map((n, i) => tone(t + i * 0.09, n, i === 4 ? 0.6 : 0.1, { wave: 'pulse25', gain: 0.08, decay: i === 4 })),
   waves: (t, dur) => [noise(t, dur, { filter: 'lowpass', freq: 650, gain: 0.07, am: 0.33, amDepth: 0.06, long: true, fade: 1.2 })],
+  stomp: (t) => [tone(t, 95, 0.4, { type: 'sine', f2: 32, gain: 0.4, decay: true }), noise(t, 0.3, { filter: 'lowpass', freq: 420, gain: 0.16, decay: true })],
+  crack: (t) => [noise(t, 0.14, { filter: 'highpass', freq: 2400, gain: 0.12, decay: true }), tone(t, 1700, 0.06, { gain: 0.03, f2: 500 })],
+  squash: (t) => [tone(t, 620, 0.26, { gain: 0.07, f2: 110 }), noise(t, 0.12, { filter: 'bandpass', freq: 900, gain: 0.08, decay: true })],
+  smash: (t) => [noise(t, 0.6, { filter: 'lowpass', freq: 1300, gain: 0.26, decay: true }), tone(t, 120, 0.55, { type: 'sine', f2: 30, gain: 0.38, decay: true })],
+  whistle: (t, dur = 0.8) => [tone(t, 1900, dur, { type: 'sine', f2: 420, gain: 0.06 })],
+  floaty: (t) => [tone(t, 380, 1.8, { type: 'sine', f2: 1300, gain: 0.07 }), tone(t + 0.05, 760, 1.6, { type: 'triangle', f2: 2400, gain: 0.025 })],
+  dust: (t) => [noise(t, 0.45, { filter: 'lowpass', freq: 800, gain: 0.12, decay: true })],
   sparkle: (t) => ['E6', 'G6', 'C7'].map((n, i) => tone(t + i * 0.06, n, 0.12, { wave: 'pulse12', gain: 0.035, decay: true })),
 };
 
@@ -55,10 +62,12 @@ const MELODY = {
   C: [3, 3, 4, 5, 6, null, 5, null],
   D: [6, null, null, 5, 4, null, 3, null],
 };
+/* o.prog（16小節のコード）、o.shape（各小節のメロディ型）、o.arp（速い分散和音を足す小節）で回ごとに曲を変える */
 function music(o = {}) {
   const beat = 60 / 128, bar = beat * 4, e = beat / 2, ev = [];
-  const prog = ['C', 'Am', 'F', 'G', 'C', 'Am', 'F', 'G', 'C', 'Am', 'Dm', 'G', 'F', 'G', 'F', 'C'];
-  const shape = ['A', 'B', 'A', 'C', 'A', 'B', 'A', 'C', 'A', 'B', 'D', 'C', 'A', 'C', 'D', null];
+  const prog = o.prog || ['C', 'Am', 'F', 'G', 'C', 'Am', 'F', 'G', 'C', 'Am', 'Dm', 'G', 'F', 'G', 'F', 'C'];
+  const shape = o.shape || ['A', 'B', 'A', 'C', 'A', 'B', 'A', 'C', 'A', 'B', 'D', 'C', 'A', 'C', 'D', null];
+  const arp = o.arp || [10, 11];
   prog.forEach((ch, b) => {
     const t0 = b * bar, lad = ladder(ch), root = CHORD_TONES[ch][0];
     const calm = b >= 14;
@@ -82,7 +91,7 @@ function music(o = {}) {
       [1, 3].forEach((k) => ev.push(noise(t0 + k * beat, 0.11, { filter: 'bandpass', freq: 2200, q: 0.7, gain: 0.07, decay: true })));
     }
     for (let i = 0; i < 8; i++) if (!calm || i % 4 === 2) ev.push(noise(t0 + i * e, 0.035, { filter: 'highpass', freq: 7000, gain: 0.025, decay: true }));
-    if (b === 10 || b === 11) {
+    if (arp.includes(b)) {
       for (let i = 0; i < 16; i++) ev.push(tone(t0 + i * e / 2, lad[3 + (i % 4)], e * 0.4, { wave: 'pulse12', gain: 0.025 }));
     }
   });

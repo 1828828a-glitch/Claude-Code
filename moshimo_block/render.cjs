@@ -1,6 +1,7 @@
 /* render.cjs — dist/moshimo-block.html を1コマずつ撮って MP4 にする
  *
- * 使い方: node moshimo_block/render.cjs [出力先.mp4] [--fps 30] [--from 秒 --to 秒] [--frames 秒,秒,...]
+ * 使い方: node moshimo_block/render.cjs [出力先.mp4] [--ep ep02] [--fps 30] [--from 秒 --to 秒] [--frames 秒,秒,...]
+ *   --ep で回を選ぶ（省略時は ep01）
  *   --frames を付けると動画は作らず、その時刻の静止画（PNG）だけを書き出す（見た目の確認用）
  * 必要なもの: Playwright（Chromium 付き）と ffmpeg
  */
@@ -11,7 +12,8 @@ const path = require('path');
 
 const args = process.argv.slice(2);
 const opt = (name, def) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : def; };
-const out = path.resolve(args.find((a, i) => !a.startsWith('--') && !(i > 0 && args[i - 1].startsWith('--'))) || path.join(__dirname, 'dist', 'ep01.mp4'));
+const ep = opt('--ep', 'ep01');
+const out = path.resolve(args.find((a, i) => !a.startsWith('--') && !(i > 0 && args[i - 1].startsWith('--'))) || path.join(__dirname, 'dist', `${ep}.mp4`));
 const fps = Number(opt('--fps', 30));
 const frames = opt('--frames', null);
 
@@ -31,7 +33,7 @@ function run(cmd, argv, stdin) {
   const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
   page.on('pageerror', (e) => console.error('[page]', e.message));
-  await page.addInitScript(() => { window.__RENDER_MODE = true; });
+  await page.addInitScript((id) => { window.__RENDER_MODE = true; window.__RENDER_EP = id; }, ep);
   const wrapper = path.join(__dirname, 'dist', '.render.html');
   fs.writeFileSync(wrapper, html);
   await page.goto('file://' + wrapper, { waitUntil: 'networkidle' });

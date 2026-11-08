@@ -1,13 +1,13 @@
 # もしもブロック劇場
 
-「もしも○○だったら」を30秒のブロック風3Dアニメにするシリーズ。第1話は「もしも社員Aだけ、秒給1万円だったら」で、はんぺんさん（@hanpen_VR）の動画をブロックの世界に描き直したファン版です。
+「もしも○○だったら」を30秒のブロック風3Dアニメにするシリーズ。第1話は「もしも社員Aだけ、秒給1万円だったら」で、はんぺんさん（@hanpen_VR）の動画をブロックの世界に描き直したファン版です。第2話「もしも部長だけ、重力が10倍だったら」はオリジナルのネタで、床を割りながら出社し、ペンを2つ下の階まで落とし、5階から1階まで1秒で退勤する部長の話です。
 
 映像はすべてコードで描いています。three.js の箱でできたジオラマとキャラ、DOM で重ねる文字、Web Audio で鳴らすピコピコ音源。どれも「時刻 t を渡すとその瞬間の姿になる」作りなので、ブラウザで再生しても、1コマずつ撮って MP4 にしても同じ絵が出ます。
 
 ```
 python moshimo_block/build.py                      # dist/moshimo-block.html を作る（Artifact にそのまま載る1枚）
-node moshimo_block/render.cjs                      # dist/ep01.mp4 を書き出す（Playwright と ffmpeg が必要、2〜3分）
-node moshimo_block/render.cjs out/ --frames 3,10   # 指定した秒の静止画だけ撮る（見た目の確認用）
+node moshimo_block/render.cjs --ep ep02            # dist/ep02.mp4 を書き出す（Playwright と ffmpeg が必要、2〜3分）
+node moshimo_block/render.cjs out/ --ep ep02 --frames 3,10   # 指定した秒の静止画だけ撮る（見た目の確認用）
 ```
 
 src/ の中身は次のとおり。build.py が上から順につないで1本の JS にします。
@@ -21,4 +21,6 @@ episodes/    1話ごとのファイル。EPISODES.push({...}) で登録する
 player.js    再生ページの操作と、書き出し用の window.__seek / __renderAudio
 ```
 
-新しい回を足すときは episodes/ にファイルを1つ増やします。build() が返すのは scenes（場面ごとの three.js シーン、カメラ、update(lt, t)）、overlay（文字の出し入れを時刻で書いたリスト）、audio（AUDIO.music() に効果音を足したリスト）、cuts（場面転換の時刻）の4つ。再生ページは今のところ EPISODES[0] を流すので、別の回を見るときはそこを差し替えてください。
+新しい回を足すときは episodes/ にファイルを1つ増やします。build() が返すのは scenes（場面ごとの three.js シーン、カメラ、update(lt, t)）、overlay（文字の出し入れを時刻で書いたリスト）、audio（AUDIO.music() に効果音を足したリスト）、cuts（場面転換の時刻）の4つ。ビルの断面（P.tower）、壊れるブロック（P.Breakables）、ひび割れ（P.crackDecal）、土けむり（P.dustPuff）は第2話で足した部品で、次の回でもそのまま使えます。
+
+再生ページの上に回の切り替えタブが並び、何も指定しなければ最新の回が出ます。リンクの末尾に #ep01 のように付けると、その回を開いた状態で共有できます。

@@ -31,6 +31,7 @@ function officeRoom(S, o = {}) {
   const x0 = -10, x1 = 9, z0 = -6, z1 = 3, top = o.wallH || 4, wz = z0 - 1;
   B.fill('foundation', x0 - 1, -2, wz, x1, -2, z1);
   B.fill(o.floor || 'carpet', x0, -1, z0, x1, -1, z1);
+  (o.holes || []).forEach(([x, z]) => { B.del(x, -1, z); B.del(x, -2, z); });
   const wallType = (y) => (y <= -1 ? 'foundation' : y === 0 ? 'wallBase' : 'wall');
   for (let x = x0 - 1; x <= x1; x++) for (let y = -1; y <= top; y++) B.set(wallType(y), x, y, wz);
   for (let z = z0; z <= z1; z++) for (let y = -1; y <= top; y++) B.set(wallType(y), x0 - 1, y, z);
@@ -219,7 +220,124 @@ function cloud(parent, pos, seed) {
   return g;
 }
 
+/* 壊れるブロック。tBreak を過ぎると消えて、かけらが飛び散る */
+class Breakables {
+  constructor(parent, seed = 1) { this.parent = parent; this.items = []; this.r = mulberry32(seed); }
+  add(mat, pos, tBreak, o = {}) {
+    const size = o.size || [1, 1, 1];
+    const m = box(this.parent, size, pos, mat, { cast: o.cast });
+    const bits = [];
+    for (let k = 0; k < (o.bits || 6); k++) {
+      const s = 0.18 + this.r() * 0.16;
+      bits.push({
+        m: box(this.parent, [s, s, s], [0, -99, 0], mat, { cast: false }),
+        v: [(this.r() - 0.5) * 3.2, 1.5 + this.r() * 3, (this.r() - 0.3) * 2.6], spin: (this.r() - 0.5) * 12,
+      });
+    }
+    this.items.push({ m, pos, tBreak, bits, life: o.life || 0.9, g: o.g || -16 });
+    return m;
+  }
+  update(t) {
+    for (const it of this.items) {
+      it.m.visible = t < it.tBreak;
+      const d = t - it.tBreak;
+      for (const b of it.bits) {
+        b.m.visible = d >= 0 && d < it.life;
+        if (!b.m.visible) continue;
+        b.m.position.set(it.pos[0] + b.v[0] * d, it.pos[1] + b.v[1] * d + 0.5 * it.g * d * d, it.pos[2] + b.v[2] * d);
+        b.m.rotation.set(d * b.spin, d * b.spin * 0.7, 0);
+        b.m.scale.setScalar(Math.max(0.01, 1 - d / it.life));
+      }
+    }
+  }
+}
+/* ひび割れの模様（床に貼るシール） */
+let CRACK_MAT = null;
+function crackDecal(parent, x, y, z, rot = 0) {
+  if (!CRACK_MAT) {
+    const tex = canvasTex(16, 16, (g) => {
+      const c = '#2a2f3a';
+      [[7, 0], [7, 1], [8, 2], [8, 3], [7, 4], [6, 5], [6, 6], [7, 7], [8, 7], [9, 8], [10, 9], [11, 9], [12, 10], [13, 11],
+        [6, 8], [5, 9], [4, 10], [3, 10], [2, 11], [1, 12], [8, 9], [8, 10], [9, 11], [9, 12], [8, 13], [8, 14], [9, 15],
+        [9, 6], [10, 5], [11, 5], [12, 4], [5, 4], [4, 3], [3, 3]].forEach(([a, b]) => px(g, c, a, b));
+    });
+    CRACK_MAT = new T.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+  }
+  const m = new T.Mesh(new T.PlaneGeometry(1, 1), CRACK_MAT);
+  m.rotation.set(-Math.PI / 2, 0, rot);
+  m.position.set(x, y + 0.012, z);
+  parent.add(m);
+  return m;
+}
+/* 土けむり（白い箱がふくらんで消える） */
+function dustPuff(parent, n = 8, seed = 3) {
+  const r = mulberry32(seed), mat = solid('#efeae0'), parts = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + r() * 0.4;
+    parts.push({ m: box(parent, [0.3, 0.3, 0.3], [0, -99, 0], mat, { cast: false }), dir: [Math.cos(a), 0.25 + r() * 0.3, Math.sin(a)], sp: 1.4 + r() * 1.2 });
+  }
+  return {
+    update(t, t0, at, life = 0.8) {
+      const d = t - t0;
+      parts.forEach((p) => {
+        p.m.visible = d >= 0 && d < life;
+        if (!p.m.visible) return;
+        const k = ease.out(d / life);
+        p.m.position.set(at[0] + p.dir[0] * p.sp * k, at[1] + 0.15 + p.dir[1] * k, at[2] + p.dir[2] * p.sp * k);
+        p.m.scale.setScalar(0.6 + 1.4 * k * (1 - k) + (1 - d / life) * 0.4);
+      });
+    },
+  };
+}
+/* 断面のビル。H ブロックごとに1フロア（床2段＋天井まで3段）。holes の [x, y, z] は空けておき、壊れるブロックに使う */
+const FLOOR_H = 5;
+function tower(S, o = {}) {
+  const floors = o.floors || 5, x0 = -6, x1 = 5, z0 = -3, z1 = 1, wz = z0 - 1;
+  const holes = new Set((o.holes || []).map((c) => c.join(',')));
+  const B = new Blocks();
+  const put = (type, x, y, z) => { if (!holes.has(`${x},${y},${z}`)) B.set(type, x, y, z); };
+  for (let f = 0; f <= floors; f++) {
+    const y = f * FLOOR_H;
+    for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) {
+      put(f === 0 || f === floors ? 'stone' : o.floor || 'carpet', x, y - 1, z);
+      put('foundation', x, y - 2, z);
+    }
+  }
+  const wallAt = (y) => { const m = ((y % FLOOR_H) + FLOOR_H) % FLOOR_H; return m >= 3 ? 'foundation' : m === 0 ? 'wallBase' : 'wall'; };
+  for (let y = -2; y < floors * FLOOR_H - 2; y++) {
+    for (let x = x0 - 1; x <= x1; x++) B.set(wallAt(y), x, y, wz);
+    for (let z = z0; z <= z1; z++) B.set(wallAt(y), x0 - 1, y, z);
+  }
+  for (let f = 0; f < floors; f++) [2, 3].forEach((x) => [1, 2].forEach((dy) => B.set('window', x, f * FLOOR_H + dy, wz)));
+  B.build(S, {}, { cast: false });
+  for (let f = 0; f < floors; f++) {
+    const sign = box(S, [0.9, 0.5, 0.05], [x0 + 0.8, f * FLOOR_H + 2.1, z0 + 0.03], faces(solid('#1d2333'), { front: glow(textTex(`${f + 1}F`, { w: 128, h: 64, size: 40, bg: '#1d2333', fg: '#f2c230' })) }));
+    sign.castShadow = false;
+  }
+  return B;
+}
+/* 影を落とす光をカメラの見ている高さへ移す（高いビルでも影が出るように） */
+function followLight(S, x, y, z) {
+  const { dir } = S.userData;
+  dir.position.set(x + 7, y + 12, z + 8);
+  dir.target.position.set(x, y, z);
+  dir.target.updateMatrixWorld();
+}
+
 const P = {
+  Breakables, crackDecal, dustPuff, tower, followLight, FLOOR_H,
   glow, screenTex, officeRoom, desk, laptop, monitor, chair, plant, shelf, wallClock, whiteboard,
   voxelArrow, coinMesh, helicopter, parasol, suitcase, sandCastle, beachBall, cloud, lam,
 };
+
+/* 回のファイルで使う小さな道具 */
+const V3 = (x, y, z) => new T.Vector3(x, y, z);
+const lerp3 = (a, b, u) => [lerp(a[0], b[0], u), lerp(a[1], b[1], u), lerp(a[2], b[2], u)];
+const headTop = (c, dy = 0.95) => () => c.head.localToWorld(V3(0, dy, 0));
+/* p0→p1 へカメラ位置、q0→q1 へ注視点を d 秒かけて動かす */
+const camPath = (p0, p1, q0, q1, fov, d) => (lt) => {
+  const u = ease.inOut(prog(lt, 0, d));
+  return { pos: lerp3(p0, p1, u), target: lerp3(q0, q1, u), fov };
+};
+/* 衝撃の時刻リストから、いまの揺れの強さを出す */
+const impact = (lt, times, amp = 0.1, decay = 10) => times.reduce((s, ti) => (lt >= ti ? s + amp * Math.exp(-(lt - ti) * decay) : s), 0);

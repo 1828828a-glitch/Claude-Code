@@ -94,6 +94,12 @@ const BLOCK_DEFS = {
     for (let i = 0; i < 10; i++) px(g, '#d2b878', (r() * 16) | 0, (r() * 16) | 0);
   } },
   sandWet: { all: (g) => noisy(g, '#cdb27a', 0.12, 121) },
+  asphalt: { all: (g) => noisy(g, '#4a4e57', 0.12, 141) },
+  brick: { all: (g) => {
+    noisy(g, '#b57656', 0.12, 151);
+    [3, 7, 11, 15].forEach((y) => px(g, '#d9c7b4', 0, y, 16, 1));
+    [[0, 3], [8, 3], [4, 7], [12, 7], [0, 11], [8, 11], [4, 15], [12, 15]].forEach(([x, y]) => px(g, '#d9c7b4', x, y - 3, 1, 3));
+  } },
   water: { all: (g) => {
     noisy(g, '#3a8fd8', 0.1, 131);
     [[2, 3, 4], [9, 6, 5], [4, 11, 3], [11, 13, 4]].forEach(([x, y, w]) => px(g, '#8cc8f4', x, y, w, 1));
@@ -133,7 +139,7 @@ class Blocks {
         for (let z = Math.min(z0, z1); z <= Math.max(z0, z1); z++) this.set(type, x, y, z);
     return this;
   }
-  build(parent, overrides = {}) {
+  build(parent, overrides = {}, opt = {}) {
     const groups = new Map();
     for (const c of this.cells.values()) {
       if (!groups.has(c[0])) groups.set(c[0], []);
@@ -145,7 +151,7 @@ class Blocks {
       const mesh = new T.InstancedMesh(UNIT, mat, list.length);
       list.forEach((c, i) => { m.makeTranslation(c[1] + 0.5, c[2] + 0.5, c[3] + 0.5); mesh.setMatrixAt(i, m); });
       mesh.receiveShadow = true;
-      mesh.castShadow = !mat.transparent;
+      mesh.castShadow = opt.cast !== false && !mat.transparent;
       parent.add(mesh);
       this.meshes[type] = mesh;
     }
@@ -218,6 +224,8 @@ function faceTex(o, expr) {
       px(g, '#8a2b2b', 6, 12, 4, 1);
     }
     if (expr !== 'shades' && expr !== 'shock') { px(g, '#f2a0a0', 3, 11); px(g, '#f2a0a0', 12, 11); }
+    if (o.brows && expr !== 'shades') { px(g, o.hair, 4, 5, 3, 1); px(g, o.hair, 9, 5, 3, 1); }
+    if (o.mustache) { px(g, o.mustache, 5, 11, 6, 1); px(g, o.mustache, 4, 12); px(g, o.mustache, 11, 12); }
     if (o.glasses && expr !== 'shades') {
       g.strokeStyle = '#3b3b48'; g.lineWidth = 1;
       g.strokeRect(3.5, 6.5, 5, 4); g.strokeRect(8.5, 6.5, 5, 4);
@@ -279,7 +287,7 @@ function makeChar(opts = {}) {
 }
 function addChar(parent, opts, pos = [0, 0, 0], rotY = 0) {
   const c = makeChar(opts);
-  c.home = { pos: pos.slice(), rotY };
+  c.home = { pos: pos.slice(), rotY, scale: opts.scale || 1 };
   parent.add(c.root);
   reset(c);
   return c;
@@ -290,7 +298,7 @@ function reset(c) {
   ['head', 'body', 'armL', 'armR', 'legL', 'legR'].forEach((k) => c[k].rotation.set(0, 0, 0));
   c.root.position.set(c.home.pos[0], c.home.pos[1], c.home.pos[2]);
   c.root.rotation.set(0, c.home.rotY, 0);
-  c.root.scale.set(1, 1, 1);
+  c.root.scale.setScalar(c.home.scale);
   c.root.visible = true;
   c.setFace('normal');
 }

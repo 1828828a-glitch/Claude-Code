@@ -33,6 +33,15 @@ body { background: var(--bg); color: var(--ink); font-family: var(--f-body); fon
 .masthead h1 { margin: 0; font-family: var(--f-pixel); font-weight: 400; font-size: clamp(26px, 4.2vw, 38px); line-height: 1.2; letter-spacing: 0.04em; text-wrap: balance; }
 .series { margin: 0; font-family: var(--f-pixel); font-size: 13px; letter-spacing: 0.14em; color: #1d2333; background: var(--gold); padding: 2px 10px; }
 
+.episodes { display: flex; flex-wrap: wrap; gap: 8px; }
+.ep-tab {
+  display: flex; align-items: baseline; gap: 8px; padding: 6px 14px 7px; cursor: pointer;
+  background: var(--paper); color: var(--ink); border: 2px solid var(--line); font-family: var(--f-body); font-size: 14px; font-weight: 700;
+}
+.ep-tab b { font-family: var(--f-pixel); font-weight: 400; color: var(--muted); font-size: 13px; }
+.ep-tab[aria-current="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); box-shadow: 3px 3px 0 var(--gold); }
+.ep-tab[aria-current="true"] b { color: inherit; opacity: 0.75; }
+.ep-tab:focus-visible { outline: 3px solid var(--link); outline-offset: 2px; }
 .theater { display: grid; gap: 12px; min-width: 0; }
 .stage-box {
   position: relative; width: 100%; max-width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
@@ -143,7 +152,7 @@ body { background: var(--bg); color: var(--ink); font-family: var(--f-body); fon
 /* ---------- 動画書き出し用（1280×720 の舞台だけを出す） ---------- */
 .render body { margin: 0; background: #1d2333; }
 .render .page { display: block; padding: 0; max-width: none; }
-.render .masthead, .render .controls, .render .chapters, .render .episode, .render .start { display: none; }
+.render .masthead, .render .episodes, .render .controls, .render .chapters, .render .episode, .render .start { display: none; }
 .render .stage-box { width: 1280px; height: 720px; aspect-ratio: auto; border: 0; box-shadow: none; }
 
 @media (prefers-reduced-motion: reduce) {
