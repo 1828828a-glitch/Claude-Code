@@ -6,6 +6,9 @@ const CAST = {
   M2: { suit: '#4c5560', tie: '#2fa59b', hair: '#1f1a17', long: true, shirt: '#f4f0e6' },
   M3: { suit: '#8a8f98', tie: '#6a5acd', hair: '#5b3b25' },
   NEW: { suit: '#c9cfd6', tie: '#7cc4f2', hair: '#3a2a1e', skin: '#f6d2ae', pants: '#7d8794' },
+  CEO: { suit: '#26282e', tie: '#f2c230', hair: '#f2f2f2', mustache: '#f2f2f2', brows: true, skin: '#eebf96', scale: 1.04 },
+  HONBU: { suit: '#5a4632', tie: '#2f62d6', hair: '#7d7d7d', glasses: true, brows: true },
+  SENMU: { suit: '#2a2a2a', tie: '#9b59b6', hair: '#d9d9d9', brows: true, mustache: '#bdbdbd' },
 };
 const SKY_DAY = ['#9fd3ef', '#e8f5fb'];
 const bump = (lt, times, h = 0.16) => times.reduce((m, ti) => { const d = lt - ti; return d >= 0 && d < 0.25 ? Math.max(m, Math.sin((d / 0.25) * Math.PI) * h) : m; }, 0);

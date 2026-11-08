@@ -95,6 +95,11 @@ const BLOCK_DEFS = {
   } },
   sandWet: { all: (g) => noisy(g, '#cdb27a', 0.12, 121) },
   asphalt: { all: (g) => noisy(g, '#4a4e57', 0.12, 141) },
+  tramp: { all: (g) => {
+    noisy(g, '#27366a', 0.08, 161);
+    for (let i = 0; i < 16; i += 4) { px(g, '#1a2348', i, 0, 1, 16); px(g, '#1a2348', 0, i, 16, 1); }
+    px(g, '#3d5096', 2, 2, 1, 1); px(g, '#3d5096', 10, 6, 1, 1);
+  } },
   brick: { all: (g) => {
     noisy(g, '#b57656', 0.12, 151);
     [3, 7, 11, 15].forEach((y) => px(g, '#d9c7b4', 0, y, 16, 1));
