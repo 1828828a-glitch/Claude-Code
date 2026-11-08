@@ -129,7 +129,7 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(30px, 5.2
 .node.route .t { font-size: 14px; }
 .node.route .s { color: var(--on-line); opacity: .85; }
 
-.node.shelf { align-self: stretch; background: var(--sunk); border: 0; border-radius: 12px; padding: 14px; display: grid; grid-template-columns: 190px repeat(5, minmax(0, 1fr)); gap: 12px; margin-top: 26px; }
+.node.shelf { align-self: stretch; background: var(--sunk); border: 0; border-radius: 12px; padding: 14px; display: grid; grid-template-columns: 190px repeat(6, minmax(0, 1fr)); gap: 12px; margin-top: 26px; }
 .shelf .head .t { font-size: 15px; color: var(--r-shelf); }
 .shelf .head .d { font-size: 11.5px; }
 .shelf .item { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 9px 10px; min-width: 0; }
@@ -171,6 +171,8 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(30px, 5.2
 .next ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px; }
 .next li { border-top: 3px solid var(--ink); padding-top: 10px; display: grid; gap: 6px; align-content: start; }
 .next li.pick { border-top-color: var(--r-api); }
+.next li.done { border-top-color: var(--r-skill); }
+.next li.done .tag { color: var(--r-skill); }
 .next li h3 { margin: 0; font-size: 15px; }
 .next li .tag { font-size: 11px; font-weight: 700; color: var(--r-api); }
 .next li p { margin: 0; font-size: 13px; color: var(--ink-2); }
@@ -189,13 +191,15 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
   <header class="top">
     <div class="eyebrow">2026年11月8日時点の .claude とリポジトリの中身から作成</div>
     <h1>Claude-Code のAI路線図</h1>
-    <p class="lede">依頼は左から右へ11列を通って形になります。入口はほぼ Claude アプリで、司令塔の Claude Code が受け、ハーネスを通ってから4つの路線に分かれる。アプリを作る路線、スキルで作る路線、外部サービスを操作する路線、外部APIを呼ぶ路線です。下の棚には、毎回読んで書き戻すルールと資産を置いています。</p>
+    <p class="lede">依頼は左から右へ11列を通って形になります。入口は Claude アプリと毎朝の定期タスクで、司令塔の Claude Code が受け、ハーネスを通ってから4つの路線に分かれる。アプリを作る路線、スキルで作る路線、外部サービスを操作する路線、外部APIを呼ぶ路線です。下の棚には、毎回読んで書き戻すルールと資産を置いています。</p>
     <ul class="facts">
-      <li><b>入口はほぼ Claude アプリ</b>、作業はクラウドのコンテナ</li>
+      <li><b>入口は Claude アプリと定期タスク</b>、作業はクラウドのコンテナ</li>
       <li><b>危ない操作</b>は guard が止めるか、あなたの確認に回す</li>
+      <li><b>外に出す操作</b>は承認ゲートで、必ずあなたが決める</li>
+      <li><b>毎朝6時50分</b>に新問の候補が3つ届く</li>
       <li><b>鍵は .env の1か所</b>、Claude Code は中を開かない</li>
-      <li><b>完了の前に</b>テスト231件と検品係を通す</li>
-      <li><b>残るのは GitHub だけ</b>、セッションは毎回消える</li>
+      <li><b>完了の前に</b>テスト334件と検品係を通す</li>
+      <li><b>記録が残るのは GitHub</b>、セッションは毎回消える</li>
     </ul>
   </header>
 
@@ -224,29 +228,39 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
 
 <div class="wrap">
   <section class="next" aria-labelledby="next-h">
-    <h2 id="next-h">KEITO版にあって、ここにまだないもの</h2>
-    <p>元の図と並べると、右半分の厚みがまるで違う。あちらは147個のスキルと独自ドメイン8つを持ち、こちらは11個とGitHubだけ。それでも差を埋める順番ははっきりしていて、今ある部品をつなぐだけで動くものから足すのがいい。</p>
+    <h2 id="next-h">2枚の図から取り入れたもの、まだないもの</h2>
+    <p>KEITO版は司令塔1つに道具が枝分かれする形で、かいさんの図は分野ごとに担当のAIを置き、本人は承認に徹する形でした。骨組みは違っても、定期で動く入口と、外に出す前の承認はどちらにもある。この2つを先に入れました。</p>
     <ol>
+      <li class="done">
+        <span class="tag">入れた</span>
+        <h3>定期実行</h3>
+        <p>フリオチ新問の朝便が、毎朝6時50分に新しいセッションで動きます。新問を3つ作って機械検査と検品係に通し、残ったものを furiochi-candidates ブランチに置く。バンクには入れず、採るかどうかはあなたが決めます。</p>
+      </li>
+      <li class="done">
+        <span class="tag">入れた</span>
+        <h3>承認ゲート</h3>
+        <p>PR とマージ、デプロイと公開、外部へのデータ送信、共有と削除、定期タスクの変更は、guard.py が必ずあなたの確認に回します。課金と契約はツールで見ていないので、CLAUDE.md の決まりで止めています。</p>
+      </li>
       <li class="pick">
-        <span class="tag">最初に足すならこれ</span>
-        <h3>定期タスクの入口</h3>
-        <p>決まった時刻にクラウドで動く入口です。毎朝フリオチの新問を3つ生成し、furiochi-problem-checker に通して、合格したものだけを候補ブランチに置く。問題生成も検品係ももうあるので、つなぐだけで回ります。</p>
+        <span class="tag">次に足すならこれ</span>
+        <h3>公開先</h3>
+        <p>候補が毎朝届いても、遊ぶのがあなた1人では問題バンクが育つだけです。Streamlit Cloud などで人に使ってもらうには、履歴が1つのJSONに共有されてしまう問題を先に解く。README の未実装にも書いてある課題です。</p>
       </li>
       <li>
         <h3>別のAIによるレビュー</h3>
         <p>KEITO は大きい成果物を Codex と Antigravity にも見せてから公開している。ここの kenpin は同じ Claude の別の目でしかありません。違うモデルの指摘を混ぜるには、PCに Codex CLI か Gemini CLI を入れて、それぞれ契約する必要があります。</p>
       </li>
       <li>
+        <h3>分野ごとの担当AI</h3>
+        <p>かいさんは研究、サイト運営、創作、暮らし、開発に1体ずつ置いている。別々に走り続ける関心が4つ5つと並んだら分ける価値が出ます。今はアプリ開発がほぼ1本なので、司令塔1つで足ります。</p>
+      </li>
+      <li>
         <h3>速い判断AI</h3>
         <p>KEITO の Jev は依頼を0.2〜0.35秒で読み、種類や取り返しのつかなさを点数にする。ここでは guard.py の決まりで代わりをさせています。決まりで拾えない曖昧な依頼が増えてきたら考えれば足ります。</p>
       </li>
-      <li>
-        <h3>公開先</h3>
-        <p>フリオチLAB を Streamlit Cloud などで人に使ってもらうには、履歴が1つのJSONに共有されてしまう問題を先に解く必要があります。README の未実装にも書いてある課題です。</p>
-      </li>
     </ol>
   </section>
-  <footer class="src">出典は .claude の settings.json・hooks・agents・skills と、CLAUDE.md、furiochi_lab、enneagram_tool、tests、このセッションにつながっているコネクタ。下敷きにしたのは、ふっく氏の投稿で紹介された KEITO のAIエコシステムの図です。</footer>
+  <footer class="src">出典は .claude の settings.json・hooks・agents・skills と、CLAUDE.md、furiochi_lab、enneagram_tool、tests、このセッションにつながっているコネクタ。下敷きにしたのは、ふっく氏の投稿で紹介された KEITO のAIエコシステムの図と、Mojofull 氏が投稿した、かいさんとAIエージェントたちの運用アーキテクチャ図です。</footer>
 </div>
 
 <script>
@@ -271,18 +285,20 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
 
   // row は路線図の行（1〜13）。棚は14行目。span は行のまたぎ
   var NODES = [
-    { id: "me", col: 1, row: 1, span: 13, kind: "person", route: "T", t: "あなた", s: "頼む・確かめる・決める" },
+    { id: "me", col: 1, row: 1, span: 14, kind: "person", route: "T", t: "あなた", s: "頼む・確かめる・決める" },
 
-    { id: "in-app", col: 2, row: 1, span: 13, group: "entry", route: "T", t: "Claude アプリ", s: "スマホ・PC・Web", d: "クラウドのセッションを開いて頼む。今回の入口もここ" },
-    { id: "in-pc", col: 2, row: 1, span: 13, group: "entry", route: "T", dashed: true, t: "PCのターミナル", s: "このリポジトリを開いたとき", d: "同じ .claude が効く。鍵とフックもそのまま" },
+    { id: "in-app", col: 2, row: 1, span: 14, group: "entry", route: "T", t: "Claude アプリ", s: "スマホ・PC・Web", d: "クラウドのセッションを開いて頼む。今回の入口もここ" },
+    { id: "in-cron", col: 2, row: 1, span: 14, group: "entry", route: "T", t: "定期タスク", s: "毎朝6時50分", d: "フリオチ新問の朝便。人がいなくても新しいセッションで動き、承認ゲートにかかる操作はしない" },
+    { id: "in-pc", col: 2, row: 1, span: 14, group: "entry", route: "T", dashed: true, t: "PCのターミナル", s: "このリポジトリを開いたとき", d: "同じ .claude が効く。鍵とフックもそのまま" },
 
-    { id: "cc", col: 3, row: 1, span: 13, kind: "cc", route: "T", t: "Claude Code", badge: "ほぼすべての入口・司令塔",
+    { id: "cc", col: 3, row: 1, span: 14, kind: "cc", route: "T", t: "Claude Code", badge: "ほぼすべての入口・司令塔",
       d: "クラウドのコンテナで動く。依頼を読み、行き先を決め、戻ってきた結果をまとめて返す。モデルの設定は Opus 5.5",
-      list: ["スキル11（リポジトリ）とアカウントのスキル", "検品係のサブエージェント3人", "フック5本", "コネクタ4つ：GitHub・Drive・Canva・Docs", "エージェントチームを有効化"] },
+      list: ["スキル11（リポジトリ）とアカウントのスキル", "検品係のサブエージェント3人", "フック5本と定期タスク1本", "コネクタ4つ：GitHub・Drive・Canva・Docs", "エージェントチームを有効化"] },
 
-    { id: "harness", col: 4, row: 1, span: 13, kind: "harness", route: "T", t: "ハーネス", s: "どの行き先に進む前にも、ここを通る",
+    { id: "harness", col: 4, row: 1, span: 14, kind: "harness", route: "T", t: "ハーネス", s: "どの行き先に進む前にも、ここを通る",
       items: [
-        { t: "guard.py", ev: "PreToolUse", d: "すべての Bash とファイル操作の前に走る。/ やホームの削除、main への force push は止める。再帰削除・sudo・force push・変更を捨てる操作・.env への接触はあなたの確認に回す" },
+        { t: "guard.py", ev: "PreToolUse", d: "すべての Bash、ファイル操作、コネクタの前に走る。ルートやホーム、プロジェクトを丸ごと消す操作と main への force push は止める。再帰削除・sudo・変更を捨てる操作・.env の読み書き・鍵の表示はあなたの確認に回す" },
+        { t: "承認ゲート", ev: "guard.py", d: "外に出す操作はあなたが決める。PR とマージ、デプロイと公開、外部への送信、共有と削除、定期タスクの変更" },
         { t: "prompt_guard.py", ev: "UserPromptSubmit", d: "チャットに貼られたAPIキーを送信前に止める。9種類の形を見る" },
         { t: "権限ルール", ev: "settings.json", d: "許可7・確認5・禁止4。テストと git の読み取りは聞かずに通す" },
         { t: "鍵は .env の1か所", ev: "scripts/with-env", d: "実行時に読み込む。Claude Code は中を開かず、セッション開始時に鍵の名前だけを受け取る" },
@@ -290,16 +306,16 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
         { t: "品質の関所", ev: "PostToolUse・Stop", d: "書いた直後に構文を確かめ、終える前にテストを回す。完了報告の前に検品係を通す" }
       ] },
 
-    { id: "rA", col: 5, row: 1, span: 3, kind: "route", route: "A", sym: "A", t: "アプリを作る・直す", s: "フリオチLAB とエニアグラム" },
-    { id: "rS", col: 5, row: 4, span: 4, kind: "route", route: "S", sym: "S", t: "スキルで作る", s: "リポジトリのスキル11個" },
-    { id: "rC", col: 5, row: 8, span: 4, kind: "route", route: "C", sym: "C", t: "外部サービスを操作", s: "コネクタ経由。判断は Claude Code" },
-    { id: "rK", col: 5, row: 12, span: 2, kind: "route", route: "K", sym: "K", t: "外部APIを呼ぶ", s: "鍵は .env から実行時に" },
+    { id: "rA", col: 5, row: 1, span: 4, kind: "route", route: "A", sym: "A", t: "アプリを作る・直す", s: "フリオチLAB とエニアグラム" },
+    { id: "rS", col: 5, row: 5, span: 4, kind: "route", route: "S", sym: "S", t: "スキルで作る", s: "リポジトリのスキル11個" },
+    { id: "rC", col: 5, row: 9, span: 4, kind: "route", route: "C", sym: "C", t: "外部サービスを操作", s: "コネクタ経由。判断は Claude Code" },
+    { id: "rK", col: 5, row: 13, span: 2, kind: "route", route: "K", sym: "K", t: "外部APIを呼ぶ", s: "鍵は .env から実行時に" },
 
     // A 路線
     { id: "a1-6", col: 6, row: 1, route: "A", code: "A01", t: "フリオチLAB", s: "7モード・62問" },
     { id: "a1-7", col: 7, row: 1, route: "A", code: "A02", t: "出題・採点・履歴", m: "furiochi_lab/engine", d: "選問、5軸の採点、弱点タグの蓄積" },
     { id: "a1-8", col: 8, row: 1, route: "A", code: "A03", t: "furiochi-problem-checker", d: "期待・尺度・型を1問ずつ見る" },
-    { id: "a1-9", col: 9, row: 1, route: "A", code: "A04", t: "pytest", d: "231件・約10秒。Stop フックが回す" },
+    { id: "a1-9", col: 9, row: 1, route: "A", code: "A04", t: "pytest", d: "334件・10秒あまり。Stop フックが回す" },
     { id: "a1-10", col: 10, row: 1, route: "A", code: "A05", t: "Streamlit とターミナル版", m: "furiochi_app.py" },
 
     { id: "a2-6", col: 6, row: 2, route: "A", code: "A06", t: "フリオチLAB Web版", s: "claude.ai で開く1ページ" },
@@ -314,96 +330,103 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
     { id: "a3-9", col: 9, row: 3, route: "A", code: "A14", t: "Streamlit" },
     { id: "a3-10", col: 10, row: 3, route: "A", code: "A15", t: "判定ページ", m: "streamlit_app.py" },
 
+    { id: "a4-6", col: 6, row: 4, route: "A", code: "A16", t: "新問の候補", s: "定期タスクが毎朝3問" },
+    { id: "a4-7", col: 7, row: 4, route: "A", code: "A17", t: "候補づくり", m: "candidates/日付.json", d: "数の少ないモードから3つ選ぶ" },
+    { id: "a4-8", col: 8, row: 4, route: "A", code: "A18", t: "check_candidates.py", d: "形を機械で検査し、problem-checker が中身を見る" },
+    { id: "a4-9", col: 9, row: 4, route: "A", code: "A19", t: "git", d: "候補の JSON だけをコミットする" },
+    { id: "a4-10", col: 10, row: 4, route: "A", code: "A20", t: "furiochi-candidates", s: "採用は人が決める" },
+
     // S 路線
-    { id: "s1-6", col: 6, row: 4, route: "S", code: "S01", t: "画像・アート", s: "ポスター・生成アート・GIF" },
-    { id: "s1-7", col: 7, row: 4, route: "S", code: "S02", t: "絵を作るスキル", chips: ["canvas-design", "algorithmic-art", "slack-gif-creator"] },
-    { id: "s1-8", col: 8, row: 4, route: "S", code: "S03", t: "kenpin", d: "仕上がりと依頼の突き合わせ" },
-    { id: "s1-9", col: 9, row: 4, route: "S", code: "S04", t: "Python と p5.js", d: "同梱フォント54書体" },
-    { id: "s1-10", col: 10, row: 4, route: "S", code: "S05", t: "PNG・PDF・GIF" },
+    { id: "s1-6", col: 6, row: 5, route: "S", code: "S01", t: "画像・アート", s: "ポスター・生成アート・GIF" },
+    { id: "s1-7", col: 7, row: 5, route: "S", code: "S02", t: "絵を作るスキル", chips: ["canvas-design", "algorithmic-art", "slack-gif-creator"] },
+    { id: "s1-8", col: 8, row: 5, route: "S", code: "S03", t: "kenpin", d: "仕上がりと依頼の突き合わせ" },
+    { id: "s1-9", col: 9, row: 5, route: "S", code: "S04", t: "Python と p5.js", d: "同梱フォント29書体・54ファイル" },
+    { id: "s1-10", col: 10, row: 5, route: "S", code: "S05", t: "PNG・PDF・GIF" },
 
-    { id: "s2-6", col: 6, row: 5, route: "S", code: "S06", t: "画面・Web", s: "ページとアプリの見た目" },
-    { id: "s2-7", col: 7, row: 5, route: "S", code: "S07", t: "画面を作るスキル", chips: ["frontend-design", "web-artifacts-builder", "theme-factory"] },
-    { id: "s2-8", col: 8, row: 5, route: "S", code: "S08", t: "webapp-testing", d: "実際に開いて動きを確かめる" },
-    { id: "s2-9", col: 9, row: 5, route: "S", code: "S09", t: "React・Tailwind・Chromium" },
-    { id: "s2-10", col: 10, row: 5, route: "S", code: "S10", t: "HTMLページ" },
+    { id: "s2-6", col: 6, row: 6, route: "S", code: "S06", t: "画面・Web", s: "ページとアプリの見た目" },
+    { id: "s2-7", col: 7, row: 6, route: "S", code: "S07", t: "画面を作るスキル", chips: ["frontend-design", "web-artifacts-builder", "theme-factory"] },
+    { id: "s2-8", col: 8, row: 6, route: "S", code: "S08", t: "webapp-testing", d: "実際に開いて動きを確かめる" },
+    { id: "s2-9", col: 9, row: 6, route: "S", code: "S09", t: "React・Tailwind・Chromium" },
+    { id: "s2-10", col: 10, row: 6, route: "S", code: "S10", t: "HTMLページ" },
 
-    { id: "s3-6", col: 6, row: 6, route: "S", code: "S11", t: "文章・資料", s: "社内向けの文書・共同執筆" },
-    { id: "s3-7", col: 7, row: 6, route: "S", code: "S12", t: "書くスキル", chips: ["doc-coauthoring", "internal-comms", "brand-guidelines"] },
-    { id: "s3-8", col: 8, row: 6, route: "S", code: "S13", t: "ja-text-checker", d: "文体ルールで1行ずつ" },
-    { id: "s3-9", col: 9, row: 6, route: "S", code: "S14", t: "アカウントのスキル", chips: ["docx", "pptx", "pdf", "ai-text-humanizer"] },
-    { id: "s3-10", col: 10, row: 6, route: "S", code: "S15", t: "Word・スライド・PDF" },
+    { id: "s3-6", col: 6, row: 7, route: "S", code: "S11", t: "文章・資料", s: "社内向けの文書・共同執筆" },
+    { id: "s3-7", col: 7, row: 7, route: "S", code: "S12", t: "書くスキル", chips: ["doc-coauthoring", "internal-comms", "brand-guidelines"] },
+    { id: "s3-8", col: 8, row: 7, route: "S", code: "S13", t: "ja-text-checker", d: "文体ルールで1行ずつ" },
+    { id: "s3-9", col: 9, row: 7, route: "S", code: "S14", t: "アカウントのスキル", chips: ["docx", "pptx", "pdf", "ai-text-humanizer"] },
+    { id: "s3-10", col: 10, row: 7, route: "S", code: "S15", t: "Word・スライド・PDF" },
 
-    { id: "s4-6", col: 6, row: 7, route: "S", code: "S16", t: "道具づくり", s: "Claude に新しい手を足す" },
-    { id: "s4-7", col: 7, row: 7, route: "S", code: "S17", t: "道具を作るスキル", chips: ["mcp-builder"] },
-    { id: "s4-8", col: 8, row: 7, route: "S", code: "S18", t: "kenpin" },
-    { id: "s4-9", col: 9, row: 7, route: "S", code: "S19", t: "MCP の SDK", s: "Python・TypeScript" },
-    { id: "s4-10", col: 10, row: 7, route: "S", code: "S20", t: "MCPサーバー" },
+    { id: "s4-6", col: 6, row: 8, route: "S", code: "S16", t: "道具づくり", s: "Claude に新しい手を足す" },
+    { id: "s4-7", col: 7, row: 8, route: "S", code: "S17", t: "道具を作るスキル", chips: ["mcp-builder"] },
+    { id: "s4-8", col: 8, row: 8, route: "S", code: "S18", t: "kenpin" },
+    { id: "s4-9", col: 9, row: 8, route: "S", code: "S19", t: "MCP の SDK", s: "Python・TypeScript" },
+    { id: "s4-10", col: 10, row: 8, route: "S", code: "S20", t: "MCPサーバー" },
 
     // C 路線
-    { id: "c1-6", col: 6, row: 8, route: "C", code: "C01", t: "コード管理" },
-    { id: "c1-7", col: 7, row: 8, route: "C", code: "C02", t: "ブランチ・PR・CI" },
-    { id: "c1-8", col: 8, row: 8, route: "C", code: "C03", t: "guard.py", d: "force push と main への push を確認に回す" },
-    { id: "c1-9", col: 9, row: 8, route: "C", code: "C04", t: "git と GitHub コネクタ" },
-    { id: "c1-10", col: 10, row: 8, route: "C", code: "C05", t: "ブランチと PR", d: "PR は頼まれたときだけ作る" },
+    { id: "c1-6", col: 6, row: 9, route: "C", code: "C01", t: "コード管理" },
+    { id: "c1-7", col: 7, row: 9, route: "C", code: "C02", t: "ブランチ・PR・CI" },
+    { id: "c1-8", col: 8, row: 9, route: "C", code: "C03", t: "guard.py", d: "force push と main への push を確認に回す" },
+    { id: "c1-9", col: 9, row: 9, route: "C", code: "C04", t: "git と GitHub コネクタ" },
+    { id: "c1-10", col: 10, row: 9, route: "C", code: "C05", t: "ブランチと PR", d: "PR は頼まれたときだけ作る" },
 
-    { id: "c2-6", col: 6, row: 9, route: "C", code: "C06", t: "ファイル" },
-    { id: "c2-7", col: 7, row: 9, route: "C", code: "C07", t: "探す・読む・作る" },
-    { id: "c2-9", col: 9, row: 9, route: "C", code: "C08", t: "Google Drive コネクタ" },
-    { id: "c2-10", col: 10, row: 9, route: "C", code: "C09", t: "Drive のファイル" },
+    { id: "c2-6", col: 6, row: 10, route: "C", code: "C06", t: "ファイル" },
+    { id: "c2-7", col: 7, row: 10, route: "C", code: "C07", t: "探す・読む・作る" },
+    { id: "c2-9", col: 9, row: 10, route: "C", code: "C08", t: "Google Drive コネクタ" },
+    { id: "c2-10", col: 10, row: 10, route: "C", code: "C09", t: "Drive のファイル" },
 
-    { id: "c3-6", col: 6, row: 10, route: "C", code: "C10", t: "デザイン" },
-    { id: "c3-7", col: 7, row: 10, route: "C", code: "C11", t: "生成・編集・書き出し" },
-    { id: "c3-9", col: 9, row: 10, route: "C", code: "C12", t: "Canva コネクタ" },
-    { id: "c3-10", col: 10, row: 10, route: "C", code: "C13", t: "Canva のデザイン" },
+    { id: "c3-6", col: 6, row: 11, route: "C", code: "C10", t: "デザイン" },
+    { id: "c3-7", col: 7, row: 11, route: "C", code: "C11", t: "生成・編集・書き出し" },
+    { id: "c3-9", col: 9, row: 11, route: "C", code: "C12", t: "Canva コネクタ" },
+    { id: "c3-10", col: 10, row: 11, route: "C", code: "C13", t: "Canva のデザイン" },
 
-    { id: "c4-6", col: 6, row: 11, route: "C", code: "C14", t: "共同編集の文書" },
-    { id: "c4-7", col: 7, row: 11, route: "C", code: "C15", t: "書く・コメントに答える" },
-    { id: "c4-9", col: 9, row: 11, route: "C", code: "C16", t: "Claude Docs" },
-    { id: "c4-10", col: 10, row: 11, route: "C", code: "C17", t: "共有できる Doc" },
+    { id: "c4-6", col: 6, row: 12, route: "C", code: "C14", t: "共同編集の文書" },
+    { id: "c4-7", col: 7, row: 12, route: "C", code: "C15", t: "書く・コメントに答える" },
+    { id: "c4-9", col: 9, row: 12, route: "C", code: "C16", t: "Claude Docs" },
+    { id: "c4-10", col: 10, row: 12, route: "C", code: "C17", t: "共有できる Doc" },
 
     // K 路線
-    { id: "k1-6", col: 6, row: 12, route: "K", code: "K01", t: "AI講評", s: "フリオチLAB の回答に" },
-    { id: "k1-7", col: 7, row: 12, route: "K", code: "K02", t: "講評の組み立て", m: "ai_coach.py", d: "期待、ズレ、内訳、改善2つ、別案の順" },
-    { id: "k1-8", col: 8, row: 12, route: "K", code: "K03", t: "安全判定は別枠", m: "rubric.py", d: "点数に混ぜない" },
-    { id: "k-9", col: 9, row: 12, span: 2, route: "K", code: "K04", t: "Anthropic API", d: "claude-opus-5-5、思考量 medium。鍵がなければ自己採点に切り替わる", chips: ["ANTHROPIC_API_KEY"] },
-    { id: "k1-10", col: 10, row: 12, route: "K", code: "K05", t: "講評・成立例・別案" },
+    { id: "k1-6", col: 6, row: 13, route: "K", code: "K01", t: "AI講評", s: "フリオチLAB の回答に" },
+    { id: "k1-7", col: 7, row: 13, route: "K", code: "K02", t: "講評の組み立て", m: "ai_coach.py", d: "期待、ズレ、内訳、改善2つ、別案の順" },
+    { id: "k1-8", col: 8, row: 13, route: "K", code: "K03", t: "安全判定は別枠", m: "rubric.py", d: "点数に混ぜない" },
+    { id: "k-9", col: 9, row: 13, span: 2, route: "K", code: "K04", t: "Anthropic API", d: "claude-opus-5-5、思考量 medium。鍵がなければ自己採点に切り替わる", chips: ["ANTHROPIC_API_KEY"] },
+    { id: "k1-10", col: 10, row: 13, route: "K", code: "K05", t: "講評・成立例・別案" },
 
-    { id: "k2-6", col: 6, row: 13, route: "K", code: "K06", t: "問題生成", s: "同じ形式の新問" },
-    { id: "k2-7", col: 7, row: 13, route: "K", code: "K07", t: "生成プロンプト", m: "GENERATION_SYSTEM" },
-    { id: "k2-8", col: 8, row: 13, route: "K", code: "K08", t: "furiochi-problem-checker", d: "採用する前に1問ずつ" },
-    { id: "k2-10", col: 10, row: 13, route: "K", code: "K09", t: "G- で始まる新問" },
+    { id: "k2-6", col: 6, row: 14, route: "K", code: "K06", t: "問題生成", s: "同じ形式の新問" },
+    { id: "k2-7", col: 7, row: 14, route: "K", code: "K07", t: "生成プロンプト", m: "GENERATION_SYSTEM" },
+    { id: "k2-8", col: 8, row: 14, route: "K", code: "K08", t: "furiochi-problem-checker", d: "採用する前に1問ずつ" },
+    { id: "k2-10", col: 10, row: 14, route: "K", code: "K09", t: "G- で始まる新問" },
 
     // 公開
-    { id: "gh", col: 11, row: 1, span: 3, route: "T", t: "GitHub", m: "1828828a-glitch/Claude-Code", d: "作業はブランチに push する。セッションが消えても残るのはここだけ" },
-    { id: "art", col: 11, row: 4, span: 4, route: "T", t: "claude.ai の Artifact", d: "フリオチLAB の Web版と、この図" },
+    { id: "gh", col: 11, row: 1, span: 4, route: "T", t: "GitHub", m: "1828828a-glitch/Claude-Code", d: "作業はブランチに push する。セッションが消えても残るのはここだけ" },
+    { id: "art", col: 11, row: 5, span: 4, route: "T", t: "claude.ai の Artifact", d: "フリオチLAB の Web版と、この図" },
 
     // 棚
-    { id: "shelf", col: 2, row: 14, colEnd: 12, kind: "shelf", route: "B", t: "ナレッジと資産の棚", d: "依頼のたびにここから読み、決まりはここへ書き戻す",
+    { id: "shelf", col: 2, row: 15, colEnd: 12, kind: "shelf", route: "B", t: "ナレッジと資産の棚", d: "依頼のたびにここから読み、決まりはここへ書き戻す",
       items: [
         { t: "CLAUDE.md", m: "リポジトリ直下", d: "常設ルールと書き足した決まり。クラウドは毎回消えるので記憶メモの代わりになる" },
         { t: "README", m: "furiochi_lab/README.md", d: "設計書の要約、起動方法、未実装の範囲" },
         { t: "問題バンク", m: "data/problems.py", d: "62問。成立例と採点ヒントつき" },
         { t: "型の辞典", m: "data/taxonomy.py", d: "12の基本型、20技法、28作品の構造分析" },
-        { t: "git の履歴", m: "16コミット", d: "どの版にも戻せる。セッションをまたいで残る唯一の記録" }
+        { t: "git の履歴", m: "18コミット", d: "どの版にも戻せる。セッションをまたいで残る唯一の記録" },
+        { t: "新問の候補", m: "furiochi-candidates", d: "定期タスクが毎朝置いていく。バンクに入れるかは人が決める" }
       ] }
   ];
 
   var EDGES = [
-    ["me", "in-app", "T"], ["me", "in-pc", "T", "dashed"],
-    ["in-app", "cc", "T"], ["in-pc", "cc", "T", "dashed"],
+    ["me", "in-app", "T"], ["me", "in-cron", "T"], ["me", "in-pc", "T", "dashed"],
+    ["in-app", "cc", "T"], ["in-cron", "cc", "T"], ["in-pc", "cc", "T", "dashed"],
     ["cc", "harness", "T"],
     ["harness", "rA", "A"], ["harness", "rS", "S"], ["harness", "rC", "C"], ["harness", "rK", "K"],
-    ["rA", "a1-6", "A"], ["rA", "a2-6", "A"], ["rA", "a3-6", "A"],
+    ["rA", "a1-6", "A"], ["rA", "a2-6", "A"], ["rA", "a3-6", "A"], ["rA", "a4-6", "A"],
     ["rS", "s1-6", "S"], ["rS", "s2-6", "S"], ["rS", "s3-6", "S"], ["rS", "s4-6", "S"],
     ["rC", "c1-6", "C"], ["rC", "c2-6", "C"], ["rC", "c3-6", "C"], ["rC", "c4-6", "C"],
     ["rK", "k1-6", "K"], ["rK", "k2-6", "K"],
-    ["a1-10", "gh", "A"], ["a3-10", "gh", "A"], ["c1-10", "gh", "C"],
+    ["a1-10", "gh", "A"], ["a3-10", "gh", "A"], ["a4-10", "gh", "A"], ["c1-10", "gh", "C"],
     ["a2-10", "art", "A"], ["s2-10", "art", "S"],
     ["k1-6", "k1-7", "K"], ["k1-7", "k1-8", "K"], ["k2-6", "k2-7", "K"], ["k2-7", "k2-8", "K"],
     ["k1-8", "k-9", "K"], ["k2-8", "k-9", "K"], ["k-9", "k1-10", "K"], ["k-9", "k2-10", "K"]
   ];
   // 同じ行で左から右へ並ぶ駅は順につなぐ。K 路線は API の駅を2行で共有するので上で個別に引いた
-  ["a1", "a2", "a3", "s1", "s2", "s3", "s4", "c1", "c2", "c3", "c4"].forEach(function (r) {
+  ["a1", "a2", "a3", "a4", "s1", "s2", "s3", "s4", "c1", "c2", "c3", "c4"].forEach(function (r) {
     var row = NODES.filter(function (n) { return n.id.indexOf(r + "-") === 0; }).sort(function (a, b) { return a.col - b.col; });
     for (var i = 0; i + 1 < row.length; i++) EDGES.push([row[i].id, row[i + 1].id, row[i].route]);
   });
