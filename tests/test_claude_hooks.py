@@ -297,3 +297,165 @@ def test_agents_have_frontmatter():
         head = md.read_text(encoding="utf-8").split("---")[1]
         assert f"name: {md.stem}" in head
         assert "description:" in head
+
+
+# ── kenpin の差し戻しで足したケース ───────────────────────
+
+def guard_in(cwd, command):
+    out = run_hook("guard.py", {"hook_event_name": "PreToolUse", "tool_name": "Bash", "cwd": str(cwd),
+                                "tool_input": {"command": command}})
+    return out["hookSpecificOutput"]["permissionDecision"] if out else None
+
+
+@pytest.fixture
+def dir_with_env(tmp_path):
+    (tmp_path / ".env").write_text("ANTHROPIC_API_KEY=dummy\n", encoding="utf-8")
+    (tmp_path / "sub").mkdir()
+    return tmp_path
+
+
+@pytest.mark.parametrize("command", [
+    f"rm -rf {ROOT.parent}",
+    f"rm -rf {Path.home()}",
+    f"rm -rf {ROOT}",
+    "rm -rf .",
+    "rm -rf ..",
+])
+def test_guard_denies_deleting_home_or_project(command):
+    assert guard_in(ROOT, command) == "deny"
+
+
+@pytest.mark.parametrize("command", [
+    "echo '' > .env",
+    "printf 'X=1\\n' >> .env",
+    "cp /tmp/x .env",
+    "mv .env.example .env",
+    "python3 make_env.py > .env",
+    "grep -r ANTHROPIC .",
+    "grep -rn KEY {tmp}",
+    "egrep -R token",
+])
+def test_guard_asks_when_env_could_be_overwritten_or_dumped(dir_with_env, command):
+    assert guard_in(dir_with_env, command.format(tmp=dir_with_env)) == "ask"
+
+
+@pytest.mark.parametrize("command", [
+    "grep -r --exclude='.env*' KEY .",
+    "grep -rn KEY sub",
+    "grep -n KEY furiochi.py",
+    "echo 'ANTHROPIC_API_KEY=' > .env.example",
+])
+def test_guard_lets_safe_variants_through_even_with_env(dir_with_env, command):
+    assert guard_in(dir_with_env, command) is None
+
+
+@pytest.mark.parametrize("command", [
+    "scripts/with-env printenv ANTHROPIC_API_KEY",
+    "scripts/with-env sh -c 'echo $ANTHROPIC_API_KEY'",
+    "echo ${GITHUB_TOKEN}",
+    "printf '%s' \"$DB_PASSWORD\"",
+    "git restore --staged --worktree .",
+    "git restore furiochi_app.py",
+    "git checkout -- furiochi_app.py",
+    "git checkout -f main",
+    "git switch -f main",
+    "git switch --discard-changes main",
+])
+def test_guard_asks_for_key_display_and_discarding_changes(command):
+    assert guard("Bash", command=command) == "ask"
+
+
+@pytest.mark.parametrize("command", [
+    "git diff HEAD~2 | grep -n '.env'",
+    "grep -rn '\\.env' .claude",
+    "git commit -m 'Ignore .env'",
+    "git check-ignore -v .env",
+    "git status --ignored .env",
+    "git log --oneline -- .env.example",
+    "git rm --cached .env",
+    "echo 'ANTHROPIC_API_KEY=' > .env",
+    "printenv HOME",
+    "git switch main",
+    "git checkout claude/foo",
+])
+def test_guard_no_longer_bothers_on_harmless_commands(command):
+    assert guard("Bash", command=command) is None
+
+
+# ── 承認ゲート：外に出す操作 ──────────────────────────────
+
+@pytest.mark.parametrize("command", [
+    "gh pr create --title x --body y",
+    "gh pr merge 3 --squash",
+    "gh issue comment 5 -b hi",
+    "gh release create v1.0",
+    "gh api repos/o/r/issues -f title=x",
+    "gh api -X DELETE repos/o/r/branches/x",
+    "vercel --prod",
+    "vercel",
+    "wrangler deploy",
+    "wrangler pages deploy dist",
+    "npm publish",
+    "twine upload dist/*",
+    "docker push example/app",
+    "firebase deploy",
+    "curl -X POST https://api.example.com/x",
+    "curl -d 'a=1' https://example.com/form",
+    "curl --json '{\"a\":1}' https://example.com/api",
+    "curl -F file=@a.png https://example.com/upload",
+    "wget --post-data=a=1 https://example.com/form",
+])
+def test_approval_gate_asks_before_publishing_or_sending(command):
+    out = run_hook("guard.py", {"tool_name": "Bash", "tool_input": {"command": command}})
+    assert out["hookSpecificOutput"]["permissionDecision"] == "ask"
+    assert "承認ゲート" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+
+@pytest.mark.parametrize("command", [
+    "gh api -X GET search/code -f q=furiochi",
+    "gh pr view 3",
+    "gh pr list",
+    "vercel whoami",
+    "curl -fsSL https://example.com/a.json -o a.json",
+    "curl -sSL -H 'Accept: application/json' https://example.com/api",
+    "curl -X POST http://localhost:8501/api",
+    "curl -G -d q=1 https://example.com/search",
+    "npm install",
+    "docker build -t app .",
+])
+def test_approval_gate_lets_reading_through(command):
+    assert guard("Bash", command=command) is None
+
+
+@pytest.mark.parametrize("tool", [
+    "mcp__github__create_pull_request",
+    "mcp__github__merge_pull_request",
+    "mcp__github__push_files",
+    "mcp__github__add_issue_comment",
+    "mcp__github__pull_request_review_write",
+    "mcp__Google_Drive__share_file",
+    "mcp__Google_Drive__trash_file",
+    "mcp__Claude_Docs__delete",
+    "mcp__Canva__comment-on-design",
+    "mcp__Canva__publish-brand-template",
+    "mcp__claude-code-remote__create_trigger",
+    "mcp__claude-code-remote__update_trigger",
+    "mcp__claude-code-remote__send_message",
+    "mcp__slack__post_message",
+])
+def test_approval_gate_asks_for_outward_connector_tools(tool):
+    assert guard(tool) == "ask"
+
+
+@pytest.mark.parametrize("tool", [
+    "mcp__github__get_file_contents",
+    "mcp__github__list_pull_requests",
+    "mcp__github__pull_request_read",
+    "mcp__Google_Drive__search_files",
+    "mcp__Google_Drive__list_shared_drives",
+    "mcp__Canva__generate-design",
+    "mcp__claude-code-remote__add_repo",
+    "mcp__claude-code-remote__list_triggers",
+])
+def test_approval_gate_lets_reading_connector_tools_through(tool):
+    assert guard(tool) is None

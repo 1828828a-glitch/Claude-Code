@@ -12,10 +12,16 @@ Bash のコマンドと、ファイルを読む・書くツールの行き先を
 
 鍵は .env の1か所に置き、使うときは scripts/with-env が実行時に読む。
 Claude Code が中身を開く必要はないので、開こうとしたら必ず人に聞く。
+
+承認ゲート：壊す操作とは別に、外に出す操作も人の承認に回す。
+PR の作成・マージ・コメント、デプロイと公開、外部へのデータ送信、
+共有範囲を広げる操作、外部サービス上での削除、定期タスクの作成と変更。
+コネクタ（mcp__ で始まるツール）もここで見る。
 """
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import os
 import re
@@ -34,8 +40,21 @@ CONTROL_OPS = {";", "&&", "||", "|", "&", "|&", "(", ")", ";;", "{", "}"}
 PROTECTED_BRANCHES = {"main", "master"}
 CATASTROPHIC_RM_TARGETS = {"/", "/*", "~", "~/", "~/*", "$HOME", "$HOME/", "$HOME/*", "${HOME}", "${HOME}/", "${HOME}/*"}
 
-# 鍵ファイル名が出てきても中身を読まないコマンド
+# 鍵ファイル名が出てきても中身を読まないコマンド（書き込みはリダイレクトの側で見る）
 NON_READING_COMMANDS = {"echo", "printf", "ls", "test", "[", "[[", "touch", "stat", "basename", "dirname", "realpath", "readlink", "which"}
+GREP_COMMANDS = {"grep", "egrep", "fgrep"}
+# 中身を表示しない git のサブコマンド。ファイル名やメッセージに .env が出てきても通す
+GIT_NON_READING = {"status", "check-ignore", "check-attr", "ls-files", "log", "commit", "rm"}
+SECRET_VAR = re.compile(r"(?i)[A-Z0-9_]*(KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL)[A-Z0-9_]*")
+SECRET_VAR_REF = re.compile(r"(?i)\$\{?[A-Z0-9_]*(KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL)[A-Z0-9_]*")
+
+# 判定のときの作業ディレクトリ。decide() が Claude Code から受け取った cwd を入れる
+CWD = os.getcwd()
+
+
+def _abs(path: str) -> str:
+    p = os.path.expanduser(os.path.expandvars(path.strip("\"'")))
+    return os.path.normpath(p if os.path.isabs(p) else os.path.join(CWD, p))
 WRAPPERS = {"nohup", "time", "command", "exec", "nice", "timeout", "stdbuf", "xargs"}
 SHELLS = {"sh", "bash", "zsh", "dash", "ksh"}
 
@@ -131,9 +150,13 @@ def _check_rm(args: list[str]) -> tuple[str, str] | None:
     if not recursive:
         return None
     targets = [a for a in args if not a.startswith("-")]
+    protected = {os.path.normpath(os.path.expanduser("~")), _abs(os.environ.get("CLAUDE_PROJECT_DIR") or CWD)}
     for t in targets:
         if t in CATASTROPHIC_RM_TARGETS:
             return DENY, f"rm -r で {t} を消そうとしています。ルートやホームの丸ごと削除は止めます"
+        p = _abs(t[:-2] if t.endswith("/*") else t)
+        if p == "/" or any(q == p or q.startswith(p.rstrip("/") + "/") for q in protected):
+            return DENY, f"rm -r で {t} を消そうとしています。ホームやこのプロジェクトを丸ごと含む削除は止めます"
     what = "rm -rf" if force else "rm -r"
     return ASK, f"{what} で再帰削除します（対象: {' '.join(targets) or '不明'}）"
 
@@ -161,7 +184,7 @@ def _check_git(args: list[str]) -> tuple[str, str] | None:
         if force and to_protected:
             return DENY, "main/master への force push は止めます。履歴が消えて戻せなくなります"
         if force:
-            return ASK, "force push で リモートの履歴を書き換えます"
+            return ASK, "force push でリモートの履歴を書き換えます"
         if "--delete" in flags or "-d" in flags or any(r.startswith(":") for r in refs):
             return ASK, "リモートのブランチを削除します"
         if to_protected:
@@ -172,12 +195,12 @@ def _check_git(args: list[str]) -> tuple[str, str] | None:
         return ASK, "git reset --hard で未コミットの変更を捨てます"
     elif sub == "clean" and flags & {"-f", "--force"}:
         return ASK, "git clean -f で追跡していないファイルを消します"
-    elif sub == "checkout" and "--" in rest and "." in rest[rest.index("--"):]:
-        return ASK, "git checkout -- . で作業中の変更を捨てます"
-    elif sub == "checkout" and positional == ["."]:
-        return ASK, "git checkout . で作業中の変更を捨てます"
-    elif sub == "restore" and "." in positional and not flags & {"--staged", "-S"}:
-        return ASK, "git restore . で作業中の変更を捨てます"
+    elif sub == "checkout" and ("--" in rest or positional == ["."] or flags & {"-f", "--force"}):
+        return ASK, f"git checkout {' '.join(rest)} で作業中の変更を捨てます"
+    elif sub == "switch" and flags & {"-f", "--force", "--discard-changes"}:
+        return ASK, "git switch -f で作業中の変更を捨てます"
+    elif sub == "restore" and (flags & {"--worktree", "-W"} or not flags & {"--staged", "-S"}):
+        return ASK, f"git restore {' '.join(positional) or ''} で作業中の変更を捨てます".replace("  ", " ")
     elif sub == "branch" and flags & {"-D"}:
         return ASK, "git branch -D でマージしていないブランチも消します"
     elif sub == "stash" and positional[:1] in (["drop"], ["clear"]):
@@ -187,18 +210,213 @@ def _check_git(args: list[str]) -> tuple[str, str] | None:
     return None
 
 
-def _check_secret_args(name: str, args: list[str]) -> tuple[str, str] | None:
-    if name in NON_READING_COMMANDS:
+GATE = "承認ゲート："
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"}
+WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+GH_GATED = {
+    "pr": {"create", "merge", "close", "reopen", "comment", "review", "edit", "ready"},
+    "issue": {"create", "comment", "close", "reopen", "edit", "delete", "transfer"},
+    "release": {"create", "upload", "delete", "edit"},
+    "repo": {"create", "delete", "edit", "fork", "rename", "archive"},
+    "workflow": {"run", "enable", "disable"},
+    "run": {"rerun", "cancel", "delete"},
+    "secret": {"set", "delete"},
+    "variable": {"set", "delete"},
+    "gist": {"create", "edit", "delete"},
+}
+
+
+def _option_value(args: list[str], names: tuple[str, ...]) -> str | None:
+    for i, a in enumerate(args):
+        for n in names:
+            if a == n and i + 1 < len(args):
+                return args[i + 1]
+            if n.startswith("--") and a.startswith(n + "="):
+                return a.split("=", 1)[1]
+            if not n.startswith("--") and a.startswith(n) and len(a) > len(n):
+                return a[len(n):]
+    return None
+
+
+def _check_gh(args: list[str]) -> tuple[str, str] | None:
+    positional = [a for a in args if not a.startswith("-")]
+    if not positional:
         return None
-    candidates = args
-    if name in ("cp", "mv", "rsync", "scp", "install"):
-        plain = [a for a in args if not a.startswith("-")]
-        candidates = plain[:-1]  # 最後は書き込み先
-    for a in candidates:
+    group = positional[0]
+    action = positional[1] if len(positional) > 1 else ""
+    if group in GH_GATED and action in GH_GATED[group]:
+        return ASK, f"{GATE}gh {group} {action} で GitHub に書き込みます"
+    if group == "api":
+        method = (_option_value(args, ("-X", "--method")) or "").upper()
+        has_fields = any(a in ("-f", "-F", "--field", "--raw-field", "--input") or a.startswith(("--field=", "--raw-field=", "--input="))
+                         for a in args)
+        if method in WRITE_METHODS or (has_fields and method != "GET"):
+            return ASK, f"{GATE}gh api で GitHub に書き込みます（{method or 'POST'}）"
+    return None
+
+
+def _check_deploy(name: str, args: list[str]) -> tuple[str, str] | None:
+    positional = [a for a in args if not a.startswith("-")]
+    first = positional[0] if positional else ""
+    hit = False
+    if name == "vercel":
+        hit = first not in {"whoami", "ls", "list", "inspect", "logs", "help", "login", "logout", "env", "pull", "link", "dev", "build", "--version"}
+    elif name == "wrangler":
+        hit = first in {"deploy", "publish", "delete", "rollback"} or (first == "pages" and "deploy" in positional) or (
+            first == "secret" and len(positional) > 1 and positional[1] in {"put", "delete", "bulk"})
+    elif name in ("netlify", "firebase", "fly", "flyctl"):
+        hit = first == "deploy"
+    elif name in ("npm", "pnpm", "yarn", "bun"):
+        hit = first == "publish"
+    elif name == "twine":
+        hit = first == "upload"
+    elif name == "poetry":
+        hit = first == "publish"
+    elif name == "docker":
+        hit = first == "push"
+    elif name == "terraform":
+        hit = first in {"apply", "destroy"}
+    elif name == "kubectl":
+        hit = first in {"apply", "delete", "replace", "patch", "scale", "rollout"}
+    elif name == "gcloud":
+        hit = "deploy" in positional
+    if hit:
+        return ASK, f"{GATE}{name} {first}".rstrip() + " で外に公開・反映します"
+    return None
+
+
+def _non_local_url(args: list[str]) -> bool:
+    for a in args:
+        if "://" in a:
+            host = a.split("://", 1)[1].split("/", 1)[0].split("@")[-1]
+            host = host.rsplit(":", 1)[0] if host.count(":") == 1 else host
+            if host.lower() not in LOCAL_HOSTS:
+                return True
+    return False
+
+
+def _check_send(name: str, args: list[str]) -> tuple[str, str] | None:
+    if not _non_local_url(args):
+        return None
+    sending = False
+    if name == "curl":
+        method = (_option_value(args, ("-X", "--request")) or "").upper()
+        get_mode = "-G" in args or "--get" in args
+        long_data = any(a.startswith(("--data", "--json", "--form", "--upload-file")) for a in args)
+        short_data = any(a.startswith("-") and not a.startswith("--") and any(ch in a[1:] for ch in "dFT")
+                         and "X" not in a[1:2] for a in args)
+        sending = method in WRITE_METHODS or ((long_data or short_data) and not get_mode and method != "GET")
+    elif name == "wget":
+        method = (_option_value(args, ("--method",)) or "").upper()
+        sending = method in WRITE_METHODS or any(a.startswith(("--post-data", "--post-file", "--body-data", "--body-file")) for a in args)
+    if sending:
+        return ASK, f"{GATE}{name} で外部にデータを送ります"
+    return None
+
+
+def check_mcp(tool_name: str) -> tuple[str, str] | None:
+    parts = tool_name.split("__")
+    if len(parts) < 3:
+        return None
+    server, action = parts[1], "__".join(parts[2:])
+    head = re.split(r"[_\-]", action, maxsplit=1)[0].lower()
+    if server == "github" and (
+            head in {"create", "merge", "push", "delete", "fork", "add", "update", "enable", "disable", "resolve", "unresolve", "request"}
+            or action.endswith("_write") or action == "actions_run_trigger"):
+        return ASK, f"{GATE}GitHub に書き込みます（{action}）"
+    if server == "claude-code-remote" and action in {"create_trigger", "update_trigger", "delete_trigger", "fire_trigger"}:
+        return ASK, f"{GATE}定期タスクを作る・変える・動かします（{action}）"
+    if head in {"send", "post", "publish", "share", "delete", "trash", "merge", "deploy", "comment", "reply"}:
+        return ASK, f"{GATE}{server} で外に出す・消す操作をします（{action}）"
+    return None
+
+
+GREP_OPTS_WITH_VALUE = {"-e", "--regexp", "-f", "--file", "-m", "--max-count", "-A", "-B", "-C", "--context",
+                        "--after-context", "--before-context", "--include", "--exclude", "--exclude-dir", "-d",
+                        "--directories", "-D", "--label", "-g", "--glob", "-t", "--type", "-T", "--type-not"}
+
+
+def _grep_files(args: list[str]) -> list[str]:
+    """grep・rg の引数から、検索パターンを除いたファイルの並びを取り出す"""
+    has_e = False
+    positional: list[str] = []
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a in ("-e", "--regexp", "-f", "--file") or a.startswith(("--regexp=", "--file=")) or (
+                a.startswith("-e") and not a.startswith("--") and len(a) > 2):
+            has_e = True
+        if a in GREP_OPTS_WITH_VALUE:
+            i += 2
+            continue
+        if not a.startswith("-"):
+            positional.append(a)
+        i += 1
+    return positional if has_e else positional[1:]
+
+
+def _check_grep_recursive(args: list[str]) -> tuple[str, str] | None:
+    flags = _short_flags(args)
+    recursive = bool(flags & {"-r", "-R", "--recursive", "--dereference-recursive"}) or \
+        _option_value(args, ("-d", "--directories")) == "recurse"
+    if not recursive:
+        return None
+    excludes = [args[i + 1] for i, a in enumerate(args[:-1]) if a == "--exclude"] + \
+        [a.split("=", 1)[1] for a in args if a.startswith("--exclude=")]
+    if any(fnmatch.fnmatch(".env", pat.strip("\"'")) for pat in excludes):
+        return None
+    for t in _grep_files(args) or ["."]:
+        d = _abs(t)
+        try:
+            names = os.listdir(d) if os.path.isdir(d) else []
+        except OSError:
+            names = []
+        if any(is_secret_path(n) for n in names):
+            return ASK, (f"grep -r は .gitignore を見ないので、{t} にある鍵ファイルの中身まで出力に出ます。"
+                         "Grep ツールか git grep を使うか、--exclude='.env*' を付けてください")
+    return None
+
+
+def _check_value_display(name: str, args: list[str]) -> tuple[str, str] | None:
+    if name in ("echo", "printf") and any(SECRET_VAR_REF.search(a) for a in args):
+        return ASK, "鍵らしき環境変数の値を画面に出します"
+    if name == "printenv" and any(SECRET_VAR.fullmatch(a) for a in args if not a.startswith("-")):
+        return ASK, "鍵らしき環境変数の値を画面に出します"
+    return None
+
+
+def _secret_hit(paths: list[str]) -> str | None:
+    for a in paths:
         for part in [a, *a.split("=")[1:]]:
             if is_secret_path(part):
-                return ASK, f"鍵ファイル {os.path.basename(part)} に触れます。中身は scripts/with-env が実行時に読むので、開く必要があるか確認してください"
+                return os.path.basename(part.strip("\"'"))
     return None
+
+
+def _check_secret_args(name: str, args: list[str]) -> tuple[str, str] | None:
+    read_msg = "鍵ファイル {} に触れます。中身は scripts/with-env が実行時に読むので、開く必要があるか確認してください"
+    if name in GREP_COMMANDS or name in ("rg", "ag"):
+        hit = _secret_hit(_grep_files(args))
+        return (ASK, read_msg.format(hit)) if hit else None
+    if name == "git":
+        sub, rest = _git_subcommand(args)
+        if sub in GIT_NON_READING:
+            return None
+        hit = _secret_hit(rest)
+        return (ASK, read_msg.format(hit)) if hit else None
+    if name in NON_READING_COMMANDS:
+        return None
+    if name in ("cp", "mv", "rsync", "scp", "install", "ln"):
+        plain = [a for a in args if not a.startswith("-")]
+        hit = _secret_hit(plain[:-1])
+        if hit:
+            return ASK, read_msg.format(hit)
+        if plain and is_secret_path(plain[-1]) and os.path.exists(_abs(plain[-1])):
+            return ASK, f"鍵ファイル {os.path.basename(plain[-1])} を上書きします。今の鍵が消えます"
+        return None
+    hit = _secret_hit(args)
+    return (ASK, read_msg.format(hit)) if hit else None
 
 
 def check_simple_command(argv: list[str], depth: int = 0) -> tuple[str, str] | None:
@@ -219,6 +437,10 @@ def check_simple_command(argv: list[str], depth: int = 0) -> tuple[str, str] | N
         result = _stronger(result, _check_rm(args))
     elif name == "git":
         result = _stronger(result, _check_git(args))
+    elif name == "gh":
+        result = _stronger(result, _check_gh(args))
+    elif name in ("curl", "wget"):
+        result = _stronger(result, _check_send(name, args))
     elif name.startswith("mkfs"):
         result = _stronger(result, (DENY, "ディスクを初期化するコマンドは止めます"))
     elif name == "dd" and any(a.startswith("of=/dev/") for a in args):
@@ -233,6 +455,10 @@ def check_simple_command(argv: list[str], depth: int = 0) -> tuple[str, str] | N
     elif name in ("export", "set", "declare") and (not args or args == ["-p"]):
         result = _stronger(result, (ASK, "環境変数を全部表示します。鍵が画面に出るおそれがあります"))
 
+    result = _stronger(result, _check_deploy(name, args))
+    result = _stronger(result, _check_value_display(name, args))
+    if name in GREP_COMMANDS:
+        result = _stronger(result, _check_grep_recursive(args))
     return _stronger(result, _check_secret_args(name, args))
 
 
@@ -246,13 +472,18 @@ def check_bash(command: str, depth: int = 0) -> tuple[str, str] | None:
             return ASK, "再帰削除が含まれています"
         return None
 
-    # < .env のような入力リダイレクトも読み取り扱い
+    # < .env は読み取り、> .env と >> .env は、すでにある鍵ファイルへの書き込みとして扱う
     for i, tok in enumerate(tokens[:-1]):
-        if tok == "<" and is_secret_path(tokens[i + 1]):
-            return ASK, f"鍵ファイル {os.path.basename(tokens[i + 1])} を入力として読みます"
+        target = tokens[i + 1]
+        if not is_secret_path(target):
+            continue
+        if tok == "<":
+            return ASK, f"鍵ファイル {os.path.basename(target)} を入力として読みます"
+        if ">" in tok and "<" not in tok and not tok.endswith("&") and os.path.exists(_abs(target)):
+            return ASK, f"鍵ファイル {os.path.basename(target)} に書き込みます。上書きすると今の鍵が消えます"
 
     result: tuple[str, str] | None = None
-    for pipeline in _split_pipelines([t for t in tokens if t not in ("<", ">", ">>", "<<", "<<<", ">&", "<&")]):
+    for pipeline in _split_pipelines([t for t in tokens if t not in ("<", ">", ">>", "<<", "<<<", ">&", "<&", "&>", "&>>", ">|")]):
         for argv in pipeline:
             result = _stronger(result, check_simple_command(argv, depth))
         names = [os.path.basename(_strip_prefixes(c)[0][0]) for c in pipeline if _strip_prefixes(c)[0]]
@@ -274,12 +505,16 @@ def check_file_tool(tool_name: str, tool_input: dict) -> tuple[str, str] | None:
 
 
 def decide(payload: dict) -> tuple[str, str] | None:
+    global CWD
+    CWD = payload.get("cwd") or os.getcwd()
     tool_name = payload.get("tool_name", "")
     tool_input = payload.get("tool_input") or {}
     if tool_name == "Bash":
         return check_bash(tool_input.get("command", ""))
     if tool_name in ("Read", "Edit", "Write", "MultiEdit", "NotebookEdit", "Grep"):
         return check_file_tool(tool_name, tool_input)
+    if tool_name.startswith("mcp__"):
+        return check_mcp(tool_name)
     return None
 
 

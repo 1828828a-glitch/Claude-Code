@@ -8,7 +8,7 @@ Claude Code が毎回最初に読むファイル。中身は2つのアプリと�
 
 エニアグラム統合タイプ判定は enneagram_tool と streamlit_app.py。
 
-テストは tests にあり、python3 -m pytest -q tests で7秒ほどで終わる。AI講評は偽のクライアントで試すので、テストで API は呼ばない。
+テストは tests にあり、python3 -m pytest -q tests で10秒あまりかかる。AI講評は偽のクライアントで試すので、テストで API は呼ばない。
 
 ## 動かし方
 
@@ -17,6 +17,7 @@ pip install -r requirements.txt
 scripts/with-env streamlit run furiochi_app.py
 scripts/with-env python -m furiochi_lab
 python3 furiochi_lab/web/build.py furiochi-lab.html
+python3 scripts/check_candidates.py
 ```
 
 ## 鍵
@@ -25,13 +26,37 @@ python3 furiochi_lab/web/build.py furiochi-lab.html
 
 .env の中身は開かない。表示しない。回答や図やコミットに書かない。鍵が要るコマンドは scripts/with-env を前に付けて実行すれば、実行時に読み込まれる。どの鍵があるかは、セッション開始時に名前だけが渡される。
 
+全文検索は Grep ツールか git grep を使う。Bash の grep -r は .gitignore を見ないので、.env の中身まで出力に出てしまう。
+
 ユーザーがチャットに鍵を貼ろうとすると、送信前に prompt_guard が止める。
 
 ## 危ない操作
 
-.claude/hooks/guard.py がすべての Bash と、ファイルを読む・書く操作の前に走る。ルートやホームの丸ごと削除、main への force push は止める。再帰削除、sudo、force push、git reset --hard、変更を捨てる操作、.env への接触は人の確認に回す。
+.claude/hooks/guard.py が、すべての Bash とファイル操作、コネクタのツールの前に走る。
+
+ルートやホーム、このプロジェクトを丸ごと含む削除と、main への force push は止める。再帰削除、sudo、force push、main への push、git reset --hard、作業中の変更を捨てる操作は人の確認に回す。変更を捨てる操作には checkout -- や restore、switch -f も入る。.env の読み取りと上書き、鍵の値の表示も確認に回す。
 
 止められたり確認に回されたりしたら、別のコマンドに言い換えて同じことをしない。何をしようとして止まったかを報告して、指示を待つ。
+
+## 承認ゲート
+
+壊す操作とは別に、外に出す操作は必ず人が承認する。guard.py が確認に回すのは次のもの。
+
+- 公開とデプロイ：vercel、wrangler、firebase などのデプロイ、npm や PyPI への公開、docker push
+- GitHub への書き込み：PR の作成・マージ・コメント・レビュー、issue、リリース。作業ブランチへの git push は通る
+- 外部へのデータ送信：curl や wget での POST・PUT・DELETE。localhost あては対象外
+- 共有と削除：Drive の共有やゴミ箱行き、Docs の削除、Canva のコメントやテンプレート公開
+- 定期タスクの作成・変更・手動実行
+
+課金、契約、購入はツールでは見ていない。頼まれても、実行する前に金額と相手をユーザーに確かめる。
+
+定期タスクのように人がいない場面では、ゲートにかかる操作をしない。かかりそうなら手前で止めて、最後の報告に書く。
+
+## 定期タスク
+
+フリオチ新問の朝便が、毎朝6時50分（日本時間）に新しいセッションで動く。新問を3つ作り、scripts/check_candidates.py で形を確かめ、furiochi-problem-checker に通して、残ったものを furiochi-candidates ブランチの furiochi_lab/data/candidates/日付.json に置く。PR は作らず、problems.py にも触らない。
+
+候補を問題バンクに入れるかどうかは人が決める。入れると言われたら problems.py に移し、id はモードの接頭辞で次の番号を振り直す。そのあと Web版を作り直す。
 
 ## 品質の関所
 
@@ -43,7 +68,7 @@ Python や JSON を書くと、直後に post_edit_check が構文を確かめ�
 
 - kenpin：コードや文章を変えたら必ず。テスト、依頼と差分の突き合わせ、鍵の混入、Web版の作り直し漏れを見る
 - ja-text-checker：README、画面の文言、問題文、講評プロンプトなど、人が読む日本語を書いたとき
-- furiochi-problem-checker：furiochi_lab/data/problems.py の問題を足したり直したりしたとき
+- furiochi-problem-checker：furiochi_lab/data/problems.py の問題や候補を足したり直したりしたとき
 
 検品で差し戻されたら直してから、もう一度通す。直さないと決めた指摘は、理由を添えてユーザーに伝える。
 
@@ -58,3 +83,4 @@ Python や JSON を書くと、直後に post_edit_check が構文を確かめ�
 ユーザーから「今後は〜して」「〜はしないで」のような、この先も続く指示をもらったら、ここに1行で書き足してコミットする。クラウドのセッションは毎回消えるので、覚えておくべきことはこのファイルに残す。日付を頭に付ける。
 
 - 2026-11-08 ハーネス（フック・権限ルール・検品係）を入れた。図は docs/ai-ecosystem.html
+- 2026-11-08 承認ゲートと、毎朝の新問づくりの定期タスクを入れた。新問は候補として置くだけで、採用は人が決める
