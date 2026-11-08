@@ -48,7 +48,7 @@ def problem_issues(data: dict, seen_ids: set[str], bank_prompts: set[str]) -> li
     seen_ids.add(p.id)
     if p.mode not in IMPLEMENTED_MODES:
         issues.append(f"mode が実装済みのモードではない（{p.mode}）")
-    if not 1 <= p.level <= 5:
+    if isinstance(p.level, bool) or not isinstance(p.level, int) or not 1 <= p.level <= 5:
         issues.append(f"level が1〜5の外（{p.level}）")
     for key in ("prompt", "expectation", "axis", "focus", "scoring_hint"):
         if not str(getattr(p, key)).strip():

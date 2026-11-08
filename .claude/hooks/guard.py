@@ -202,7 +202,7 @@ def _check_git(args: list[str]) -> tuple[str, str] | None:
     elif sub == "clean" and flags & {"-f", "--force"}:
         return ASK, "git clean -f で追跡していないファイルを消します"
     elif sub == "checkout" and ("--" in rest or positional == ["."] or flags & {"-f", "--force"} or (
-            "-b" not in flags and "-B" not in flags and any(os.path.exists(_abs(a)) for a in positional))):
+            "-b" not in flags and "-B" not in flags and any(os.path.exists(_abs(a)) or "*" in a for a in positional))):
         return ASK, f"git checkout {' '.join(rest)} で作業中の変更を捨てます"
     elif sub == "switch" and flags & {"-f", "--force", "--discard-changes"}:
         return ASK, "git switch -f で作業中の変更を捨てます"
@@ -255,14 +255,28 @@ def _check_gh(args: list[str]) -> tuple[str, str] | None:
     if group in GH_GATED and action in GH_GATED[group]:
         return ASK, f"{GATE}gh {group} {action} で GitHub に書き込みます"
     if group == "api":
-        if positional[1:2] == ["graphql"] and not any("mutation" in a for a in args):
-            return None
+        if positional[1:2] == ["graphql"]:
+            from_file = any(a == "--input" or a.startswith("--input=") or "=@" in a for a in args)
+            if not from_file and not any("mutation" in a for a in args):
+                return None
         method = (_option_value(args, ("-X", "--method")) or "").upper()
         has_fields = any(a in ("-f", "-F", "--field", "--raw-field", "--input") or a.startswith(("--field=", "--raw-field=", "--input="))
                          for a in args)
         if method in WRITE_METHODS or (has_fields and method != "GET"):
             return ASK, f"{GATE}gh api で GitHub に書き込みます（{method or 'POST'}）"
     return None
+
+
+def _positional_skipping(args: list[str], opts_with_value: set[str]) -> list[str]:
+    out, i = [], 0
+    while i < len(args):
+        if args[i] in opts_with_value:
+            i += 2
+            continue
+        if not args[i].startswith("-"):
+            out.append(args[i])
+        i += 1
+    return out
 
 
 def _check_deploy(name: str, args: list[str]) -> tuple[str, str] | None:
@@ -286,10 +300,16 @@ def _check_deploy(name: str, args: list[str]) -> tuple[str, str] | None:
         if any(re.match(r"^([\w.-]+@)?[\w.-]+:", a) and not a.startswith(("/", ".")) for a in positional):
             return ASK, f"{GATE}{name} で外部のホストにファイルを送ります"
     elif name == "gsutil":
+        pos = _positional_skipping(args, {"-h", "-o", "-p", "-u"})
+        first = pos[0] if pos else ""
         hit = first in {"cp", "mv", "rsync", "acl", "iam", "setmeta", "rm"}
     elif name == "aws":
-        hit = first == "s3" and len(positional) > 1 and positional[1] in {"cp", "mv", "sync", "rm"}
-        first = " ".join(positional[:2])
+        pos = _positional_skipping(args, {"--profile", "--region", "--endpoint-url", "--output", "--query"})
+        hit = (pos[:1] == ["s3"] and len(pos) > 1 and pos[1] in {"cp", "mv", "sync", "rm"}) or (
+            pos[:1] == ["s3api"] and len(pos) > 1 and pos[1].startswith(("put-", "delete-", "create-", "copy-")))
+        first = " ".join(pos[:2])
+    elif name == "bq":
+        hit = first in {"load", "cp", "rm", "mk", "insert", "update"}
     elif name == "docker":
         hit = first == "push"
     elif name == "terraform":
@@ -297,22 +317,29 @@ def _check_deploy(name: str, args: list[str]) -> tuple[str, str] | None:
     elif name == "kubectl":
         hit = first in {"apply", "delete", "replace", "patch", "scale", "rollout"}
     elif name == "gcloud":
-        hit = "deploy" in positional
+        hit = "deploy" in positional or (positional[:1] == ["storage"] and len(positional) > 1 and
+                                         positional[1] in {"cp", "mv", "rsync", "rm"})
     if hit:
         return ASK, f"{GATE}{name} {first}".rstrip() + " で外に公開・反映します"
     return None
 
 
 CURL_OPTS_WITH_VALUE = {"-o", "--output", "-H", "--header", "-d", "--data", "--data-raw", "--data-binary",
-                        "--data-urlencode", "--json", "-F", "--form", "-X", "--request", "-u", "--user", "-A",
-                        "--user-agent", "-e", "--referer", "-b", "--cookie", "-c", "--cookie-jar", "-T",
-                        "--upload-file", "-w", "--write-out", "-K", "--config", "-m", "--max-time",
-                        "--connect-timeout", "-x", "--proxy", "-r", "--range", "-E", "--cert", "--cacert",
-                        "-O", "--output-document", "--output-file", "--post-data", "--post-file", "--body-data",
-                        "--body-file", "--method", "-U", "-P"}
+                        "--data-ascii", "--data-urlencode", "--json", "-F", "--form", "--form-string", "-X",
+                        "--request", "-u", "--user", "-A", "--user-agent", "-e", "--referer", "-b", "--cookie",
+                        "-c", "--cookie-jar", "-T", "--upload-file", "-w", "--write-out", "-K", "--config", "-m",
+                        "--max-time", "--connect-timeout", "-x", "--proxy", "-r", "--range", "-E", "--cert",
+                        "--cacert", "--key", "--pass", "--retry", "--retry-delay", "--retry-max-time",
+                        "--limit-rate", "-y", "--speed-time", "-Y", "--speed-limit", "--resolve", "--interface"}
+WGET_OPTS_WITH_VALUE = {"-O", "--output-document", "-o", "--output-file", "-a", "--append-output", "--header",
+                        "--post-data", "--post-file", "--body-data", "--body-file", "--method", "-U",
+                        "--user-agent", "-P", "--directory-prefix", "-t", "--tries", "-T", "--timeout", "-w",
+                        "--wait", "-l", "--level", "-A", "--accept", "-R", "--reject", "-D", "--domains", "-i",
+                        "--input-file", "-B", "--base", "-e", "--execute", "--user", "--password", "--referer",
+                        "--load-cookies", "--save-cookies", "-Q", "--quota"}
 
 
-def _non_local_url(args: list[str]) -> bool:
+def _non_local_url(args: list[str], opts_with_value: set[str]) -> bool:
     """curl・wget の送り先を拾う。http:// を省いた example.com/form も URL として見る"""
     targets = []
     i = 0
@@ -322,7 +349,7 @@ def _non_local_url(args: list[str]) -> bool:
             targets.append(args[i + 1])
             i += 2
             continue
-        if a in CURL_OPTS_WITH_VALUE:
+        if a in opts_with_value:
             i += 2
             continue
         if not a.startswith("-"):
@@ -338,7 +365,7 @@ def _non_local_url(args: list[str]) -> bool:
 
 
 def _check_send(name: str, args: list[str]) -> tuple[str, str] | None:
-    if not _non_local_url(args):
+    if not _non_local_url(args, CURL_OPTS_WITH_VALUE if name == "curl" else WGET_OPTS_WITH_VALUE):
         return None
     sending = False
     if name == "curl":
@@ -358,6 +385,7 @@ def _check_send(name: str, args: list[str]) -> tuple[str, str] | None:
 
 OUTWARD_WORDS = {"send", "post", "publish", "share", "delete", "trash", "merge", "deploy", "comment", "reply",
                  "permission", "invite"}
+READ_HEADS = {"get", "list", "search", "read", "download", "view", "fetch", "find", "query", "describe", "show"}
 GITHUB_WRITE_HEADS = {"create", "merge", "push", "delete", "fork", "add", "update", "enable", "disable", "resolve",
                       "unresolve", "request", "assign", "run", "rerun", "cancel"}
 
@@ -369,11 +397,11 @@ def check_mcp(tool_name: str) -> tuple[str, str] | None:
     server, action = parts[1], "__".join(parts[2:])
     words = [w.lower() for w in re.split(r"[_\-]+", action) if w]
     if "github" in server.lower() and words and (
-            words[0] in GITHUB_WRITE_HEADS or action.endswith("_write") or "workflow" in words and words[0] != "list"):
+            words[0] in GITHUB_WRITE_HEADS or action.endswith("_write") or action == "actions_run_trigger"):
         return ASK, f"{GATE}GitHub に書き込みます（{action}）"
     if server == "claude-code-remote" and action in {"create_trigger", "update_trigger", "delete_trigger", "fire_trigger"}:
         return ASK, f"{GATE}定期タスクを作る・変える・動かします（{action}）"
-    if OUTWARD_WORDS & set(words):
+    if words and (words[0] in OUTWARD_WORDS or (words[0] not in READ_HEADS and OUTWARD_WORDS & set(words))):
         return ASK, f"{GATE}{server} で外に出す・共有する・消す操作をします（{action}）"
     return None
 
@@ -471,6 +499,10 @@ def _check_secret_args(name: str, args: list[str]) -> tuple[str, str] | None:
     return (ASK, read_msg.format(hit)) if hit else None
 
 
+RUNNABLE_DEPLOY_TOOLS = {"vercel", "wrangler", "netlify", "firebase", "fly", "flyctl", "twine"}
+PACKAGE_TO_COMMAND = {"netlify-cli": "netlify", "firebase-tools": "firebase", "@railway/cli": "railway"}
+
+
 def _unwrap_runner(name: str, args: list[str]) -> list[str] | None:
     """npx wrangler deploy や python -m twine upload の、実際に動くコマンドを取り出す"""
     rest: list[str] | None = None
@@ -478,16 +510,31 @@ def _unwrap_runner(name: str, args: list[str]) -> list[str] | None:
         rest = args
     elif name in ("pnpm", "yarn", "npm", "bun") and args[:1] in (["dlx"], ["exec"], ["x"]):
         rest = args[1:]
+    elif name in ("pnpm", "yarn") and args[:1] and args[0] in RUNNABLE_DEPLOY_TOOLS:
+        rest = args
     elif name in ("uv", "pipx", "poetry", "pdm") and args[:1] == ["run"]:
         rest = args[1:]
-    elif re.fullmatch(r"python[0-9.]*", name) and args[:1] == ["-m"] and len(args) > 1:
-        return args[1:]
+    elif name == "uv" and args[:2] == ["tool", "run"]:
+        rest = args[2:]
+    elif re.fullmatch(r"python[0-9.]*", name):
+        i = 0
+        while i < len(args) and args[i].startswith("-") and args[i] not in ("-m", "-c"):
+            i += 1
+        if args[i:i + 1] == ["-m"] and len(args) > i + 1:
+            return args[i + 1:]
+        return None
     if rest is None:
         return None
     i = 0
     while i < len(rest) and (rest[i].startswith("-") or rest[i] == "--"):
         i += 2 if rest[i] in ("-p", "--package") else 1
-    return rest[i:] or None
+    if i >= len(rest):
+        return None
+    tool = rest[i]
+    if tool.rfind("@") > 0:
+        tool = tool[:tool.rfind("@")]  # vercel@latest、@scope/pkg@1 のバージョンを落とす
+    tool = PACKAGE_TO_COMMAND.get(tool, tool)
+    return [tool, *rest[i + 1:]]
 
 
 def check_simple_command(argv: list[str], depth: int = 0) -> tuple[str, str] | None:
@@ -526,10 +573,10 @@ def check_simple_command(argv: list[str], depth: int = 0) -> tuple[str, str] | N
         result = _stronger(result, (ASK, "環境変数を全部表示します。鍵が画面に出るおそれがあります"))
     elif name == "env" and not args:
         result = _stronger(result, (ASK, "環境変数を全部表示します。鍵が画面に出るおそれがあります"))
-    elif name == "find" and ("-delete" in args or any(a in ("-exec", "-execdir", "-ok") and i + 1 < len(args) and
+    elif name == "find" and ("-delete" in args or any(a in ("-exec", "-execdir", "-ok", "-okdir") and i + 1 < len(args) and
                                                       os.path.basename(args[i + 1]) == "rm" for i, a in enumerate(args))):
         result = _stronger(result, (ASK, "find でまとめて削除します"))
-    elif name == "declare" and any(SECRET_VAR.fullmatch(a) for a in args if not a.startswith("-")):
+    elif name in ("declare", "typeset") and any(SECRET_VAR.fullmatch(a) for a in args if not a.startswith("-")):
         result = _stronger(result, (ASK, "鍵らしき環境変数の値を画面に出します"))
     elif name in ("export", "set", "declare") and (not args or args == ["-p"]):
         result = _stronger(result, (ASK, "環境変数を全部表示します。鍵が画面に出るおそれがあります"))

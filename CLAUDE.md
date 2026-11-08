@@ -8,7 +8,7 @@ Claude Code が毎回最初に読むファイル。中身は2つのアプリと�
 
 エニアグラム統合タイプ判定は enneagram_tool と streamlit_app.py。
 
-テストは tests にあり、python3 -m pytest -q tests で10秒あまりかかる。AI講評は偽のクライアントで試すので、テストで API は呼ばない。
+テストは tests にあり、python3 -m pytest -q tests で20秒ほどかかる。AI講評は偽のクライアントで試すので、テストで API は呼ばない。
 
 ## 動かし方
 

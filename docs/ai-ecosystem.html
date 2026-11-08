@@ -198,7 +198,7 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
       <li><b>外に出す操作</b>は承認ゲートで、必ずあなたが決める</li>
       <li><b>毎朝6時50分</b>に新問の候補が3つ届く</li>
       <li><b>鍵は .env の1か所</b>、Claude Code は中を開かない</li>
-      <li><b>完了の前に</b>テスト410件と検品係を通す</li>
+      <li><b>完了の前に</b>テスト447件と検品係を通す</li>
       <li><b>記録が残るのは GitHub</b>、セッションは毎回消える</li>
     </ul>
   </header>
@@ -315,7 +315,7 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
     { id: "a1-6", col: 6, row: 1, route: "A", code: "A01", t: "フリオチLAB", s: "7モード・62問" },
     { id: "a1-7", col: 7, row: 1, route: "A", code: "A02", t: "出題・採点・履歴", m: "furiochi_lab/engine", d: "選問、5軸の採点、弱点タグの蓄積" },
     { id: "a1-8", col: 8, row: 1, route: "A", code: "A03", t: "furiochi-problem-checker", d: "期待・尺度・型を1問ずつ見る" },
-    { id: "a1-9", col: 9, row: 1, route: "A", code: "A04", t: "pytest", d: "410件・15秒ほど。Stop フックが回す" },
+    { id: "a1-9", col: 9, row: 1, route: "A", code: "A04", t: "pytest", d: "447件・20秒ほど。Stop フックが回す" },
     { id: "a1-10", col: 10, row: 1, route: "A", code: "A05", t: "Streamlit とターミナル版", m: "furiochi_app.py" },
 
     { id: "a2-6", col: 6, row: 2, route: "A", code: "A06", t: "フリオチLAB Web版", s: "claude.ai で開く1ページ" },
@@ -406,7 +406,7 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
         { t: "README", m: "furiochi_lab/README.md", d: "設計書の要約、起動方法、未実装の範囲" },
         { t: "問題バンク", m: "data/problems.py", d: "62問。成立例と採点ヒントつき" },
         { t: "型の辞典", m: "data/taxonomy.py", d: "12の基本型、20技法、28作品の構造分析" },
-        { t: "git の履歴", m: "19コミット", d: "どの版にも戻せる。セッションをまたいで残る唯一の記録" },
+        { t: "git の履歴", m: "git log", d: "どの版にも戻せる。セッションをまたいで残る唯一の記録" },
         { t: "新問の候補", m: "furiochi-candidates", d: "定期タスクが毎朝置いていく。バンクに入れるかはあなたが決める" }
       ] }
   ];

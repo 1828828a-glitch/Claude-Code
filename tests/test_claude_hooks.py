@@ -560,3 +560,67 @@ def test_approval_gate_catches_more_connector_tools(tool):
 ])
 def test_approval_gate_lets_more_reading_tools_through(tool):
     assert guard(tool) is None
+
+
+# ── 3回目の検品で足したケース ─────────────────────────
+
+@pytest.mark.parametrize("command", [
+    "gh api graphql -F query=@q.graphql",
+    "gh api graphql --input body.json",
+    "gh api graphql -f query='mutation { addStar(input: {}) { clientMutationId } }'",
+    "curl -F file=@a.txt -O https://example.com/upload",
+    "curl -T a.txt -O https://example.com/up/",
+    "wget -E example.com/form --post-data a=1",
+    "npx vercel@latest --prod",
+    "npx -y wrangler@4 pages deploy dist",
+    "bunx wrangler@latest deploy",
+    "pnpm dlx vercel@latest deploy",
+    "npx netlify-cli deploy --prod",
+    "npx firebase-tools deploy",
+    "yarn vercel --prod",
+    "pnpm wrangler deploy",
+    "python -I -m twine upload dist/*",
+    "uv tool run twine upload dist/*",
+    "gcloud storage cp out.png gs://bucket/",
+    "aws --profile p s3 cp out.png s3://bucket/",
+    "aws s3api put-object --bucket b --key k --body out.png",
+    "gsutil -h 'Cache-Control:no-cache' cp out.png gs://bucket/",
+    "bq load dataset.table data.csv",
+])
+def test_approval_gate_regressions_and_runner_variants(command):
+    out = run_hook("guard.py", {"tool_name": "Bash", "tool_input": {"command": command}})
+    assert out["hookSpecificOutput"]["permissionDecision"] == "ask"
+    assert "承認ゲート" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+
+@pytest.mark.parametrize("command", [
+    "typeset -p ANTHROPIC_API_KEY",
+    "find . -name '*.tmp' -okdir rm {} \\;",
+    "git checkout '*.py'",
+])
+def test_guard_asks_for_typeset_okdir_and_glob_checkout(command):
+    assert guard("Bash", cwd=ROOT, command=command) == "ask"
+
+
+@pytest.mark.parametrize("command", [
+    "curl -O https://example.com/file.zip",
+    "wget -r -np https://example.com/docs/",
+    "yarn install",
+    "pnpm test",
+    "python -I -c 'print(1)'",
+    "npx @scope/tool@1.2.3 --help",
+])
+def test_runner_and_download_variants_still_pass(command):
+    assert guard("Bash", command=command) is None
+
+
+@pytest.mark.parametrize("tool,expected", [
+    ("mcp__github__actions_run_trigger", "ask"),
+    ("mcp__github__get_workflow_run", None),
+    ("mcp__github__get_workflow_run_logs", None),
+    ("mcp__github__download_workflow_run_artifact", None),
+    ("mcp__Google_Drive__get_permission", None),
+    ("mcp__Canva__get-comment-thread", None),
+])
+def test_connector_reads_pass_and_workflow_trigger_asks(tool, expected):
+    assert guard(tool) == expected
