@@ -1,5 +1,6 @@
 // build.js（図解）と deck.js（スライド資料）で使う部品
 
+const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const { ILLUST } = require('./illust.js');
@@ -20,14 +21,33 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 // [[ ]] で囲んだところを強調色にし、改行を <br> にする
 const rich = (s) => esc(s).replace(/\[\[(.+?)\]\]/g, '<em>$1</em>').replace(/\n/g, '<br>');
 
-// イラスト。illust.js にある名前ならその SVG、なければデータの JSON から見た画像パスとして扱う
+// 手持ちのイラストを置くフォルダ。役の名前（worker_tired など）と同じファイル名の画像があれば、内蔵の SVG より優先する。
+// いらすとやの素材は再配布できないので、このフォルダはリポジトリに入れない（.gitignore 済み）
+const ASSET_DIR = process.env.ZUKAI_ASSETS ? path.resolve(process.env.ZUKAI_ASSETS) : path.join(__dirname, 'assets');
+const ASSET_EXTS = ['.png', '.webp', '.jpg', '.jpeg', '.svg'];
+const assetFor = (name) => ASSET_EXTS.map((e) => path.join(ASSET_DIR, name + e)).find((p) => fs.existsSync(p));
+
+// イラスト。探す順は、assets/ の画像 → illust.js の SVG → データの JSON から見た画像パス
 function makeIll(dataPath) {
-  return function ill(name, cls = '') {
+  const used = { assets: new Set(), builtin: new Set() };
+  const tag = (src, cls) => `<span class="ill ${cls}"><img src="${esc(src)}" alt=""></span>`;
+  function ill(name, cls = '') {
     if (!name) return '';
-    if (ILLUST[name]) return `<span class="ill ${cls}">${ILLUST[name]}</span>`;
+    const asset = /^[\w-]+$/.test(name) && assetFor(name);
+    if (asset) { used.assets.add(name); return tag(pathToFileURL(asset).href, cls); }
+    if (ILLUST[name]) { used.builtin.add(name); return `<span class="ill ${cls}">${ILLUST[name]}</span>`; }
     const src = /^(https?:|data:)/.test(name) ? name : pathToFileURL(path.resolve(path.dirname(dataPath), name)).href;
-    return `<span class="ill ${cls}"><img src="${esc(src)}" alt=""></span>`;
+    return tag(src, cls);
+  }
+  // 使ったイラストの内訳。いらすとやは商用だと1作品20点までなので、手持ちの画像の点数を出しておく
+  ill.report = () => {
+    const a = [...used.assets], b = [...used.builtin];
+    const lines = [];
+    if (a.length) lines.push(`イラスト: ${path.relative(process.cwd(), ASSET_DIR) || '.'}/ の画像 ${a.length} 点（${a.join(', ')}）`);
+    if (b.length) lines.push(`イラスト: 内蔵の SVG ${b.length} 点（${b.join(', ')}）`);
+    return lines.join('\n');
   };
+  return ill;
 }
 
 // 文字が箱からあふれたら、収まるまで字を小さくする（PowerPoint の自動縮小と同じ考え方）。

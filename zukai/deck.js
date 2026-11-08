@@ -30,7 +30,7 @@ const CSS = `
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#fff;-webkit-font-smoothing:antialiased}
 em{font-style:normal;color:var(--blue)}
-.ill{display:block}
+.ill{display:block;width:100%;height:100%}
 .ill svg,.ill img{width:100%;height:100%;display:block;object-fit:contain}
 .g{filter:grayscale(1)}
 .abs{position:absolute}
@@ -361,4 +361,5 @@ data.slides.forEach((s, i) => {
   jobs.push({ file, png: path.join(outDir, `${name}.png`), w, h, scale: 2 });
 });
 console.log(`HTML: ${path.relative(process.cwd(), htmlDir)}/ に ${jobs.length} 枚`);
+if (ill.report()) console.log(ill.report());
 if (opts.png) exportPng(jobs).catch((e) => { console.error(e); process.exit(1); });

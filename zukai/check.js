@@ -60,6 +60,16 @@ function inspect({ ROOTS, FIXED }) {
       if (dx > 2 || dy > tol) out.push({ kind: 'overflow', text: label(el), detail: `${dx > 2 ? `横に${dx}px ` : ''}${dy > tol ? `縦に${dy}px` : ''}`.trim() });
     }
 
+    // イラストがスライドの外や下端のクレジット欄にはみ出していないか（縦長の画像を正方形の枠に入れたときなど）
+    for (const el of root.querySelectorAll('.ill')) {
+      if (el.closest('.mini, .behind, .thumb, .sheet, .s1')) continue;
+      const q = (el.querySelector('img, svg') || el).getBoundingClientRect();
+      if (q.width < 1) continue;
+      if (q.left < R.left - 1 || q.right > R.right + 1 || q.top < R.top - 1 || q.bottom > footTop + 1) {
+        out.push({ kind: 'outside', text: '（イラスト）', detail: `下端 ${Math.round(q.bottom - R.top)}px` });
+      }
+    }
+
     // 文字を持つ一番内側のかたまり（段落・項目・箱）を集める
     const blocks = [...root.querySelectorAll('p, li, span, b, i, u, strong, small, div')].filter((el) => {
       if (el.closest('.mini, .behind, svg, .ill, .foot')) return false;

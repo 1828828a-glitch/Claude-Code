@@ -308,6 +308,7 @@ slides.forEach((s, i) => {
   jobs.push({ file, png: path.join(outDir, `slide${i + 1}.png`), w: 1920, h: 1080, scale: 2 });
 });
 console.log(`HTML: ${path.relative(process.cwd(), htmlDir)}/ に ${jobs.length} 枚`);
+if (ill.report()) console.log(ill.report());
 
 // 版ごとの縮小図をスライドが読み込むので、図解から先に撮る
 if (opts.png) exportPng(jobs).catch((e) => { console.error(e); process.exit(1); });

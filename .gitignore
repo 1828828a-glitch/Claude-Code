@@ -3,3 +3,5 @@ __pycache__/
 .pytest_cache/
 zukai/out/**/html/
 zukai/out/stages/
+zukai/assets/*
+!zukai/assets/README.md
