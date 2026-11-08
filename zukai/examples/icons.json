@@ -1,0 +1,19 @@
+{
+  "_about": "Shodai Yanagimoto（@shodaiiiiii）さんの投稿にあったスライド（言葉の作業なら、たたき台を作れる）を、アイコン付きカードの型で再現したデータ。アイコンは fetch-icons.js で Iconify から取ってくる（better-icons と同じ API）。",
+  "byline": "原案 Shodai Yanagimoto（@shodaiiiiii）の投稿",
+  "page_start": 12,
+  "slides": [
+    {
+      "type": "cards",
+      "title": "言葉の作業なら、たたき台を作れる",
+      "cards": [
+        { "icon": "lucide:file-pen-line", "title": "下書き", "text": "案内文、お礼メール" },
+        { "icon": "lucide:list-collapse", "title": "要約", "text": "長い通知を3行に" },
+        { "icon": "lucide:repeat-2", "title": "言い換え", "text": "硬い文章をやわらかく" },
+        { "icon": "lucide:folder-tree", "title": "分類・整理", "text": "アンケートの自由記述を分ける" },
+        { "icon": "lucide:lightbulb", "title": "アイデア出し", "text": "イベント名の候補を20個" },
+        { "icon": "lucide:messages-square", "title": "壁打ち", "text": "企画の抜けを指摘してもらう" }
+      ]
+    }
+  ]
+}

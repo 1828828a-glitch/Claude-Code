@@ -136,6 +136,24 @@ python3 zukai/slides/md2slides.py 原稿.md --template 会社のテンプレー�
 
 記事の著者が変換後に手で直していた点のうち、コードを黒地に白文字にする、字が小さすぎる箇所を直す、子の箇条書きを○にする、の3つは最初から自動でやる。画像の貼り直しは、原稿の画像パスが手元にあれば要らない。記事のアドオンと違って Google スライドを直接編集はしないので、出力した .pptx を Google ドライブにアップロードして開く。
 
+## アイコン付きのカード（cards）
+
+Shodai Yanagimoto さんの投稿（https://x.com/shodaiiiiii/status/2114917442539618384 ）にあった、アイコン・見出し・一言のカードを並べるスライドを deck.js の型にした。投稿では better-icons（https://github.com/better-auth/better-icons ）を使って Claude にアイコンを選ばせている。
+
+```bash
+node zukai/fetch-icons.js search lightbulb --prefix lucide   # アイコンを探す（英語で）
+node zukai/fetch-icons.js zukai/examples/icons.json          # データに書いたアイコンを zukai/icons/ に取ってくる
+node zukai/deck.js zukai/examples/icons.json                 # zukai/out/icons/01-cards.png
+```
+
+データには `"icon": "lucide:lightbulb"` のように「アイコン集:名前」で書く。カードが3枚までなら1段、4枚なら2列×2段、5〜6枚なら3列×2段に並ぶ。
+
+better-icons の中身は Iconify の公開 API（api.iconify.design）の検索と取得なので、fetch-icons.js は同じ API を curl で直接呼んでいる。取ってきた SVG は `zukai/icons/` に置き、アイコン集のライセンスを `zukai/icons/LICENSES.md` に書く（同梱の Lucide は ISC）。会話の中で Claude に直接探させたいなら、better-icons を MCP サーバーとして登録する。
+
+```bash
+claude mcp add better-icons -- npx -y better-icons@1.0.4
+```
+
 ## 新しい資料が作れるかの検証
 
 再現ではなく、新しい中身で同じ調子の資料が作れるかを確かめた。結果は `examples/kensho.json` から作った8枚の資料（`out/kensho/`）にまとめてある。中身は今回の作業で実測した数字だけで書いた。

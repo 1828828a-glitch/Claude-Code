@@ -13,6 +13,7 @@
 //   process    工程を矢羽根で並べ、目に見える部分と実際の工程を比べる（工程ごとに owner: human で灰にできる）
 //   three      3つの要素を × でつなぎ、説明と構成要素を添える（sub で「を生み出す力」を差し替え）
 //   compare    行ごとに「ないと」「あると」を並べるケーススタディ表
+//   cards      アイコン・見出し・一言のカードを並べる（アイコンは "lucide:lightbulb" の形で書き、fetch-icons.js で取ってくる）
 
 const fs = require('fs');
 const path = require('path');
@@ -22,6 +23,18 @@ const opts = parseArgs(process.argv, path.join(__dirname, 'examples', 'workslop.
 const data = JSON.parse(fs.readFileSync(opts.dataPath, 'utf8'));
 const outDir = opts.out || path.join(__dirname, 'out', path.basename(opts.dataPath, '.json'));
 const ill = makeIll(opts.dataPath);
+
+// アイコン。"lucide:lightbulb" なら zukai/icons/lucide/lightbulb.svg を読む（fetch-icons.js で取ってくる）
+const missingIcons = new Set();
+function icon(id) {
+  const [prefix, name] = String(id || '').split(':');
+  const file = prefix && name ? path.join(__dirname, 'icons', prefix, `${name}.svg`) : null;
+  if (!file || !fs.existsSync(file)) {
+    if (id) missingIcons.add(id);
+    return '<span class="icon"></span>';
+  }
+  return `<span class="icon">${fs.readFileSync(file, 'utf8')}</span>`;
+}
 
 const FONTS = 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Montserrat:wght@400;500;700&display=swap';
 
@@ -120,6 +133,15 @@ em{font-style:normal;color:var(--blue)}
 .compare .r{font-size:18.5px;font-weight:700;line-height:1.45;margin-top:2px}
 .compare .bad .r{color:#262626}
 .compare .good .r{color:var(--blue)}
+
+/* cards（アイコン付きのカード） */
+.cards{background:#fff;font-feature-settings:'palt' 1}
+.cards .k-title{left:88px;right:88px;top:76px;font-size:35px;font-weight:700;color:#222;white-space:nowrap;letter-spacing:.01em}
+.cards .card{background:#f6f6f6;border-radius:18px;padding:40px 34px 0}
+.cards .icon{display:block;width:46px;height:46px;color:#222;margin-left:-2px}
+.cards .icon svg{width:100%;height:100%;display:block}
+.cards .c-title{margin-top:22px;font-size:26px;font-weight:700;color:#222;white-space:nowrap}
+.cards .c-text{margin-top:12px;height:54px;font-size:17.5px;font-weight:500;color:#555;line-height:1.5}
 `;
 
 // 自動で字を縮める箱。同じ行に並べたセレクターは同じ倍率にそろえる
@@ -131,6 +153,7 @@ const FIT = [
   '.process .p-title', '.process .note', '.chev span', '.process .skills', '.process .concl',
   '.three .t-title', '.three .card', '.three .desc', '.three .parts',
   '.compare .c-title', '.compare .scene', '.compare .head', '.compare .lab', '.compare .bad, .compare .good',
+  '.cards .k-title', '.cards .c-title', '.cards .c-text',
 ];
 
 // ---------------------------------------------------------------- 飾り
@@ -341,6 +364,23 @@ const R = {
       ${rows}
       ${foot(n)}</div>` };
   },
+
+  // アイコン・見出し・一言のカードを並べる。3枚までは1段、4枚は2列×2段、5〜6枚は3列×2段
+  cards(s, n) {
+    const list = s.cards || [];
+    const cols = list.length <= 3 ? Math.max(list.length, 1) : list.length === 4 ? 2 : 3;
+    const left = 88, width = 1126, gap = 22, top = 164, h = 223, rowGap = 21;
+    const w = (width - gap * (cols - 1)) / cols;
+    const cards = list.map((c, i) => {
+      const x = left + (i % cols) * (w + gap), y = top + Math.floor(i / cols) * (h + rowGap);
+      return `<div class="abs card" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px">
+        ${icon(c.icon)}<p class="c-title">${rich(c.title)}</p><p class="c-text">${rich(c.text)}</p></div>`;
+    }).join('');
+    return { w: 1280, h: 720, html: `<div class="sl cards">
+      <p class="abs k-title">${rich(s.title)}</p>
+      ${cards}
+      ${foot(n)}</div>` };
+  },
 };
 
 // ---------------------------------------------------------------- 書き出し
@@ -348,7 +388,7 @@ const R = {
 const htmlDir = path.join(outDir, 'html');
 fs.mkdirSync(htmlDir, { recursive: true });
 const jobs = [];
-let num = 0;
+let num = (data.page_start || 1) - 1;
 data.slides.forEach((s, i) => {
   const make = R[s.type];
   if (!make) throw new Error(`知らないスライドの種類: ${s.type}`);
@@ -362,4 +402,5 @@ data.slides.forEach((s, i) => {
 });
 console.log(`HTML: ${path.relative(process.cwd(), htmlDir)}/ に ${jobs.length} 枚`);
 if (ill.report()) console.log(ill.report());
+if (missingIcons.size) console.log(`アイコンが手元にない: ${[...missingIcons].join(', ')}（node zukai/fetch-icons.js で取ってくる）`);
 if (opts.png) exportPng(jobs).catch((e) => { console.error(e); process.exit(1); });
