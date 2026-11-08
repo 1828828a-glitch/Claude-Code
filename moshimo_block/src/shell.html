@@ -1,0 +1,58 @@
+<title>もしもブロック劇場</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<style>
+/*__CSS__*/
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="series">もしもシリーズ</p>
+    <h1>もしもブロック劇場</h1>
+  </header>
+
+  <section class="theater" aria-label="上映">
+    <div class="stage-box" id="stageBox">
+      <div class="stage" id="stage">
+        <canvas id="gl" width="1280" height="720"></canvas>
+        <div class="overlay" id="overlay"></div>
+        <canvas id="wipe" width="1280" height="720"></canvas>
+      </div>
+      <button class="start" id="start" type="button">
+        <span class="start-icon" aria-hidden="true"></span>
+        <span class="start-label">再生する</span>
+        <small>音が出ます</small>
+      </button>
+      <p class="nogl" id="nogl" hidden>このブラウザでは3D表示（WebGL）が使えないため、映像を再生できません。</p>
+    </div>
+
+    <div class="controls">
+      <button class="icon-btn" id="playBtn" type="button" aria-label="再生">
+        <svg class="i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h2v1h2v1h2v1h2v1h1v4h-1v1h-2v1H8v1H6v1H4z"/></svg>
+        <svg class="i-pause" viewBox="0 0 16 16" aria-hidden="true" hidden><path d="M3 2h4v12H3zM9 2h4v12H9z"/></svg>
+      </button>
+      <span class="time" id="time">0:00 / 0:30</span>
+      <input type="range" id="seek" min="0" max="30" step="0.01" value="0" aria-label="再生位置">
+      <button class="icon-btn" id="soundBtn" type="button" aria-pressed="true" aria-label="音を出す">
+        <svg class="i-on" viewBox="0 0 16 16" aria-hidden="true"><path d="M1 6h3l4-4h1v12H8l-4-4H1zM11 6h1v4h-1zM13 4h1v8h-1z"/></svg>
+        <svg class="i-off" viewBox="0 0 16 16" aria-hidden="true" hidden><path d="M1 6h3l4-4h1v12H8l-4-4H1zM10 5h1v1h-1zM11 6h1v1h-1zM12 7h1v1h-1zM13 8h1v1h-1zM14 9h1v1h-1zM14 5h1v1h-1zM13 6h1v1h-1zM11 8h1v1h-1zM10 9h1v1h-1z"/></svg>
+      </button>
+    </div>
+
+    <ol class="chapters" id="chapters" aria-label="場面"></ol>
+  </section>
+
+  <section class="episode">
+    <p class="ep-no" id="epNo">#01</p>
+    <h2 id="epTitle"></h2>
+    <p id="epLead"></p>
+    <p class="credit">着想元は、はんぺんさん（@hanpen_VR）の動画「もしも社員Aだけ、秒給1万円だったら」。ブロックの世界に描き直したファン版です。<a href="https://x.com/hanpen_VR/status/2117994859495936197" target="_blank" rel="noopener">元の動画を見る</a></p>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/*__JS__*/
+</script>

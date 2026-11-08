@@ -1,0 +1,151 @@
+/* レイアウト: 作品名 → 16:9の舞台 → 操作列 → 場面の目次 → 回の説明。主役は舞台ひとつ */
+:root {
+  --bg: #e4eaee;
+  --paper: #f6f8f9;
+  --ink: #1d2333;
+  --muted: #566176;
+  --line: #c2ccd5;
+  --gold: #f2c230;
+  --link: #2a59c4;
+  --f-pixel: "DotGothic16", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  --f-body: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161e; --paper: #1a202b; --ink: #e9edf3; --muted: #9ba6b7; --line: #2e3746; --gold: #f2c230; --link: #8fb0ff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161e; --paper: #1a202b; --ink: #e9edf3; --muted: #9ba6b7; --line: #2e3746; --gold: #f2c230; --link: #8fb0ff;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.75; }
+
+.page {
+  max-width: 1040px; margin: 0 auto; display: grid; gap: 18px;
+  padding-block: 22px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.masthead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.masthead h1 { margin: 0; font-family: var(--f-pixel); font-weight: 400; font-size: clamp(26px, 4.2vw, 38px); line-height: 1.2; letter-spacing: 0.04em; text-wrap: balance; }
+.series { margin: 0; font-family: var(--f-pixel); font-size: 13px; letter-spacing: 0.14em; color: #1d2333; background: var(--gold); padding: 2px 10px; }
+
+.theater { display: grid; gap: 12px; min-width: 0; }
+.stage-box {
+  position: relative; width: 100%; max-width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
+  background: #1d2333; border: 4px solid #1d2333; box-shadow: 6px 6px 0 var(--gold);
+}
+.stage { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0; }
+#gl, #wipe { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; display: block; }
+.overlay { position: absolute; inset: 0; pointer-events: none; font-family: var(--f-pixel); color: #1d2333; }
+.nogl { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; color: #fff; text-align: center; }
+
+.start {
+  position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 6px;
+  background: rgba(16, 20, 30, 0.38); border: 0; color: #fff; cursor: pointer; font-family: var(--f-pixel);
+}
+.start-icon { width: clamp(44px, 9vw, 72px); aspect-ratio: 1; background: var(--gold); box-shadow: 5px 5px 0 #1d2333; position: relative; }
+.start-icon::after {
+  content: ""; position: absolute; inset: 28% 25% 28% 36%; background: #1d2333;
+  clip-path: polygon(0 0, 25% 0, 25% 12.5%, 50% 12.5%, 50% 25%, 75% 25%, 75% 37.5%, 100% 37.5%, 100% 62.5%, 75% 62.5%, 75% 75%, 50% 75%, 50% 87.5%, 25% 87.5%, 25% 100%, 0 100%);
+}
+.start-label { font-size: clamp(16px, 2.4vw, 22px); margin-top: 6px; text-shadow: 2px 2px 0 #1d2333; }
+.start small { font-size: 13px; opacity: 0.9; text-shadow: 2px 2px 0 #1d2333; }
+.start:hover .start-icon { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 #1d2333; }
+.start:focus-visible { outline: 4px solid var(--gold); outline-offset: -10px; }
+
+.controls { display: flex; align-items: center; gap: 12px; }
+.icon-btn {
+  flex: none; width: 44px; height: 44px; display: grid; place-items: center; padding: 0;
+  background: var(--ink); color: var(--bg); border: 0; cursor: pointer; box-shadow: 3px 3px 0 var(--gold);
+}
+.icon-btn svg { width: 20px; height: 20px; fill: currentColor; shape-rendering: crispEdges; }
+.icon-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--gold); }
+.icon-btn:focus-visible, .chapter:focus-visible, #seek:focus-visible { outline: 3px solid var(--link); outline-offset: 2px; }
+.time { flex: none; font-family: var(--f-pixel); font-variant-numeric: tabular-nums; font-size: 15px; min-width: 6.4em; }
+#seek { flex: 1; min-width: 0; accent-color: var(--gold); height: 28px; }
+
+.chapters { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.chapter {
+  width: 100%; display: grid; gap: 0; text-align: left; padding: 8px 10px; cursor: pointer;
+  background: var(--paper); color: var(--ink); border: 2px solid var(--line); font-family: var(--f-body);
+}
+.ch-time { font-family: var(--f-pixel); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ch-name { font-size: 14px; font-weight: 700; line-height: 1.4; }
+.chapter.is-now { background: var(--gold); border-color: #1d2333; color: #1d2333; }
+.chapter.is-now .ch-time { color: #1d2333; }
+
+.episode { display: grid; gap: 4px; max-width: 66ch; padding-top: 14px; border-top: 2px dashed var(--line); }
+.episode p { margin: 0; }
+.ep-no { font-family: var(--f-pixel); color: var(--muted); letter-spacing: 0.1em; }
+.episode h2 { margin: 0 0 4px; font-family: var(--f-pixel); font-weight: 400; font-size: 22px; line-height: 1.4; text-wrap: balance; }
+.credit { margin-top: 8px !important; font-size: 13px; color: var(--muted); }
+.credit a { color: var(--link); }
+
+@media (max-width: 720px) {
+  .chapters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .time { min-width: 0; font-size: 13px; }
+}
+@media (max-width: 380px) {
+  .chapters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---------- 舞台の上の文字（映像の一部なので配色は固定） ---------- */
+.ov { position: absolute; }
+.ov-caption { left: 44px; top: 32px; display: grid; gap: 8px; justify-items: start; }
+.cap-line {
+  font-size: 40px; line-height: 1.25; color: #1d2333; white-space: nowrap;
+  text-shadow: 3px 0 #fff, -3px 0 #fff, 0 3px #fff, 0 -3px #fff, 3px 3px #fff, -3px -3px #fff, 3px -3px #fff, -3px 3px #fff;
+}
+.cap-line.title { font-size: 42px; }
+.cap-line.sub { font-size: 21px; color: #39425a; }
+.cap-line.mark { margin-top: 4px; }
+.cap-line.mark span { display: inline-block; font-size: 56px; background: #f2c230; padding: 2px 14px; box-shadow: 5px 5px 0 #1d2333; text-shadow: none; }
+.cap-line.mark-soft span { background: linear-gradient(transparent 64%, #f2c230 64%); }
+
+.ov-bubble {
+  max-width: 460px; padding: 12px 18px; background: #fff; color: #1d2333; font-size: 25px; line-height: 1.4;
+  white-space: pre-line; border: 4px solid #1d2333; box-shadow: 5px 5px 0 rgba(29, 35, 51, 0.3);
+  margin-top: -22px; transform-origin: var(--tail, 50%) 100%;
+}
+.b-tail { position: absolute; left: var(--tail, 50%); top: 100%; width: 16px; height: 10px; margin-left: -8px; background: #1d2333; }
+.b-tail::before { content: ""; position: absolute; left: 4px; top: -4px; width: 8px; height: 8px; background: #fff; }
+.b-tail::after { content: ""; position: absolute; left: 4px; top: 10px; width: 8px; height: 8px; background: #1d2333; }
+
+.ov-fx {
+  font-size: 58px; color: #ffd23a; white-space: nowrap; letter-spacing: 0.02em;
+  text-shadow: 4px 0 #1d2333, -4px 0 #1d2333, 0 4px #1d2333, 0 -4px #1d2333, 4px 4px #1d2333, -4px -4px #1d2333, 4px -4px #1d2333, -4px 4px #1d2333, 8px 8px 0 rgba(29, 35, 51, 0.3);
+}
+.ov-float {
+  font-size: 28px; color: #ffd23a; white-space: nowrap; transform: translate(-50%, -100%);
+  text-shadow: 3px 0 #1d2333, -3px 0 #1d2333, 0 3px #1d2333, 0 -3px #1d2333, 3px 3px #1d2333, -3px -3px #1d2333, 3px -3px #1d2333, -3px 3px #1d2333;
+}
+.ov-tag {
+  left: 40px; bottom: 36px; background: #1d2333; color: #fff; font-size: 24px; padding: 6px 16px;
+  box-shadow: 5px 5px 0 #f2c230; white-space: nowrap; transform-origin: 0 100%;
+}
+.ov-tag.anchored { bottom: auto; transform-origin: 50% 0; }
+.ov-badge {
+  right: 36px; bottom: 32px; background: #f2c230; color: #1d2333; font-size: 22px; padding: 8px 18px;
+  border: 4px solid #1d2333; box-shadow: 5px 5px 0 #1d2333; white-space: nowrap; transform-origin: 100% 100%;
+}
+.ov-counter {
+  right: 28px; top: 24px; display: grid; justify-items: end; gap: 0; padding: 8px 16px 10px;
+  background: #1d2333; border: 4px solid #3a4560; transform-origin: 100% 0;
+}
+.ov-counter small { font-size: 15px; color: #c8d1e0; }
+.ov-counter b { font-weight: 400; font-size: 38px; line-height: 1.15; color: #ffd23a; font-variant-numeric: tabular-nums; }
+.ov-counter.done { border-color: #ffd23a; box-shadow: 0 0 0 4px #1d2333, 0 0 28px 8px rgba(255, 210, 58, 0.55); }
+
+/* ---------- 動画書き出し用（1280×720 の舞台だけを出す） ---------- */
+.render body { margin: 0; background: #1d2333; }
+.render .page { display: block; padding: 0; max-width: none; }
+.render .masthead, .render .controls, .render .chapters, .render .episode, .render .start { display: none; }
+.render .stage-box { width: 1280px; height: 720px; aspect-ratio: auto; border: 0; box-shadow: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .start:hover .start-icon { transform: none; }
+}
