@@ -111,6 +111,7 @@ body { background: var(--bg); color: var(--ink); font-family: var(--f-body); fon
 }
 .cap-line.title { font-size: 42px; }
 .cap-line.title.small { font-size: 34px; }
+.cap-line.small { font-size: 32px; }
 .cap-line.sub { font-size: 21px; color: #39425a; }
 .cap-line.mark { margin-top: 4px; }
 .cap-line.mark span { display: inline-block; font-size: 56px; background: #f2c230; padding: 2px 14px; box-shadow: 5px 5px 0 #1d2333; text-shadow: none; }
