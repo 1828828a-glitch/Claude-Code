@@ -52,11 +52,17 @@ SECRET_VAR_REF = re.compile(r"(?i)\$\{?[A-Z0-9_]*(KEY|TOKEN|SECRET|PASSWORD|PASS
 CWD = os.getcwd()
 
 
+WRAPPERS = {"nohup", "time", "command", "exec", "nice", "timeout", "stdbuf", "xargs"}
+SHELLS = {"sh", "bash", "zsh", "dash", "ksh"}
+
+
 def _abs(path: str) -> str:
     p = os.path.expanduser(os.path.expandvars(path.strip("\"'")))
     return os.path.normpath(p if os.path.isabs(p) else os.path.join(CWD, p))
-WRAPPERS = {"nohup", "time", "command", "exec", "nice", "timeout", "stdbuf", "xargs"}
-SHELLS = {"sh", "bash", "zsh", "dash", "ksh"}
+
+
+def _project_dir() -> str:
+    return _abs(os.environ.get("CLAUDE_PROJECT_DIR") or CWD)
 
 
 def is_secret_path(path: str) -> bool:
@@ -150,11 +156,11 @@ def _check_rm(args: list[str]) -> tuple[str, str] | None:
     if not recursive:
         return None
     targets = [a for a in args if not a.startswith("-")]
-    protected = {os.path.normpath(os.path.expanduser("~")), _abs(os.environ.get("CLAUDE_PROJECT_DIR") or CWD)}
+    protected = {os.path.normpath(os.path.expanduser("~")), _project_dir()}
     for t in targets:
         if t in CATASTROPHIC_RM_TARGETS:
             return DENY, f"rm -r で {t} を消そうとしています。ルートやホームの丸ごと削除は止めます"
-        p = _abs(t[:-2] if t.endswith("/*") else t)
+        p = CWD if t in ("*", "./*") else _abs(t[:-2] if t.endswith("/*") else t)
         if p == "/" or any(q == p or q.startswith(p.rstrip("/") + "/") for q in protected):
             return DENY, f"rm -r で {t} を消そうとしています。ホームやこのプロジェクトを丸ごと含む削除は止めます"
     what = "rm -rf" if force else "rm -r"
@@ -195,7 +201,8 @@ def _check_git(args: list[str]) -> tuple[str, str] | None:
         return ASK, "git reset --hard で未コミットの変更を捨てます"
     elif sub == "clean" and flags & {"-f", "--force"}:
         return ASK, "git clean -f で追跡していないファイルを消します"
-    elif sub == "checkout" and ("--" in rest or positional == ["."] or flags & {"-f", "--force"}):
+    elif sub == "checkout" and ("--" in rest or positional == ["."] or flags & {"-f", "--force"} or (
+            "-b" not in flags and "-B" not in flags and any(os.path.exists(_abs(a)) for a in positional))):
         return ASK, f"git checkout {' '.join(rest)} で作業中の変更を捨てます"
     elif sub == "switch" and flags & {"-f", "--force", "--discard-changes"}:
         return ASK, "git switch -f で作業中の変更を捨てます"
@@ -248,6 +255,8 @@ def _check_gh(args: list[str]) -> tuple[str, str] | None:
     if group in GH_GATED and action in GH_GATED[group]:
         return ASK, f"{GATE}gh {group} {action} で GitHub に書き込みます"
     if group == "api":
+        if positional[1:2] == ["graphql"] and not any("mutation" in a for a in args):
+            return None
         method = (_option_value(args, ("-X", "--method")) or "").upper()
         has_fields = any(a in ("-f", "-F", "--field", "--raw-field", "--input") or a.startswith(("--field=", "--raw-field=", "--input="))
                          for a in args)
@@ -271,8 +280,16 @@ def _check_deploy(name: str, args: list[str]) -> tuple[str, str] | None:
         hit = first == "publish"
     elif name == "twine":
         hit = first == "upload"
-    elif name == "poetry":
+    elif name in ("poetry", "uv"):
         hit = first == "publish"
+    elif name in ("scp", "rsync"):
+        if any(re.match(r"^([\w.-]+@)?[\w.-]+:", a) and not a.startswith(("/", ".")) for a in positional):
+            return ASK, f"{GATE}{name} で外部のホストにファイルを送ります"
+    elif name == "gsutil":
+        hit = first in {"cp", "mv", "rsync", "acl", "iam", "setmeta", "rm"}
+    elif name == "aws":
+        hit = first == "s3" and len(positional) > 1 and positional[1] in {"cp", "mv", "sync", "rm"}
+        first = " ".join(positional[:2])
     elif name == "docker":
         hit = first == "push"
     elif name == "terraform":
@@ -286,13 +303,37 @@ def _check_deploy(name: str, args: list[str]) -> tuple[str, str] | None:
     return None
 
 
+CURL_OPTS_WITH_VALUE = {"-o", "--output", "-H", "--header", "-d", "--data", "--data-raw", "--data-binary",
+                        "--data-urlencode", "--json", "-F", "--form", "-X", "--request", "-u", "--user", "-A",
+                        "--user-agent", "-e", "--referer", "-b", "--cookie", "-c", "--cookie-jar", "-T",
+                        "--upload-file", "-w", "--write-out", "-K", "--config", "-m", "--max-time",
+                        "--connect-timeout", "-x", "--proxy", "-r", "--range", "-E", "--cert", "--cacert",
+                        "-O", "--output-document", "--output-file", "--post-data", "--post-file", "--body-data",
+                        "--body-file", "--method", "-U", "-P"}
+
+
 def _non_local_url(args: list[str]) -> bool:
-    for a in args:
-        if "://" in a:
-            host = a.split("://", 1)[1].split("/", 1)[0].split("@")[-1]
-            host = host.rsplit(":", 1)[0] if host.count(":") == 1 else host
-            if host.lower() not in LOCAL_HOSTS:
-                return True
+    """curl・wget の送り先を拾う。http:// を省いた example.com/form も URL として見る"""
+    targets = []
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a == "--url" and i + 1 < len(args):
+            targets.append(args[i + 1])
+            i += 2
+            continue
+        if a in CURL_OPTS_WITH_VALUE:
+            i += 2
+            continue
+        if not a.startswith("-"):
+            targets.append(a)
+        i += 1
+    for t in targets:
+        rest = t.split("://", 1)[1] if "://" in t else t
+        host = rest.split("/", 1)[0].split("@")[-1]
+        host = host.rsplit(":", 1)[0] if host.count(":") == 1 else host
+        if host and host.lower() not in LOCAL_HOSTS:
+            return True
     return False
 
 
@@ -315,20 +356,25 @@ def _check_send(name: str, args: list[str]) -> tuple[str, str] | None:
     return None
 
 
+OUTWARD_WORDS = {"send", "post", "publish", "share", "delete", "trash", "merge", "deploy", "comment", "reply",
+                 "permission", "invite"}
+GITHUB_WRITE_HEADS = {"create", "merge", "push", "delete", "fork", "add", "update", "enable", "disable", "resolve",
+                      "unresolve", "request", "assign", "run", "rerun", "cancel"}
+
+
 def check_mcp(tool_name: str) -> tuple[str, str] | None:
     parts = tool_name.split("__")
     if len(parts) < 3:
         return None
     server, action = parts[1], "__".join(parts[2:])
-    head = re.split(r"[_\-]", action, maxsplit=1)[0].lower()
-    if server == "github" and (
-            head in {"create", "merge", "push", "delete", "fork", "add", "update", "enable", "disable", "resolve", "unresolve", "request"}
-            or action.endswith("_write") or action == "actions_run_trigger"):
+    words = [w.lower() for w in re.split(r"[_\-]+", action) if w]
+    if "github" in server.lower() and words and (
+            words[0] in GITHUB_WRITE_HEADS or action.endswith("_write") or "workflow" in words and words[0] != "list"):
         return ASK, f"{GATE}GitHub に書き込みます（{action}）"
     if server == "claude-code-remote" and action in {"create_trigger", "update_trigger", "delete_trigger", "fire_trigger"}:
         return ASK, f"{GATE}定期タスクを作る・変える・動かします（{action}）"
-    if head in {"send", "post", "publish", "share", "delete", "trash", "merge", "deploy", "comment", "reply"}:
-        return ASK, f"{GATE}{server} で外に出す・消す操作をします（{action}）"
+    if OUTWARD_WORDS & set(words):
+        return ASK, f"{GATE}{server} で外に出す・共有する・消す操作をします（{action}）"
     return None
 
 
@@ -366,12 +412,18 @@ def _check_grep_recursive(args: list[str]) -> tuple[str, str] | None:
         [a.split("=", 1)[1] for a in args if a.startswith("--exclude=")]
     if any(fnmatch.fnmatch(".env", pat.strip("\"'")) for pat in excludes):
         return None
+    project = _project_dir()
     for t in _grep_files(args) or ["."]:
         d = _abs(t)
         try:
             names = os.listdir(d) if os.path.isdir(d) else []
         except OSError:
             names = []
+        if d != project and project.startswith(d.rstrip("/") + "/"):
+            try:
+                names = names + os.listdir(project)
+            except OSError:
+                pass
         if any(is_secret_path(n) for n in names):
             return ASK, (f"grep -r は .gitignore を見ないので、{t} にある鍵ファイルの中身まで出力に出ます。"
                          "Grep ツールか git grep を使うか、--exclude='.env*' を付けてください")
@@ -419,6 +471,25 @@ def _check_secret_args(name: str, args: list[str]) -> tuple[str, str] | None:
     return (ASK, read_msg.format(hit)) if hit else None
 
 
+def _unwrap_runner(name: str, args: list[str]) -> list[str] | None:
+    """npx wrangler deploy や python -m twine upload の、実際に動くコマンドを取り出す"""
+    rest: list[str] | None = None
+    if name in ("npx", "bunx", "uvx", "pnpx"):
+        rest = args
+    elif name in ("pnpm", "yarn", "npm", "bun") and args[:1] in (["dlx"], ["exec"], ["x"]):
+        rest = args[1:]
+    elif name in ("uv", "pipx", "poetry", "pdm") and args[:1] == ["run"]:
+        rest = args[1:]
+    elif re.fullmatch(r"python[0-9.]*", name) and args[:1] == ["-m"] and len(args) > 1:
+        return args[1:]
+    if rest is None:
+        return None
+    i = 0
+    while i < len(rest) and (rest[i].startswith("-") or rest[i] == "--"):
+        i += 2 if rest[i] in ("-p", "--package") else 1
+    return rest[i:] or None
+
+
 def check_simple_command(argv: list[str], depth: int = 0) -> tuple[str, str] | None:
     argv, result = _strip_prefixes(argv)
     if not argv:
@@ -429,6 +500,9 @@ def check_simple_command(argv: list[str], depth: int = 0) -> tuple[str, str] | N
     if name == "with-env":
         # 鍵の読み込み役。本体は .env を読むが、後ろに続くコマンドは普通に調べる
         return _stronger(result, check_simple_command(args, depth + 1)) if depth < 3 else result
+    inner = _unwrap_runner(name, args)
+    if inner is not None and depth < 3:
+        return _stronger(result, check_simple_command(inner, depth + 1))
     if name in SHELLS and "-c" in args and depth < 3:
         idx = args.index("-c")
         if idx + 1 < len(args):
@@ -452,6 +526,11 @@ def check_simple_command(argv: list[str], depth: int = 0) -> tuple[str, str] | N
         result = _stronger(result, (ASK, "環境変数を全部表示します。鍵が画面に出るおそれがあります"))
     elif name == "env" and not args:
         result = _stronger(result, (ASK, "環境変数を全部表示します。鍵が画面に出るおそれがあります"))
+    elif name == "find" and ("-delete" in args or any(a in ("-exec", "-execdir", "-ok") and i + 1 < len(args) and
+                                                      os.path.basename(args[i + 1]) == "rm" for i, a in enumerate(args))):
+        result = _stronger(result, (ASK, "find でまとめて削除します"))
+    elif name == "declare" and any(SECRET_VAR.fullmatch(a) for a in args if not a.startswith("-")):
+        result = _stronger(result, (ASK, "鍵らしき環境変数の値を画面に出します"))
     elif name in ("export", "set", "declare") and (not args or args == ["-p"]):
         result = _stronger(result, (ASK, "環境変数を全部表示します。鍵が画面に出るおそれがあります"))
 

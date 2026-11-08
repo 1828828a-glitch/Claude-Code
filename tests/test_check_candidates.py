@@ -68,3 +68,11 @@ def test_unreadable_file_fails(tmp_path):
     path = tmp_path / "broken.json"
     path.write_text("{", encoding="utf-8")
     assert cc.main([str(path)]) == 1
+
+
+@pytest.mark.parametrize("changes", [{"level": "3"}, {"level": None}, {"prompt": None}, {"condition": None}])
+def test_wrong_types_are_reported_not_crashed(tmp_path, capsys, changes):
+    good = candidate("F02", id="G-test0003", prompt="型のテスト用の別のフリ")
+    assert cc.main([str(write(tmp_path, candidate(**changes), good))]) == 1
+    out = capsys.readouterr().out
+    assert "NG" in out and "OK" in out

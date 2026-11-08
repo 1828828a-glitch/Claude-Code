@@ -26,8 +26,11 @@ def run_hook(name, payload, env=None, cwd=None):
     return json.loads(proc.stdout) if proc.stdout.strip().startswith("{") else proc.stdout
 
 
-def guard(tool_name, **tool_input):
-    out = run_hook("guard.py", {"hook_event_name": "PreToolUse", "tool_name": tool_name, "tool_input": tool_input})
+def guard(tool_name, cwd=None, **tool_input):
+    payload = {"hook_event_name": "PreToolUse", "tool_name": tool_name, "tool_input": tool_input}
+    if cwd:
+        payload["cwd"] = str(cwd)
+    out = run_hook("guard.py", payload)
     if not out:
         return None
     return out["hookSpecificOutput"]["permissionDecision"]
@@ -103,7 +106,6 @@ def test_guard_asks_for_risky_commands(command):
     "git restore --staged foo.py",
     "python3 -m pytest -q tests",
     "cat .env.example",
-    "cp .env.example .env",
     "echo 'ANTHROPIC_API_KEY=' >> .env.example",
     "ls -la .env",
     "test -f .env && echo ok",
@@ -114,8 +116,17 @@ def test_guard_asks_for_risky_commands(command):
     "curl -fsSL https://example.com/data.json -o data.json",
     "grep -rn 'environ' furiochi_lab",
 ])
-def test_guard_lets_ordinary_commands_through(command):
-    assert guard("Bash", command=command) is None
+@pytest.mark.parametrize("with_env", [False, True])
+def test_guard_lets_ordinary_commands_through(command, with_env, tmp_path):
+    # リポジトリ直下に .env を置いている PC でも同じ結果になること
+    if with_env:
+        (tmp_path / ".env").write_text("ANTHROPIC_API_KEY=dummy\n", encoding="utf-8")
+    assert guard("Bash", cwd=tmp_path, command=command) is None
+
+
+@pytest.mark.parametrize("command", ["cp .env.example .env", "echo 'ANTHROPIC_API_KEY=' > .env"])
+def test_guard_lets_creating_a_fresh_env_through(command, tmp_path):
+    assert guard("Bash", cwd=tmp_path, command=command) is None
 
 
 # ── guard.py：ファイルを読む・書くツール ─────────────────
@@ -373,13 +384,15 @@ def test_guard_asks_for_key_display_and_discarding_changes(command):
     "git status --ignored .env",
     "git log --oneline -- .env.example",
     "git rm --cached .env",
-    "echo 'ANTHROPIC_API_KEY=' > .env",
     "printenv HOME",
     "git switch main",
     "git checkout claude/foo",
 ])
-def test_guard_no_longer_bothers_on_harmless_commands(command):
-    assert guard("Bash", command=command) is None
+@pytest.mark.parametrize("with_env", [False, True])
+def test_guard_no_longer_bothers_on_harmless_commands(command, with_env, tmp_path):
+    if with_env:
+        (tmp_path / ".env").write_text("ANTHROPIC_API_KEY=dummy\n", encoding="utf-8")
+    assert guard("Bash", cwd=tmp_path, command=command) is None
 
 
 # ── 承認ゲート：外に出す操作 ──────────────────────────────
@@ -458,4 +471,92 @@ def test_approval_gate_asks_for_outward_connector_tools(tool):
     "mcp__claude-code-remote__list_triggers",
 ])
 def test_approval_gate_lets_reading_connector_tools_through(tool):
+    assert guard(tool) is None
+
+
+# ── 再検品で足したケース ──────────────────────────────
+
+@pytest.mark.parametrize("command", [
+    "npx wrangler deploy",
+    "npx -y vercel --prod",
+    "bunx vercel",
+    "pnpm dlx wrangler deploy",
+    "python -m twine upload dist/*",
+    "python3 -m twine upload dist/*",
+    "uv publish",
+    "uvx twine upload dist/*",
+    "curl -d a=1 example.com/form",
+    "curl -X POST -d a=1 example.com",
+    "curl --url example.com/api -d a=1",
+    "scp report.pdf user@example.com:/tmp/",
+    "rsync -av dist/ deploy@example.com:/var/www/",
+    "gsutil cp out.png gs://bucket/",
+    "gsutil acl ch -u AllUsers:R gs://bucket/out.png",
+    "aws s3 cp out.png s3://bucket/",
+])
+def test_approval_gate_sees_through_runners_and_bare_hosts(command):
+    out = run_hook("guard.py", {"tool_name": "Bash", "tool_input": {"command": command}})
+    assert out["hookSpecificOutput"]["permissionDecision"] == "ask"
+    assert "承認ゲート" in out["hookSpecificOutput"]["permissionDecisionReason"]
+
+
+@pytest.mark.parametrize("command", [
+    "npx prettier --check .",
+    "python -m pytest -q tests",
+    "uv run pytest",
+    "curl -d a=1 localhost:8501/api",
+    "curl -X POST 127.0.0.1:8501/api -o out.json",
+    "gh api graphql -f query='query { viewer { login } }'",
+    "rsync -av dist/ backup/",
+    "aws s3 ls s3://bucket/",
+])
+def test_approval_gate_still_lets_local_work_through(command):
+    assert guard("Bash", command=command) is None
+
+
+@pytest.mark.parametrize("command", [
+    "git checkout furiochi_app.py",
+    "git checkout HEAD furiochi_app.py",
+    "find . -name '*.tmp' -delete",
+    "find . -name '*.tmp' -exec rm -f {} +",
+    "declare -p ANTHROPIC_API_KEY",
+])
+def test_guard_asks_for_more_discarding_and_display(command):
+    assert guard("Bash", cwd=ROOT, command=command) == "ask"
+
+
+@pytest.mark.parametrize("command", ["rm -rf *", "rm -rf ./*"])
+def test_guard_denies_wiping_project_with_glob(command):
+    assert guard_in(ROOT, command) == "deny"
+
+
+def test_guard_asks_when_grep_starts_above_project_with_env(tmp_path):
+    project = tmp_path / "home" / "proj"
+    project.mkdir(parents=True)
+    (project / ".env").write_text("ANTHROPIC_API_KEY=dummy\n", encoding="utf-8")
+    payload = {"tool_name": "Bash", "cwd": str(project), "tool_input": {"command": f"grep -r KEY {tmp_path}"}}
+    out = run_hook("guard.py", payload, env={"CLAUDE_PROJECT_DIR": str(project)})
+    assert out["hookSpecificOutput"]["permissionDecision"] == "ask"
+
+
+@pytest.mark.parametrize("tool", [
+    "mcp__github__assign_copilot_to_issue",
+    "mcp__github__run_workflow",
+    "mcp__github__rerun_workflow_run",
+    "mcp__plugin_github_github__create_pull_request",
+    "mcp__slack__slack_post_message",
+    "mcp__Google_Drive__create_permission",
+    "mcp__Google_Drive__update_permission",
+])
+def test_approval_gate_catches_more_connector_tools(tool):
+    assert guard(tool) == "ask"
+
+
+@pytest.mark.parametrize("tool", [
+    "mcp__github__list_workflows",
+    "mcp__Google_Drive__get_file_permissions",
+    "mcp__Canva__list-comments",
+    "mcp__Canva__list-replies",
+])
+def test_approval_gate_lets_more_reading_tools_through(tool):
     assert guard(tool) is None

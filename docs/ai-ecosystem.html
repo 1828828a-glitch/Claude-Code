@@ -191,14 +191,14 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
   <header class="top">
     <div class="eyebrow">2026年11月8日時点の .claude とリポジトリの中身から作成</div>
     <h1>Claude-Code のAI路線図</h1>
-    <p class="lede">依頼は左から右へ11列を通って形になります。入口は Claude アプリと毎朝の定期タスクで、司令塔の Claude Code が受け、ハーネスを通ってから4つの路線に分かれる。アプリを作る路線、スキルで作る路線、外部サービスを操作する路線、外部APIを呼ぶ路線です。下の棚には、毎回読んで書き戻すルールと資産を置いています。</p>
+    <p class="lede">依頼は左から右へ11列を通って形になります。入口は Claude アプリと毎朝の定期タスク。司令塔の Claude Code が受けた依頼は、ハーネスを通ってから4つの路線に分かれる。アプリを作る路線、スキルで作る路線、外部サービスを操作する路線、外部APIを呼ぶ路線です。下の棚には、毎回読んで書き戻すルールと資産を置いています。</p>
     <ul class="facts">
       <li><b>入口は Claude アプリと定期タスク</b>、作業はクラウドのコンテナ</li>
       <li><b>危ない操作</b>は guard が止めるか、あなたの確認に回す</li>
       <li><b>外に出す操作</b>は承認ゲートで、必ずあなたが決める</li>
       <li><b>毎朝6時50分</b>に新問の候補が3つ届く</li>
       <li><b>鍵は .env の1か所</b>、Claude Code は中を開かない</li>
-      <li><b>完了の前に</b>テスト334件と検品係を通す</li>
+      <li><b>完了の前に</b>テスト410件と検品係を通す</li>
       <li><b>記録が残るのは GitHub</b>、セッションは毎回消える</li>
     </ul>
   </header>
@@ -244,11 +244,11 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
       <li class="pick">
         <span class="tag">次に足すならこれ</span>
         <h3>公開先</h3>
-        <p>候補が毎朝届いても、遊ぶのがあなた1人では問題バンクが育つだけです。Streamlit Cloud などで人に使ってもらうには、履歴が1つのJSONに共有されてしまう問題を先に解く。README の未実装にも書いてある課題です。</p>
+        <p>候補が毎朝届いても、遊ぶのがあなた1人では問題バンクが育つだけです。Streamlit Cloud などで人に使ってもらうには、履歴が1つのJSONに共有されてしまう点を先に直す。README の未実装にも書いてある課題です。</p>
       </li>
       <li>
         <h3>別のAIによるレビュー</h3>
-        <p>KEITO は大きい成果物を Codex と Antigravity にも見せてから公開している。ここの kenpin は同じ Claude の別の目でしかありません。違うモデルの指摘を混ぜるには、PCに Codex CLI か Gemini CLI を入れて、それぞれ契約する必要があります。</p>
+        <p>KEITO は大きい成果物を Codex と Antigravity にも見せてから公開している。ここの kenpin は同じ Claude の別の目でしかありません。違うモデルの指摘を混ぜるには、PCに Codex CLI か Gemini CLI を入れて、入れたほうのサービスと契約する必要があります。</p>
       </li>
       <li>
         <h3>分野ごとの担当AI</h3>
@@ -256,7 +256,7 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
       </li>
       <li>
         <h3>速い判断AI</h3>
-        <p>KEITO の Jev は依頼を0.2〜0.35秒で読み、種類や取り返しのつかなさを点数にする。ここでは guard.py の決まりで代わりをさせています。決まりで拾えない曖昧な依頼が増えてきたら考えれば足ります。</p>
+        <p>KEITO の Jev は依頼を0.2〜0.35秒で読み、種類や取り返しのつかなさを点数にする。ここでは guard.py の決まりで代わりをさせています。決まりで拾えない曖昧な依頼が増えてきたら考えます。</p>
       </li>
     </ol>
   </section>
@@ -283,7 +283,7 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
     ["出口", "何ができるか"], ["公開", "どこに残すか"]
   ];
 
-  // row は路線図の行（1〜13）。棚は14行目。span は行のまたぎ
+  // row は路線図の行（1〜14）。棚は15行目。span は行のまたぎ
   var NODES = [
     { id: "me", col: 1, row: 1, span: 14, kind: "person", route: "T", t: "あなた", s: "頼む・確かめる・決める" },
 
@@ -291,14 +291,14 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
     { id: "in-cron", col: 2, row: 1, span: 14, group: "entry", route: "T", t: "定期タスク", s: "毎朝6時50分", d: "フリオチ新問の朝便。人がいなくても新しいセッションで動き、承認ゲートにかかる操作はしない" },
     { id: "in-pc", col: 2, row: 1, span: 14, group: "entry", route: "T", dashed: true, t: "PCのターミナル", s: "このリポジトリを開いたとき", d: "同じ .claude が効く。鍵とフックもそのまま" },
 
-    { id: "cc", col: 3, row: 1, span: 14, kind: "cc", route: "T", t: "Claude Code", badge: "ほぼすべての入口・司令塔",
+    { id: "cc", col: 3, row: 1, span: 14, kind: "cc", route: "T", t: "Claude Code", badge: "すべての依頼が通る司令塔",
       d: "クラウドのコンテナで動く。依頼を読み、行き先を決め、戻ってきた結果をまとめて返す。モデルの設定は Opus 5.5",
       list: ["スキル11（リポジトリ）とアカウントのスキル", "検品係のサブエージェント3人", "フック5本と定期タスク1本", "コネクタ4つ：GitHub・Drive・Canva・Docs", "エージェントチームを有効化"] },
 
     { id: "harness", col: 4, row: 1, span: 14, kind: "harness", route: "T", t: "ハーネス", s: "どの行き先に進む前にも、ここを通る",
       items: [
         { t: "guard.py", ev: "PreToolUse", d: "すべての Bash、ファイル操作、コネクタの前に走る。ルートやホーム、プロジェクトを丸ごと消す操作と main への force push は止める。再帰削除・sudo・変更を捨てる操作・.env の読み書き・鍵の表示はあなたの確認に回す" },
-        { t: "承認ゲート", ev: "guard.py", d: "外に出す操作はあなたが決める。PR とマージ、デプロイと公開、外部への送信、共有と削除、定期タスクの変更" },
+        { t: "承認ゲート", ev: "guard.py", d: "外に出す操作はあなたが決める。PR とマージ、デプロイと公開、外部への送信、共有と削除、定期タスクの変更。npx や python -m を前に付けても見抜く" },
         { t: "prompt_guard.py", ev: "UserPromptSubmit", d: "チャットに貼られたAPIキーを送信前に止める。9種類の形を見る" },
         { t: "権限ルール", ev: "settings.json", d: "許可7・確認5・禁止4。テストと git の読み取りは聞かずに通す" },
         { t: "鍵は .env の1か所", ev: "scripts/with-env", d: "実行時に読み込む。Claude Code は中を開かず、セッション開始時に鍵の名前だけを受け取る" },
@@ -315,7 +315,7 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
     { id: "a1-6", col: 6, row: 1, route: "A", code: "A01", t: "フリオチLAB", s: "7モード・62問" },
     { id: "a1-7", col: 7, row: 1, route: "A", code: "A02", t: "出題・採点・履歴", m: "furiochi_lab/engine", d: "選問、5軸の採点、弱点タグの蓄積" },
     { id: "a1-8", col: 8, row: 1, route: "A", code: "A03", t: "furiochi-problem-checker", d: "期待・尺度・型を1問ずつ見る" },
-    { id: "a1-9", col: 9, row: 1, route: "A", code: "A04", t: "pytest", d: "334件・10秒あまり。Stop フックが回す" },
+    { id: "a1-9", col: 9, row: 1, route: "A", code: "A04", t: "pytest", d: "410件・15秒ほど。Stop フックが回す" },
     { id: "a1-10", col: 10, row: 1, route: "A", code: "A05", t: "Streamlit とターミナル版", m: "furiochi_app.py" },
 
     { id: "a2-6", col: 6, row: 2, route: "A", code: "A06", t: "フリオチLAB Web版", s: "claude.ai で開く1ページ" },
@@ -334,7 +334,7 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
     { id: "a4-7", col: 7, row: 4, route: "A", code: "A17", t: "候補づくり", m: "candidates/日付.json", d: "数の少ないモードから3つ選ぶ" },
     { id: "a4-8", col: 8, row: 4, route: "A", code: "A18", t: "check_candidates.py", d: "形を機械で検査し、problem-checker が中身を見る" },
     { id: "a4-9", col: 9, row: 4, route: "A", code: "A19", t: "git", d: "候補の JSON だけをコミットする" },
-    { id: "a4-10", col: 10, row: 4, route: "A", code: "A20", t: "furiochi-candidates", s: "採用は人が決める" },
+    { id: "a4-10", col: 10, row: 4, route: "A", code: "A20", t: "furiochi-candidates", s: "採用はあなたが決める" },
 
     // S 路線
     { id: "s1-6", col: 6, row: 5, route: "S", code: "S01", t: "画像・アート", s: "ポスター・生成アート・GIF" },
@@ -402,12 +402,12 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
     // 棚
     { id: "shelf", col: 2, row: 15, colEnd: 12, kind: "shelf", route: "B", t: "ナレッジと資産の棚", d: "依頼のたびにここから読み、決まりはここへ書き戻す",
       items: [
-        { t: "CLAUDE.md", m: "リポジトリ直下", d: "常設ルールと書き足した決まり。クラウドは毎回消えるので記憶メモの代わりになる" },
+        { t: "CLAUDE.md", m: "リポジトリ直下", d: "常設ルールと書き足した決まり。クラウドのセッションは毎回消えるので記憶メモの代わりになる" },
         { t: "README", m: "furiochi_lab/README.md", d: "設計書の要約、起動方法、未実装の範囲" },
         { t: "問題バンク", m: "data/problems.py", d: "62問。成立例と採点ヒントつき" },
         { t: "型の辞典", m: "data/taxonomy.py", d: "12の基本型、20技法、28作品の構造分析" },
-        { t: "git の履歴", m: "18コミット", d: "どの版にも戻せる。セッションをまたいで残る唯一の記録" },
-        { t: "新問の候補", m: "furiochi-candidates", d: "定期タスクが毎朝置いていく。バンクに入れるかは人が決める" }
+        { t: "git の履歴", m: "19コミット", d: "どの版にも戻せる。セッションをまたいで残る唯一の記録" },
+        { t: "新問の候補", m: "furiochi-candidates", d: "定期タスクが毎朝置いていく。バンクに入れるかはあなたが決める" }
       ] }
   ];
 

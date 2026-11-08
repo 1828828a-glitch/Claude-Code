@@ -101,7 +101,10 @@ def check_file(path: Path, seen_ids: set[str], bank_prompts: set[str]) -> tuple[
     lines = []
     for data in problems:
         pid = data.get("id", "?") if isinstance(data, dict) else "?"
-        issues = problem_issues(data, seen_ids, bank_prompts) if isinstance(data, dict) else ["オブジェクトではない"]
+        try:
+            issues = problem_issues(data, seen_ids, bank_prompts) if isinstance(data, dict) else ["オブジェクトではない"]
+        except (TypeError, AttributeError, ValueError) as e:
+            issues = [f"値の型が違う（{e}）"]
         if issues:
             ng += 1
             lines.append(f"NG {path.name} {pid}: " + " / ".join(issues))
