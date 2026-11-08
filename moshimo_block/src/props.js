@@ -39,6 +39,7 @@ function officeRoom(S, o = {}) {
   wins.forEach(([x, y]) => B.set('window', x, y, wz));
   (o.leftWindows || [[-3, 2], [-2, 2], [-3, 3], [-2, 3]]).forEach(([z, y]) => B.set('window', x0 - 1, y, z));
   (o.doors || []).forEach((x) => { B.del(x, 0, wz); B.del(x, 1, wz); });
+  (o.wallHoles || []).forEach(([x, y]) => B.del(x, y, wz));
   B.build(S, o.overrides || {});
   return B;
 }
