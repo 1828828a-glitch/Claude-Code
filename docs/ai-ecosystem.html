@@ -1,0 +1,787 @@
+<title>Claude-Code のAI路線図</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Dela+Gothic+One&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: 地下鉄の路線図。依頼は左から右へ11列を進み、振り分けで4路線に分かれる。駅＝ノード、線＝依頼の通り道 */
+:root {
+  --paper: #FAFBF9;
+  --panel: #FFFFFF;
+  --sunk: #EEF1EC;
+  --ink: #15181C;
+  --ink-2: #4B525B;
+  --ink-3: #79818A;
+  --rule: #D8DDD5;
+  --r-trunk: #15181C;
+  --r-app: #C2306A;
+  --r-skill: #0F8F65;
+  --r-svc: #2560D0;
+  --r-api: #D9700A;
+  --r-shelf: #8A6A45;
+  --on-line: #FFFFFF;
+  --focus: #2560D0;
+  --f-display: "Dela Gothic One", "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  --f-body: "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #101316; --panel: #181C20; --sunk: #1F2428; --ink: #EDEFF1; --ink-2: #AEB5BD; --ink-3: #848C95;
+    --rule: #2D333A; --r-trunk: #EDEFF1; --r-app: #F0629C; --r-skill: #37C793; --r-svc: #6E9DFF;
+    --r-api: #FFA542; --r-shelf: #C79D6E; --on-line: #101316; --focus: #6E9DFF; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #101316; --panel: #181C20; --sunk: #1F2428; --ink: #EDEFF1; --ink-2: #AEB5BD; --ink-3: #848C95;
+  --rule: #2D333A; --r-trunk: #EDEFF1; --r-app: #F0629C; --r-skill: #37C793; --r-svc: #6E9DFF;
+  --r-api: #FFA542; --r-shelf: #C79D6E; --on-line: #101316; --focus: #6E9DFF; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+code, .mono { font-family: var(--f-mono); font-size: 0.86em; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* ── 見出し ── */
+header.top { padding-block: 40px 20px; display: grid; gap: 14px; }
+.eyebrow { font-size: 12px; letter-spacing: 0.08em; color: var(--ink-3); }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(30px, 5.2vw, 54px); line-height: 1.15; margin: 0; text-wrap: balance; letter-spacing: 0.01em; }
+.lede { max-width: 68ch; color: var(--ink-2); margin: 0; font-size: 15px; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 0; padding: 0; list-style: none; }
+.facts li { font-size: 12.5px; padding: 4px 11px; border: 1px solid var(--rule); border-radius: 999px; background: var(--panel); color: var(--ink-2); }
+.facts b { color: var(--ink); font-weight: 700; }
+
+/* ── 操作列 ── */
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding-block: 8px 14px; border-top: 1px solid var(--rule); }
+.tabs { display: inline-flex; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.tabs button { font: inherit; font-size: 13px; padding: 7px 14px; border: 0; background: transparent; color: var(--ink-2); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--paper); font-weight: 700; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.legend-label { font-size: 12px; color: var(--ink-3); margin-right: 2px; }
+.line-chip { font: inherit; font-size: 12.5px; display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px 4px 4px; border-radius: 999px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); cursor: pointer; }
+.line-chip[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.sym { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; color: var(--on-line); font-family: var(--f-display); font-size: 13px; line-height: 1; flex: none; }
+.fit { font: inherit; font-size: 12.5px; padding: 5px 11px; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); color: var(--ink-2); cursor: pointer; margin-left: auto; }
+.fit[aria-pressed="true"] { color: var(--ink); border-color: var(--ink); }
+
+/* ── 路線図 ── */
+.map-scroller { overflow-x: auto; overflow-y: hidden; border-block: 1px solid var(--rule); background: var(--paper); cursor: grab; -webkit-overflow-scrolling: touch; }
+.map-scroller.dragging { cursor: grabbing; user-select: none; }
+.map-sizer { position: relative; }
+.map {
+  position: relative; transform-origin: 0 0;
+  display: grid; padding: 46px 40px 36px;
+  grid-template-columns: 104px 158px 196px 244px 156px 150px 200px 182px 186px 168px 176px;
+  column-gap: 40px; row-gap: 10px; width: max-content;
+}
+.map svg.lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 0; }
+.map > * { z-index: 1; }
+.colhead { grid-row: 1; background: var(--paper); display: grid; grid-template-columns: auto 1fr; gap: 0 8px; align-items: center; padding-bottom: 8px; border-bottom: 2px solid var(--ink); margin-bottom: 8px; }
+.colhead .num { grid-row: span 2; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: var(--paper); display: grid; place-items: center; font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.colhead .nm { font-weight: 700; font-size: 13.5px; line-height: 1.3; }
+.colhead .sb { font-size: 11px; color: var(--ink-3); line-height: 1.3; }
+
+.node {
+  position: relative; background: var(--panel); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 8px 10px 9px; align-self: center; font-size: 12px; line-height: 1.5; min-width: 0;
+  transition: opacity .18s ease, border-color .18s ease;
+}
+.node:hover, .node:focus-visible { border-color: var(--ink-3); }
+.node .row1 { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.node .code { font-family: var(--f-mono); font-size: 10px; font-weight: 600; padding: 0 5px; border-radius: 4px; color: var(--on-line); line-height: 16px; flex: none; }
+.node .t { font-weight: 700; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
+.node .s { color: var(--ink-3); font-size: 11px; margin-top: 1px; }
+.node .d { color: var(--ink-2); margin-top: 4px; font-size: 11.5px; }
+.node .m { font-family: var(--f-mono); font-size: 10.5px; color: var(--ink-2); margin-top: 3px; overflow-wrap: anywhere; }
+.node .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.node .chips span { font-family: var(--f-mono); font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--sunk); color: var(--ink-2); }
+.node.dashed { border-style: dashed; background: var(--paper); }
+
+.node.person { border-radius: 50%; width: 104px; height: 104px; display: grid; place-content: center; text-align: center; background: var(--ink); color: var(--paper); border: 0; padding: 0; }
+.node.person .t { font-family: var(--f-display); font-weight: 400; font-size: 20px; }
+.node.person .s { color: var(--paper); opacity: .72; font-size: 10px; }
+
+.node.cc { border: 2px solid var(--ink); border-radius: 12px; padding: 14px 14px 12px; }
+.node.cc .t { font-family: var(--f-display); font-weight: 400; font-size: 21px; line-height: 1.2; }
+.node.cc .badge { display: inline-block; font-size: 10.5px; font-weight: 700; background: var(--ink); color: var(--paper); padding: 1px 8px; border-radius: 999px; margin-top: 6px; }
+.node.cc ul { margin: 8px 0 0; padding: 8px 0 0; list-style: none; border-top: 1px solid var(--rule); display: grid; gap: 3px; }
+.node.cc li { font-size: 11.5px; color: var(--ink-2); display: flex; gap: 6px; }
+.node.cc li::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--ink); margin-top: 7px; flex: none; }
+
+.node.harness { background: var(--sunk); border: 0; border-radius: 12px; padding: 14px; align-self: stretch; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; }
+.harness h3 { margin: 0; font-size: 15px; line-height: 1.3; }
+.harness h3 small { display: block; font-weight: 400; color: var(--ink-3); font-size: 11px; }
+.harness .item { background: var(--panel); border-radius: 8px; padding: 9px 10px; }
+.harness .item .t { font-size: 12.5px; }
+.harness .ev { font-family: var(--f-mono); font-size: 9.5px; color: var(--ink-3); display: block; }
+
+.node.route { border: 0; border-radius: 14px; padding: 12px 12px 12px; color: var(--on-line); text-align: left; }
+.node.route .sym { width: 34px; height: 34px; font-size: 20px; border-radius: 9px; background: var(--on-line); margin-bottom: 8px; }
+.node.route .t { font-size: 14px; }
+.node.route .s { color: var(--on-line); opacity: .85; }
+
+.node.shelf { align-self: stretch; background: var(--sunk); border: 0; border-radius: 12px; padding: 14px; display: grid; grid-template-columns: 190px repeat(5, minmax(0, 1fr)); gap: 12px; margin-top: 26px; }
+.shelf .head .t { font-size: 15px; color: var(--r-shelf); }
+.shelf .head .d { font-size: 11.5px; }
+.shelf .item { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 9px 10px; min-width: 0; }
+
+.lines path { fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; transition: opacity .18s ease; }
+.lines path.dashed { stroke-width: 2.5; stroke-dasharray: 7 6; }
+.lines path.loop { stroke-width: 2; stroke-dasharray: 4 5; }
+.lines circle { stroke-width: 3; transition: opacity .18s ease; }
+.lines text { font-family: var(--f-body); font-size: 11px; font-weight: 700; }
+.lines .bg-text { stroke: var(--paper); stroke-width: 5; stroke-linejoin: round; }
+
+.map.focusing .node:not(.lit) { opacity: .25; }
+.map.focusing .lines path:not(.lit), .map.focusing .lines circle:not(.lit) { opacity: .1; }
+
+.scroll-hint { font-size: 12px; color: var(--ink-3); padding-block: 8px 0; }
+
+/* ── 列ごとに読む ── */
+.list { display: grid; gap: 28px; padding-block: 18px 8px; }
+.list section { display: grid; gap: 10px; }
+.list h2 { display: flex; align-items: center; gap: 10px; font-size: 17px; margin: 0; padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
+.list h2 .num { width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: var(--paper); display: grid; place-items: center; font-size: 12px; flex: none; }
+.list h2 small { font-weight: 400; font-size: 12px; color: var(--ink-3); }
+.list .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 10px; }
+.list .card { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; font-size: 13px; min-width: 0; display: grid; gap: 3px; align-content: start; }
+.list .card .row1 { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.list .card .code { font-family: var(--f-mono); font-size: 10.5px; font-weight: 600; padding: 0 6px; border-radius: 4px; color: var(--on-line); line-height: 18px; }
+.list .card .t { font-weight: 700; }
+.list .card .s { color: var(--ink-3); font-size: 12px; }
+.list .card .d { color: var(--ink-2); font-size: 12.5px; }
+.list .card .m { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+.list .card .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.list .card .chips span { font-family: var(--f-mono); font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--sunk); color: var(--ink-2); }
+.list .card .to { font-size: 11.5px; color: var(--ink-3); }
+
+/* ── 次に足せるもの ── */
+.next { padding-block: 40px 56px; display: grid; gap: 16px; }
+.next h2 { font-family: var(--f-display); font-weight: 400; font-size: 26px; margin: 0; line-height: 1.25; }
+.next > p { margin: 0; max-width: 68ch; color: var(--ink-2); }
+.next ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px; }
+.next li { border-top: 3px solid var(--ink); padding-top: 10px; display: grid; gap: 6px; align-content: start; }
+.next li.pick { border-top-color: var(--r-api); }
+.next li h3 { margin: 0; font-size: 15px; }
+.next li .tag { font-size: 11px; font-weight: 700; color: var(--r-api); }
+.next li p { margin: 0; font-size: 13px; color: var(--ink-2); }
+footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
+
+@media (max-width: 720px) {
+  header.top { padding-block: 28px 14px; }
+  .fit { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .node, .lines path, .lines circle { transition: none; }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">2026年11月8日時点の .claude とリポジトリの中身から作成</div>
+    <h1>Claude-Code のAI路線図</h1>
+    <p class="lede">依頼は左から右へ11列を通って形になります。入口はほぼ Claude アプリで、司令塔の Claude Code が受け、ハーネスを通ってから4つの路線に分かれる。アプリを作る路線、スキルで作る路線、外部サービスを操作する路線、外部APIを呼ぶ路線です。下の棚には、毎回読んで書き戻すルールと資産を置いています。</p>
+    <ul class="facts">
+      <li><b>入口はほぼ Claude アプリ</b>、作業はクラウドのコンテナ</li>
+      <li><b>危ない操作</b>は guard が止めるか、あなたの確認に回す</li>
+      <li><b>鍵は .env の1か所</b>、Claude Code は中を開かない</li>
+      <li><b>完了の前に</b>テスト231件と検品係を通す</li>
+      <li><b>残るのは GitHub だけ</b>、セッションは毎回消える</li>
+    </ul>
+  </header>
+
+  <div class="controls">
+    <div class="tabs" role="tablist" aria-label="表示の切り替え">
+      <button id="tab-map" role="tab" aria-selected="true" aria-controls="view-map">路線図</button>
+      <button id="tab-list" role="tab" aria-selected="false" aria-controls="view-list">列ごとに読む</button>
+    </div>
+    <div class="legend" id="legend"><span class="legend-label">路線</span></div>
+    <button class="fit" id="fit" aria-pressed="false">全体を縮小</button>
+  </div>
+</div>
+
+<div id="view-map" role="tabpanel" aria-labelledby="tab-map">
+  <div class="map-scroller" id="scroller">
+    <div class="map-sizer" id="sizer">
+      <div class="map" id="map"><svg class="lines" id="lines" aria-hidden="true"></svg></div>
+    </div>
+  </div>
+  <div class="wrap"><div class="scroll-hint">横にスクロールするか、ドラッグして動かせます。駅にカーソルを置くと、その駅を通る線だけが残ります。</div></div>
+</div>
+
+<div id="view-list" role="tabpanel" aria-labelledby="tab-list" hidden>
+  <div class="wrap"><div class="list" id="list"></div></div>
+</div>
+
+<div class="wrap">
+  <section class="next" aria-labelledby="next-h">
+    <h2 id="next-h">KEITO版にあって、ここにまだないもの</h2>
+    <p>元の図と並べると、右半分の厚みがまるで違う。あちらは147個のスキルと独自ドメイン8つを持ち、こちらは11個とGitHubだけ。それでも差を埋める順番ははっきりしていて、今ある部品をつなぐだけで動くものから足すのがいい。</p>
+    <ol>
+      <li class="pick">
+        <span class="tag">最初に足すならこれ</span>
+        <h3>定期タスクの入口</h3>
+        <p>決まった時刻にクラウドで動く入口です。毎朝フリオチの新問を3つ生成し、furiochi-problem-checker に通して、合格したものだけを候補ブランチに置く。問題生成も検品係ももうあるので、つなぐだけで回ります。</p>
+      </li>
+      <li>
+        <h3>別のAIによるレビュー</h3>
+        <p>KEITO は大きい成果物を Codex と Antigravity にも見せてから公開している。ここの kenpin は同じ Claude の別の目でしかありません。違うモデルの指摘を混ぜるには、PCに Codex CLI か Gemini CLI を入れて、それぞれ契約する必要があります。</p>
+      </li>
+      <li>
+        <h3>速い判断AI</h3>
+        <p>KEITO の Jev は依頼を0.2〜0.35秒で読み、種類や取り返しのつかなさを点数にする。ここでは guard.py の決まりで代わりをさせています。決まりで拾えない曖昧な依頼が増えてきたら考えれば足ります。</p>
+      </li>
+      <li>
+        <h3>公開先</h3>
+        <p>フリオチLAB を Streamlit Cloud などで人に使ってもらうには、履歴が1つのJSONに共有されてしまう問題を先に解く必要があります。README の未実装にも書いてある課題です。</p>
+      </li>
+    </ol>
+  </section>
+  <footer class="src">出典は .claude の settings.json・hooks・agents・skills と、CLAUDE.md、furiochi_lab、enneagram_tool、tests、このセッションにつながっているコネクタ。下敷きにしたのは、ふっく氏の投稿で紹介された KEITO のAIエコシステムの図です。</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var ROUTES = {
+    A: { name: "アプリを作る・直す", token: "--r-app" },
+    S: { name: "スキルで作る", token: "--r-skill" },
+    C: { name: "外部サービスを操作", token: "--r-svc" },
+    K: { name: "外部APIを呼ぶ", token: "--r-api" },
+    T: { name: "幹線", token: "--r-trunk" },
+    B: { name: "棚", token: "--r-shelf" }
+  };
+
+  var COLS = [
+    ["人", "頼む・確かめる・決める"], ["入口", "どこから頼むか"], ["司令塔", "依頼を受けるAI"],
+    ["ハーネス", "判断・権限・安全"], ["振り分け", "4つの行き先"], ["分野", "何を作るか"],
+    ["スキル・機能", "どの手順を使うか"], ["担当・チェック", "検品係とフック"], ["道具・API・接続", "何で動かすか"],
+    ["出口", "何ができるか"], ["公開", "どこに残すか"]
+  ];
+
+  // row は路線図の行（1〜13）。棚は14行目。span は行のまたぎ
+  var NODES = [
+    { id: "me", col: 1, row: 1, span: 13, kind: "person", route: "T", t: "あなた", s: "頼む・確かめる・決める" },
+
+    { id: "in-app", col: 2, row: 1, span: 13, group: "entry", route: "T", t: "Claude アプリ", s: "スマホ・PC・Web", d: "クラウドのセッションを開いて頼む。今回の入口もここ" },
+    { id: "in-pc", col: 2, row: 1, span: 13, group: "entry", route: "T", dashed: true, t: "PCのターミナル", s: "このリポジトリを開いたとき", d: "同じ .claude が効く。鍵とフックもそのまま" },
+
+    { id: "cc", col: 3, row: 1, span: 13, kind: "cc", route: "T", t: "Claude Code", badge: "ほぼすべての入口・司令塔",
+      d: "クラウドのコンテナで動く。依頼を読み、行き先を決め、戻ってきた結果をまとめて返す。モデルの設定は Opus 5.5",
+      list: ["スキル11（リポジトリ）とアカウントのスキル", "検品係のサブエージェント3人", "フック5本", "コネクタ4つ：GitHub・Drive・Canva・Docs", "エージェントチームを有効化"] },
+
+    { id: "harness", col: 4, row: 1, span: 13, kind: "harness", route: "T", t: "ハーネス", s: "どの行き先に進む前にも、ここを通る",
+      items: [
+        { t: "guard.py", ev: "PreToolUse", d: "すべての Bash とファイル操作の前に走る。/ やホームの削除、main への force push は止める。再帰削除・sudo・force push・変更を捨てる操作・.env への接触はあなたの確認に回す" },
+        { t: "prompt_guard.py", ev: "UserPromptSubmit", d: "チャットに貼られたAPIキーを送信前に止める。9種類の形を見る" },
+        { t: "権限ルール", ev: "settings.json", d: "許可7・確認5・禁止4。テストと git の読み取りは聞かずに通す" },
+        { t: "鍵は .env の1か所", ev: "scripts/with-env", d: "実行時に読み込む。Claude Code は中を開かず、セッション開始時に鍵の名前だけを受け取る" },
+        { t: "CLAUDE.md", ev: "常設ルール", d: "止められたら言い換えずに報告して待つ。続く指示は1行ずつ書き足す" },
+        { t: "品質の関所", ev: "PostToolUse・Stop", d: "書いた直後に構文を確かめ、終える前にテストを回す。完了報告の前に検品係を通す" }
+      ] },
+
+    { id: "rA", col: 5, row: 1, span: 3, kind: "route", route: "A", sym: "A", t: "アプリを作る・直す", s: "フリオチLAB とエニアグラム" },
+    { id: "rS", col: 5, row: 4, span: 4, kind: "route", route: "S", sym: "S", t: "スキルで作る", s: "リポジトリのスキル11個" },
+    { id: "rC", col: 5, row: 8, span: 4, kind: "route", route: "C", sym: "C", t: "外部サービスを操作", s: "コネクタ経由。判断は Claude Code" },
+    { id: "rK", col: 5, row: 12, span: 2, kind: "route", route: "K", sym: "K", t: "外部APIを呼ぶ", s: "鍵は .env から実行時に" },
+
+    // A 路線
+    { id: "a1-6", col: 6, row: 1, route: "A", code: "A01", t: "フリオチLAB", s: "7モード・62問" },
+    { id: "a1-7", col: 7, row: 1, route: "A", code: "A02", t: "出題・採点・履歴", m: "furiochi_lab/engine", d: "選問、5軸の採点、弱点タグの蓄積" },
+    { id: "a1-8", col: 8, row: 1, route: "A", code: "A03", t: "furiochi-problem-checker", d: "期待・尺度・型を1問ずつ見る" },
+    { id: "a1-9", col: 9, row: 1, route: "A", code: "A04", t: "pytest", d: "231件・約10秒。Stop フックが回す" },
+    { id: "a1-10", col: 10, row: 1, route: "A", code: "A05", t: "Streamlit とターミナル版", m: "furiochi_app.py" },
+
+    { id: "a2-6", col: 6, row: 2, route: "A", code: "A06", t: "フリオチLAB Web版", s: "claude.ai で開く1ページ" },
+    { id: "a2-7", col: 7, row: 2, route: "A", code: "A07", t: "Web版の部品", m: "furiochi_lab/web/src", d: "舞台の演出とグラフ。HTML・CSS・JS" },
+    { id: "a2-8", col: 8, row: 2, route: "A", code: "A08", t: "post_edit_check", d: "問題や部品を触ったら作り直しを知らせる" },
+    { id: "a2-9", col: 9, row: 2, route: "A", code: "A09", t: "build.py", d: "問題バンクと採点ルールを埋め込む" },
+    { id: "a2-10", col: 10, row: 2, route: "A", code: "A10", t: "furiochi-lab.html", s: "1ファイルで動く" },
+
+    { id: "a3-6", col: 6, row: 3, route: "A", code: "A11", t: "エニアグラム判定", s: "Enneagram × Beebe × Nardi" },
+    { id: "a3-7", col: 7, row: 3, route: "A", code: "A12", t: "質問票と統合分析", m: "enneagram_tool/engine" },
+    { id: "a3-8", col: 8, row: 3, route: "A", code: "A13", t: "kenpin", d: "テスト・差分・鍵の混入を見て合否を出す" },
+    { id: "a3-9", col: 9, row: 3, route: "A", code: "A14", t: "Streamlit" },
+    { id: "a3-10", col: 10, row: 3, route: "A", code: "A15", t: "判定ページ", m: "streamlit_app.py" },
+
+    // S 路線
+    { id: "s1-6", col: 6, row: 4, route: "S", code: "S01", t: "画像・アート", s: "ポスター・生成アート・GIF" },
+    { id: "s1-7", col: 7, row: 4, route: "S", code: "S02", t: "絵を作るスキル", chips: ["canvas-design", "algorithmic-art", "slack-gif-creator"] },
+    { id: "s1-8", col: 8, row: 4, route: "S", code: "S03", t: "kenpin", d: "仕上がりと依頼の突き合わせ" },
+    { id: "s1-9", col: 9, row: 4, route: "S", code: "S04", t: "Python と p5.js", d: "同梱フォント54書体" },
+    { id: "s1-10", col: 10, row: 4, route: "S", code: "S05", t: "PNG・PDF・GIF" },
+
+    { id: "s2-6", col: 6, row: 5, route: "S", code: "S06", t: "画面・Web", s: "ページとアプリの見た目" },
+    { id: "s2-7", col: 7, row: 5, route: "S", code: "S07", t: "画面を作るスキル", chips: ["frontend-design", "web-artifacts-builder", "theme-factory"] },
+    { id: "s2-8", col: 8, row: 5, route: "S", code: "S08", t: "webapp-testing", d: "実際に開いて動きを確かめる" },
+    { id: "s2-9", col: 9, row: 5, route: "S", code: "S09", t: "React・Tailwind・Chromium" },
+    { id: "s2-10", col: 10, row: 5, route: "S", code: "S10", t: "HTMLページ" },
+
+    { id: "s3-6", col: 6, row: 6, route: "S", code: "S11", t: "文章・資料", s: "社内向けの文書・共同執筆" },
+    { id: "s3-7", col: 7, row: 6, route: "S", code: "S12", t: "書くスキル", chips: ["doc-coauthoring", "internal-comms", "brand-guidelines"] },
+    { id: "s3-8", col: 8, row: 6, route: "S", code: "S13", t: "ja-text-checker", d: "文体ルールで1行ずつ" },
+    { id: "s3-9", col: 9, row: 6, route: "S", code: "S14", t: "アカウントのスキル", chips: ["docx", "pptx", "pdf", "ai-text-humanizer"] },
+    { id: "s3-10", col: 10, row: 6, route: "S", code: "S15", t: "Word・スライド・PDF" },
+
+    { id: "s4-6", col: 6, row: 7, route: "S", code: "S16", t: "道具づくり", s: "Claude に新しい手を足す" },
+    { id: "s4-7", col: 7, row: 7, route: "S", code: "S17", t: "道具を作るスキル", chips: ["mcp-builder"] },
+    { id: "s4-8", col: 8, row: 7, route: "S", code: "S18", t: "kenpin" },
+    { id: "s4-9", col: 9, row: 7, route: "S", code: "S19", t: "MCP の SDK", s: "Python・TypeScript" },
+    { id: "s4-10", col: 10, row: 7, route: "S", code: "S20", t: "MCPサーバー" },
+
+    // C 路線
+    { id: "c1-6", col: 6, row: 8, route: "C", code: "C01", t: "コード管理" },
+    { id: "c1-7", col: 7, row: 8, route: "C", code: "C02", t: "ブランチ・PR・CI" },
+    { id: "c1-8", col: 8, row: 8, route: "C", code: "C03", t: "guard.py", d: "force push と main への push を確認に回す" },
+    { id: "c1-9", col: 9, row: 8, route: "C", code: "C04", t: "git と GitHub コネクタ" },
+    { id: "c1-10", col: 10, row: 8, route: "C", code: "C05", t: "ブランチと PR", d: "PR は頼まれたときだけ作る" },
+
+    { id: "c2-6", col: 6, row: 9, route: "C", code: "C06", t: "ファイル" },
+    { id: "c2-7", col: 7, row: 9, route: "C", code: "C07", t: "探す・読む・作る" },
+    { id: "c2-9", col: 9, row: 9, route: "C", code: "C08", t: "Google Drive コネクタ" },
+    { id: "c2-10", col: 10, row: 9, route: "C", code: "C09", t: "Drive のファイル" },
+
+    { id: "c3-6", col: 6, row: 10, route: "C", code: "C10", t: "デザイン" },
+    { id: "c3-7", col: 7, row: 10, route: "C", code: "C11", t: "生成・編集・書き出し" },
+    { id: "c3-9", col: 9, row: 10, route: "C", code: "C12", t: "Canva コネクタ" },
+    { id: "c3-10", col: 10, row: 10, route: "C", code: "C13", t: "Canva のデザイン" },
+
+    { id: "c4-6", col: 6, row: 11, route: "C", code: "C14", t: "共同編集の文書" },
+    { id: "c4-7", col: 7, row: 11, route: "C", code: "C15", t: "書く・コメントに答える" },
+    { id: "c4-9", col: 9, row: 11, route: "C", code: "C16", t: "Claude Docs" },
+    { id: "c4-10", col: 10, row: 11, route: "C", code: "C17", t: "共有できる Doc" },
+
+    // K 路線
+    { id: "k1-6", col: 6, row: 12, route: "K", code: "K01", t: "AI講評", s: "フリオチLAB の回答に" },
+    { id: "k1-7", col: 7, row: 12, route: "K", code: "K02", t: "講評の組み立て", m: "ai_coach.py", d: "期待、ズレ、内訳、改善2つ、別案の順" },
+    { id: "k1-8", col: 8, row: 12, route: "K", code: "K03", t: "安全判定は別枠", m: "rubric.py", d: "点数に混ぜない" },
+    { id: "k-9", col: 9, row: 12, span: 2, route: "K", code: "K04", t: "Anthropic API", d: "claude-opus-5-5、思考量 medium。鍵がなければ自己採点に切り替わる", chips: ["ANTHROPIC_API_KEY"] },
+    { id: "k1-10", col: 10, row: 12, route: "K", code: "K05", t: "講評・成立例・別案" },
+
+    { id: "k2-6", col: 6, row: 13, route: "K", code: "K06", t: "問題生成", s: "同じ形式の新問" },
+    { id: "k2-7", col: 7, row: 13, route: "K", code: "K07", t: "生成プロンプト", m: "GENERATION_SYSTEM" },
+    { id: "k2-8", col: 8, row: 13, route: "K", code: "K08", t: "furiochi-problem-checker", d: "採用する前に1問ずつ" },
+    { id: "k2-10", col: 10, row: 13, route: "K", code: "K09", t: "G- で始まる新問" },
+
+    // 公開
+    { id: "gh", col: 11, row: 1, span: 3, route: "T", t: "GitHub", m: "1828828a-glitch/Claude-Code", d: "作業はブランチに push する。セッションが消えても残るのはここだけ" },
+    { id: "art", col: 11, row: 4, span: 4, route: "T", t: "claude.ai の Artifact", d: "フリオチLAB の Web版と、この図" },
+
+    // 棚
+    { id: "shelf", col: 2, row: 14, colEnd: 12, kind: "shelf", route: "B", t: "ナレッジと資産の棚", d: "依頼のたびにここから読み、決まりはここへ書き戻す",
+      items: [
+        { t: "CLAUDE.md", m: "リポジトリ直下", d: "常設ルールと書き足した決まり。クラウドは毎回消えるので記憶メモの代わりになる" },
+        { t: "README", m: "furiochi_lab/README.md", d: "設計書の要約、起動方法、未実装の範囲" },
+        { t: "問題バンク", m: "data/problems.py", d: "62問。成立例と採点ヒントつき" },
+        { t: "型の辞典", m: "data/taxonomy.py", d: "12の基本型、20技法、28作品の構造分析" },
+        { t: "git の履歴", m: "16コミット", d: "どの版にも戻せる。セッションをまたいで残る唯一の記録" }
+      ] }
+  ];
+
+  var EDGES = [
+    ["me", "in-app", "T"], ["me", "in-pc", "T", "dashed"],
+    ["in-app", "cc", "T"], ["in-pc", "cc", "T", "dashed"],
+    ["cc", "harness", "T"],
+    ["harness", "rA", "A"], ["harness", "rS", "S"], ["harness", "rC", "C"], ["harness", "rK", "K"],
+    ["rA", "a1-6", "A"], ["rA", "a2-6", "A"], ["rA", "a3-6", "A"],
+    ["rS", "s1-6", "S"], ["rS", "s2-6", "S"], ["rS", "s3-6", "S"], ["rS", "s4-6", "S"],
+    ["rC", "c1-6", "C"], ["rC", "c2-6", "C"], ["rC", "c3-6", "C"], ["rC", "c4-6", "C"],
+    ["rK", "k1-6", "K"], ["rK", "k2-6", "K"],
+    ["a1-10", "gh", "A"], ["a3-10", "gh", "A"], ["c1-10", "gh", "C"],
+    ["a2-10", "art", "A"], ["s2-10", "art", "S"],
+    ["k1-6", "k1-7", "K"], ["k1-7", "k1-8", "K"], ["k2-6", "k2-7", "K"], ["k2-7", "k2-8", "K"],
+    ["k1-8", "k-9", "K"], ["k2-8", "k-9", "K"], ["k-9", "k1-10", "K"], ["k-9", "k2-10", "K"]
+  ];
+  // 同じ行で左から右へ並ぶ駅は順につなぐ。K 路線は API の駅を2行で共有するので上で個別に引いた
+  ["a1", "a2", "a3", "s1", "s2", "s3", "s4", "c1", "c2", "c3", "c4"].forEach(function (r) {
+    var row = NODES.filter(function (n) { return n.id.indexOf(r + "-") === 0; }).sort(function (a, b) { return a.col - b.col; });
+    for (var i = 0; i + 1 < row.length; i++) EDGES.push([row[i].id, row[i + 1].id, row[i].route]);
+  });
+  var SPECIAL = [
+    { from: "cc", to: "shelf", route: "B", kind: "down", label: "依頼のたびに読み、決まりを書き足す" },
+    { from: "a1-8", to: "cc", route: "T", kind: "loop", label: "差し戻しループ：検品やテストで落ちたら司令塔に戻して直す" }
+  ];
+
+  var byId = {};
+  NODES.forEach(function (n) { byId[n.id] = n; });
+
+  var map = document.getElementById("map");
+  var svg = document.getElementById("lines");
+  var SVGNS = "http://www.w3.org/2000/svg";
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function color(route) { return "var(" + ROUTES[route].token + ")"; }
+
+  function fillNodeBody(box, n) {
+    var r1 = el("div", "row1");
+    if (n.code) { var c = el("span", "code", n.code); c.style.background = color(n.route); r1.appendChild(c); }
+    r1.appendChild(el("span", "t", n.t));
+    box.appendChild(r1);
+    if (n.s) box.appendChild(el("div", "s", n.s));
+    if (n.m) box.appendChild(el("div", "m", n.m));
+    if (n.d) box.appendChild(el("div", "d", n.d));
+    if (n.chips) {
+      var ch = el("div", "chips");
+      n.chips.forEach(function (x) { ch.appendChild(el("span", null, x)); });
+      box.appendChild(ch);
+    }
+  }
+
+  // ── 路線図を組む ──
+  COLS.forEach(function (c, i) {
+    var h = el("div", "colhead");
+    h.style.gridColumn = String(i + 1);
+    h.appendChild(el("span", "num", String(i + 1)));
+    h.appendChild(el("span", "nm", c[0]));
+    h.appendChild(el("span", "sb", c[1]));
+    map.appendChild(h);
+  });
+
+  var groups = {};
+  NODES.forEach(function (n) {
+    var box = el("div", "node" + (n.kind ? " " + n.kind : "") + (n.dashed ? " dashed" : ""));
+    box.dataset.id = n.id;
+    box.dataset.route = n.route;
+    box.tabIndex = 0;
+    var rowStart = n.row + 1;
+    var place = function (target) {
+      target.style.gridColumn = n.colEnd ? n.col + " / " + n.colEnd : String(n.col);
+      target.style.gridRow = rowStart + " / span " + (n.span || 1);
+    };
+
+    if (n.kind === "person") {
+      box.appendChild(el("div", "t", n.t));
+      box.appendChild(el("div", "s", n.s));
+    } else if (n.kind === "cc") {
+      box.appendChild(el("div", "t", n.t));
+      box.appendChild(el("span", "badge", n.badge));
+      box.appendChild(el("div", "d", n.d));
+      var ul = el("ul");
+      n.list.forEach(function (x) { ul.appendChild(el("li", null, x)); });
+      box.appendChild(ul);
+    } else if (n.kind === "harness") {
+      var h3 = el("h3", null, n.t);
+      h3.appendChild(el("small", null, n.s));
+      box.appendChild(h3);
+      n.items.forEach(function (it, i) {
+        var b = el("div", "item");
+        b.appendChild(el("span", "ev", it.ev));
+        b.appendChild(el("div", "t", it.t));
+        b.appendChild(el("div", "d", it.d));
+        box.appendChild(b);
+      });
+    } else if (n.kind === "route") {
+      box.style.background = color(n.route);
+      var sym = el("span", "sym", n.sym);
+      sym.style.color = color(n.route);
+      box.appendChild(sym);
+      box.appendChild(el("div", "t", n.t));
+      box.appendChild(el("div", "s", n.s));
+    } else if (n.kind === "shelf") {
+      var head = el("div", "head");
+      head.appendChild(el("div", "t", n.t));
+      head.appendChild(el("div", "d", n.d));
+      box.appendChild(head);
+      n.items.forEach(function (it) {
+        var b = el("div", "item");
+        fillNodeBody(b, { t: it.t, m: it.m, d: it.d, route: "B" });
+        box.appendChild(b);
+      });
+    } else {
+      fillNodeBody(box, n);
+    }
+
+    if (n.group) {
+      var g = groups[n.group];
+      if (!g) {
+        g = groups[n.group] = el("div");
+        g.style.cssText = "display:flex;flex-direction:column;justify-content:center;gap:14px;align-self:stretch;";
+        place(g);
+        map.appendChild(g);
+      }
+      g.appendChild(box);
+    } else {
+      place(box);
+      map.appendChild(box);
+    }
+  });
+
+  // ── 線を引く ──
+  function rect(id) {
+    var node = map.querySelector('[data-id="' + id + '"]');
+    var x = 0, y = 0, cur = node;
+    while (cur && cur !== map) { x += cur.offsetLeft; y += cur.offsetTop; cur = cur.offsetParent; }
+    return { x: x, y: y, w: node.offsetWidth, h: node.offsetHeight, cx: x + node.offsetWidth / 2, cy: y + node.offsetHeight / 2, r: x + node.offsetWidth, b: y + node.offsetHeight };
+  }
+  function addPath(d, route, extra, key) {
+    var p = document.createElementNS(SVGNS, "path");
+    p.setAttribute("d", d);
+    p.setAttribute("stroke", color(route));
+    if (extra) p.setAttribute("class", extra);
+    p.dataset.key = key;
+    svg.appendChild(p);
+    return p;
+  }
+  function addStation(x, y, route, key) {
+    var c = document.createElementNS(SVGNS, "circle");
+    c.setAttribute("cx", x); c.setAttribute("cy", y); c.setAttribute("r", 5);
+    c.setAttribute("fill", "var(--panel)"); c.setAttribute("stroke", color(route));
+    c.dataset.key = key;
+    svg.appendChild(c);
+  }
+  function addLabel(x, y, text, route, anchor) {
+    [true, false].forEach(function (bg) {
+      var t = document.createElementNS(SVGNS, "text");
+      t.setAttribute("x", x); t.setAttribute("y", y);
+      t.setAttribute("text-anchor", anchor || "start");
+      t.setAttribute("fill", color(route));
+      if (bg) t.setAttribute("class", "bg-text");
+      t.textContent = text;
+      svg.appendChild(t);
+    });
+  }
+
+  function draw() {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var W = map.offsetWidth, H = map.offsetHeight;
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("width", W); svg.setAttribute("height", H);
+
+    // 列のすき間ごとに、線が縦に走るレーンを割り当てる
+    var lanes = {};
+    var outCount = {}, inCount = {};
+    EDGES.forEach(function (e) { outCount[e[0]] = (outCount[e[0]] || 0) + 1; inCount[e[1]] = (inCount[e[1]] || 0) + 1; });
+    var plans = EDGES.map(function (e) {
+      var a = rect(e[0]), b = rect(e[1]);
+      var x1 = a.r, y1 = a.cy, x2 = b.x, y2 = b.cy;
+      var gapKey = byId[e[0]].col;
+      var laneKey = outCount[e[0]] > 1 ? "o:" + e[0] : (inCount[e[1]] > 1 ? "i:" + e[1] : "e:" + e[0] + ">" + e[1]);
+      if (Math.abs(y1 - y2) < 1.5) laneKey = null;
+      if (laneKey) { lanes[gapKey] = lanes[gapKey] || []; if (lanes[gapKey].indexOf(laneKey) < 0) lanes[gapKey].push(laneKey); }
+      return { e: e, x1: x1, y1: y1, x2: x2, y2: y2, gapKey: gapKey, laneKey: laneKey };
+    });
+
+    plans.forEach(function (p) {
+      var key = p.e[0] + ">" + p.e[1];
+      var route = p.e[2], cls = p.e[3] === "dashed" ? "dashed" : "";
+      var d;
+      if (!p.laneKey) {
+        var y = (p.y1 + p.y2) / 2;
+        d = "M" + p.x1 + " " + y + " H" + p.x2;
+        p.y2 = y;
+      } else {
+        var list = lanes[p.gapKey], i = list.indexOf(p.laneKey), n = list.length;
+        var gapL = p.x1 + 10, gapR = p.x2 - 10;
+        var xl = n === 1 ? (gapL + gapR) / 2 : gapL + (gapR - gapL) * (i + 0.5) / n;
+        var s = p.y2 > p.y1 ? 1 : -1;
+        var r = Math.min(9, Math.abs(p.y2 - p.y1) / 2, xl - p.x1 - 1, p.x2 - xl - 1);
+        d = "M" + p.x1 + " " + p.y1 + " H" + (xl - r) + " Q" + xl + " " + p.y1 + " " + xl + " " + (p.y1 + s * r) +
+            " V" + (p.y2 - s * r) + " Q" + xl + " " + p.y2 + " " + (xl + r) + " " + p.y2 + " H" + p.x2;
+      }
+      addPath(d, route, cls, key);
+      addStation(p.x2, p.y2, route, key);
+    });
+
+    SPECIAL.forEach(function (sp) {
+      var a = rect(sp.from), b = rect(sp.to);
+      var key = sp.from + ">" + sp.to;
+      if (sp.kind === "down") {
+        var x = a.cx;
+        addPath("M" + x + " " + a.b + " V" + b.y, sp.route, "dashed", key);
+        addStation(x, b.y, sp.route, key);
+        addLabel(x + 10, b.y - 10, sp.label, sp.route);
+      } else if (sp.kind === "loop") {
+        var top = 22, xa = a.cx, xb = b.cx, r = 10;
+        var d = "M" + xa + " " + a.y + " V" + (top + r) + " Q" + xa + " " + top + " " + (xa - r) + " " + top +
+                " H" + (xb + r) + " Q" + xb + " " + top + " " + xb + " " + (top + r) + " V" + b.y;
+        addPath(d, sp.route, "loop", key);
+        addStation(xb, b.y, sp.route, key);
+        addLabel(xb + 16, top - 6, sp.label, sp.route);
+      }
+    });
+    applyFocus();
+  }
+
+  // ── 強調表示 ──
+  var lockedRoute = null, hoverId = null;
+  var ALL = EDGES.map(function (e) { return { from: e[0], to: e[1] }; }).concat(SPECIAL.map(function (s) { return { from: s.from, to: s.to }; }));
+  function connected(id) {
+    var nodes = {}, keys = {};
+    nodes[id] = true;
+    [["from", "to"], ["to", "from"]].forEach(function (dir) {
+      var stack = [id], seen = {};
+      seen[id] = true;
+      while (stack.length) {
+        var cur = stack.pop();
+        ALL.forEach(function (e) {
+          if (e[dir[0]] === cur && !(e.from === "a1-8" && e.to === "cc")) {
+            keys[e.from + ">" + e.to] = true;
+            var nx = e[dir[1]];
+            nodes[nx] = true;
+            // 幹線（人・入口・司令塔・ハーネス）より先には広げない
+            if (!seen[nx] && !(dir[0] === "to" && byId[nx].route === "T" && byId[cur].route !== "T")) { seen[nx] = true; stack.push(nx); }
+          }
+        });
+      }
+    });
+    return { nodes: nodes, keys: keys };
+  }
+  function routeSet(route) {
+    var nodes = {}, keys = {};
+    NODES.forEach(function (n) { if (n.route === route) nodes[n.id] = true; });
+    EDGES.forEach(function (e) { if (e[2] === route) { keys[e[0] + ">" + e[1]] = true; nodes[e[0]] = true; nodes[e[1]] = true; } });
+    SPECIAL.forEach(function (s) { if (s.route === route) { keys[s.from + ">" + s.to] = true; nodes[s.from] = true; nodes[s.to] = true; } });
+    return { nodes: nodes, keys: keys };
+  }
+  function applyFocus() {
+    var set = hoverId ? connected(hoverId) : (lockedRoute ? routeSet(lockedRoute) : null);
+    map.classList.toggle("focusing", !!set);
+    map.querySelectorAll(".node").forEach(function (nd) { nd.classList.toggle("lit", !!set && !!set.nodes[nd.dataset.id]); });
+    svg.querySelectorAll("path, circle").forEach(function (p) { p.classList.toggle("lit", !!set && !!set.keys[p.dataset.key]); });
+  }
+  map.querySelectorAll(".node").forEach(function (nd) {
+    if (nd.classList.contains("shelf")) return;
+    nd.addEventListener("mouseenter", function () { hoverId = nd.dataset.id; applyFocus(); });
+    nd.addEventListener("mouseleave", function () { hoverId = null; applyFocus(); });
+    nd.addEventListener("focus", function () { hoverId = nd.dataset.id; applyFocus(); });
+    nd.addEventListener("blur", function () { hoverId = null; applyFocus(); });
+  });
+
+  // ── 凡例 ──
+  var legend = document.getElementById("legend");
+  ["A", "S", "C", "K"].forEach(function (k) {
+    var b = el("button", "line-chip");
+    b.type = "button";
+    b.setAttribute("aria-pressed", "false");
+    var sym = el("span", "sym", k);
+    sym.style.background = color(k);
+    b.appendChild(sym);
+    b.appendChild(document.createTextNode(ROUTES[k].name));
+    b.addEventListener("click", function () {
+      lockedRoute = lockedRoute === k ? null : k;
+      legend.querySelectorAll(".line-chip").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
+      if (lockedRoute) b.setAttribute("aria-pressed", "true");
+      applyFocus();
+    });
+    legend.appendChild(b);
+  });
+
+  // ── 縮小とドラッグ ──
+  var scroller = document.getElementById("scroller"), sizer = document.getElementById("sizer");
+  var fitBtn = document.getElementById("fit"), fitted = false;
+  function layoutScale() {
+    var s = fitted ? Math.min(1, (scroller.clientWidth - 2) / map.offsetWidth) : 1;
+    map.style.transform = s < 1 ? "scale(" + s + ")" : "";
+    sizer.style.width = map.offsetWidth * s + "px";
+    sizer.style.height = map.offsetHeight * s + "px";
+  }
+  fitBtn.addEventListener("click", function () {
+    fitted = !fitted;
+    fitBtn.setAttribute("aria-pressed", String(fitted));
+    fitBtn.textContent = fitted ? "原寸に戻す" : "全体を縮小";
+    layoutScale();
+  });
+  var drag = null;
+  scroller.addEventListener("pointerdown", function (ev) {
+    if (ev.pointerType !== "mouse" || ev.button !== 0) return;
+    drag = { x: ev.clientX, left: scroller.scrollLeft, moved: false };
+  });
+  window.addEventListener("pointermove", function (ev) {
+    if (!drag) return;
+    var dx = ev.clientX - drag.x;
+    if (Math.abs(dx) > 3) { drag.moved = true; scroller.classList.add("dragging"); }
+    scroller.scrollLeft = drag.left - dx;
+  });
+  window.addEventListener("pointerup", function () { drag = null; scroller.classList.remove("dragging"); });
+
+  // ── 列ごとに読む ──
+  var list = document.getElementById("list");
+  var outs = {};
+  EDGES.forEach(function (e) { (outs[e[0]] = outs[e[0]] || []).push(e[1]); });
+  COLS.forEach(function (c, i) {
+    var sec = el("section");
+    var h2 = el("h2");
+    h2.appendChild(el("span", "num", String(i + 1)));
+    h2.appendChild(document.createTextNode(c[0] + " "));
+    h2.appendChild(el("small", null, c[1]));
+    sec.appendChild(h2);
+    var cards = el("div", "cards");
+    NODES.filter(function (n) { return n.col === i + 1 && n.kind !== "shelf"; }).forEach(function (n) {
+      var items = n.items || [n];
+      items.forEach(function (it) {
+        var card = el("div", "card");
+        var data = { t: it.t, s: it.ev || it.s, m: it.m, d: it.d, chips: it.chips, code: n.code, route: n.route };
+        if (n.kind === "route") data.code = n.sym;
+        fillNodeBody(card, data);
+        if (n.kind === "cc") {
+          var ch = el("div", "chips");
+          n.list.forEach(function (x) { ch.appendChild(el("span", null, x)); });
+          card.appendChild(ch);
+        }
+        if (n.kind !== "harness" && outs[n.id] && n.col >= 6) {
+          card.appendChild(el("div", "to", "→ " + outs[n.id].map(function (id) { return byId[id].t; }).join("・")));
+        }
+        cards.appendChild(card);
+      });
+    });
+    sec.appendChild(cards);
+    list.appendChild(sec);
+  });
+  var shelf = byId.shelf, ss = el("section"), sh = el("h2");
+  sh.appendChild(document.createTextNode(shelf.t + " "));
+  sh.appendChild(el("small", null, shelf.d));
+  ss.appendChild(sh);
+  var scards = el("div", "cards");
+  shelf.items.forEach(function (it) { var c = el("div", "card"); fillNodeBody(c, { t: it.t, m: it.m, d: it.d, route: "B" }); scards.appendChild(c); });
+  ss.appendChild(scards);
+  list.appendChild(ss);
+
+  // ── タブ ──
+  var tabMap = document.getElementById("tab-map"), tabList = document.getElementById("tab-list");
+  var viewMap = document.getElementById("view-map"), viewList = document.getElementById("view-list");
+  function show(which, remember) {
+    var isMap = which === "map";
+    tabMap.setAttribute("aria-selected", String(isMap));
+    tabList.setAttribute("aria-selected", String(!isMap));
+    viewMap.hidden = !isMap; viewList.hidden = isMap;
+    fitBtn.hidden = !isMap;
+    if (isMap) { layoutScale(); draw(); }
+    if (remember) { try { localStorage.setItem("ai-route-map-view", which); } catch (e) { /* 保存できなくても動く */ } }
+  }
+  tabMap.addEventListener("click", function () { show("map", true); });
+  tabList.addEventListener("click", function () { show("list", true); });
+  [tabMap, tabList].forEach(function (t) {
+    t.addEventListener("keydown", function (ev) {
+      if (ev.key === "ArrowRight" || ev.key === "ArrowLeft") { var other = t === tabMap ? tabList : tabMap; other.focus(); other.click(); }
+    });
+  });
+
+  var saved = null;
+  try { saved = localStorage.getItem("ai-route-map-view"); } catch (e) { saved = null; }
+  var initial = saved || (window.matchMedia && window.matchMedia("(max-width: 720px)").matches ? "list" : "map");
+  show(initial, false);
+
+  var redraw = function () { if (!viewMap.hidden) { layoutScale(); draw(); } };
+  window.addEventListener("resize", redraw);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(redraw);
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", redraw);
+  }
+})();
+</script>
