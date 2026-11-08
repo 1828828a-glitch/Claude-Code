@@ -54,7 +54,7 @@ python3 scripts/check_candidates.py
 
 ## 定期タスク
 
-フリオチ新問の朝便が、毎朝6時50分（日本時間）に新しいセッションで動く。新問を3つ作り、scripts/check_candidates.py で形を確かめ、furiochi-problem-checker に通して、残ったものを furiochi-candidates ブランチの furiochi_lab/data/candidates/日付.json に置く。PR は作らず、problems.py にも触らない。
+フリオチ新問の朝便が、毎朝6時50分（日本時間）に動く。届け先は実行用セッションの フリオチ新問の朝便（実行用） で、このリポジトリと furiochi-candidates への書き込み先を最初から持っている。毎回、前回の続きではなく同じ手順を最初からやり直す。新問を3つ作り、scripts/check_candidates.py で形を確かめ、furiochi-problem-checker に通して、残ったものを furiochi-candidates ブランチの furiochi_lab/data/candidates/日付.json に置く。PR は作らず、problems.py にも触らない。
 
 候補を問題バンクに入れるかどうかは人が決める。入れると言われたら problems.py に移し、id はモードの接頭辞で次の番号を振り直す。そのあと Web版を作り直す。
 
