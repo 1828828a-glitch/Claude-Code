@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# 鍵を .env から読み込んで、後ろのコマンドを実行する
+#
+#   scripts/with-env streamlit run furiochi_app.py
+#   scripts/with-env python -m furiochi_lab
+#
+# 鍵はリポジトリ直下の .env の1か所だけに置く。Claude Code は中身を開かず、
+# このスクリプト経由で使う。値を画面に出すコマンドは渡さないこと。
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+env_file="${WITH_ENV_FILE:-$root/.env}"
+
+if [[ $# -eq 0 ]]; then
+  echo "使い方: scripts/with-env <コマンド> [引数...]" >&2
+  exit 64
+fi
+
+if [[ -f "$env_file" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$env_file"
+  set +a
+else
+  echo "with-env: $env_file がないので、鍵なしで実行します" >&2
+fi
+
+exec "$@"
