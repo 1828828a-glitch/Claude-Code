@@ -1,7 +1,7 @@
 /* render.cjs — dist/moshimo-block.html を1コマずつ撮って MP4 にする
  *
  * 使い方: node moshimo_block/render.cjs [出力先.mp4] [--ep ep02] [--fps 30] [--from 秒 --to 秒] [--frames 秒,秒,...]
- *   --ep で回を選ぶ（省略時は ep01）
+ *   --ep で回を選ぶ（省略時は ep01）。--html で別に組み立てた HTML を使える
  *   --frames を付けると動画は作らず、その時刻の静止画（PNG）だけを書き出す（見た目の確認用）
  * 必要なもの: Playwright（Chromium 付き）と ffmpeg
  */
@@ -27,16 +27,17 @@ function run(cmd, argv, stdin) {
 }
 
 (async () => {
-  const htmlPath = path.join(__dirname, 'dist', 'moshimo-block.html');
+  const htmlPath = path.resolve(opt('--html', path.join(__dirname, 'dist', 'moshimo-block.html')));
   const body = fs.readFileSync(htmlPath, 'utf8');
   const html = `<!doctype html><html lang="ja"><head><meta charset="utf-8"></head><body>${body}</body></html>`;
   const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
   page.on('pageerror', (e) => console.error('[page]', e.message));
   await page.addInitScript((id) => { window.__RENDER_MODE = true; window.__RENDER_EP = id; }, ep);
-  const wrapper = path.join(__dirname, 'dist', '.render.html');
+  const wrapper = path.join(path.dirname(htmlPath), `.render-${ep}-${process.pid}.html`);
   fs.writeFileSync(wrapper, html);
   await page.goto('file://' + wrapper, { waitUntil: 'networkidle' });
+  fs.unlinkSync(wrapper);
   await page.waitForFunction(() => window.__ready === true, null, { timeout: 120000 });
   const duration = await page.evaluate(() => window.__duration);
   const clip = { x: 0, y: 0, width: 1280, height: 720 };

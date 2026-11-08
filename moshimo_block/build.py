@@ -17,7 +17,7 @@ JS_FILES += [f"episodes/{p.name}" for p in sorted((SRC / "episodes").glob("*.js"
 JS_FILES += ["player.js"]
 
 
-def build() -> Path:
+def build(out: Path = OUT) -> Path:
     shell = (SRC / "shell.html").read_text(encoding="utf-8")
     for marker in ("/*__CSS__*/", "/*__JS__*/"):
         assert shell.count(marker) == 1, marker
@@ -26,11 +26,12 @@ def build() -> Path:
     js = "(function () {\n'use strict';\n" + js + "\n})();"
     assert "</script" not in js, "JS の中に </script が入っている"
     html = shell.replace("/*__CSS__*/", css).replace("/*__JS__*/", js)
-    OUT.parent.mkdir(exist_ok=True)
-    OUT.write_text(html, encoding="utf-8")
-    return OUT
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(html, encoding="utf-8")
+    return out
 
 
 if __name__ == "__main__":
-    out = build()
+    import sys
+    out = build(Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else OUT)
     print(f"wrote {out} ({out.stat().st_size // 1024} KB)")

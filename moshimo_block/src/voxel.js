@@ -220,6 +220,11 @@ function faceTex(o, expr) {
       px(g, ink, 3, 7, 10, 1); px(g, ink, 3, 8, 4, 2); px(g, ink, 9, 8, 4, 2);
       px(g, '#6c7a8c', 4, 8); px(g, '#6c7a8c', 10, 8);
       px(g, '#8a2b2b', 6, 12, 4, 1); px(g, ink, 5, 11); px(g, ink, 10, 11);
+    } else if (expr === 'angry') {
+      px(g, ink, 4, 6); px(g, ink, 5, 7); px(g, ink, 6, 8); px(g, ink, 11, 6); px(g, ink, 10, 7); px(g, ink, 9, 8);
+      px(g, ink, 5, 9, 2, 2); px(g, ink, 9, 9, 2, 2);
+      px(g, '#8a2b2b', 6, 13, 4, 1); px(g, '#8a2b2b', 5, 12); px(g, '#8a2b2b', 10, 12);
+      px(g, '#e8483b', 2, 10, 2, 1); px(g, '#e8483b', 12, 10, 2, 1);
     } else if (expr === 'sleepy') {
       px(g, ink, 4, 9, 3, 1); px(g, ink, 9, 9, 3, 1);
       px(g, '#8a2b2b', 7, 12, 2, 1);
@@ -264,7 +269,7 @@ function charPack(o) {
   const key = JSON.stringify(o);
   if (!CHAR_PACKS.has(key)) {
     const tx = charTextures(o), faceMats = {};
-    ['normal', 'happy', 'shock', 'shades', 'sleepy'].forEach((e) => { faceMats[e] = lam(faceTex(o, e)); });
+    ['normal', 'happy', 'shock', 'shades', 'sleepy', 'angry'].forEach((e) => { faceMats[e] = lam(faceTex(o, e)); });
     CHAR_PACKS.set(key, {
       faceMats, sideM: lam(tx.side), topM: lam(tx.top), backM: lam(tx.back), armM: lam(tx.arm), legM: lam(tx.leg),
       frontM: lam(tx.bodyFront), bodyBackM: lam(tx.bodyBack),
