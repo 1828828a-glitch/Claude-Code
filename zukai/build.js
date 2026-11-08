@@ -50,7 +50,7 @@ em{font-style:normal;color:var(--blue)}
 .dia .before .hdr{background:var(--gray)}
 .dia .after .hdr{background:var(--blue)}
 .dia .tag{display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:18px;letter-spacing:.14em}
-.dia .hdr strong{display:block;font-size:35px;font-weight:900;margin-top:6px;letter-spacing:.02em}
+.dia .hdr strong{display:block;font-size:35px;font-weight:900;margin-top:6px;letter-spacing:.02em;white-space:nowrap}
 .dia .before .ill{filter:grayscale(1)}
 
 .dia .chat{display:flex;flex-direction:column;gap:10px;margin-top:20px}
@@ -159,7 +159,9 @@ em{font-style:normal;color:var(--blue)}
 .s2 .box.last{color:var(--blue)}
 `;
 
-const page = (title, body) => htmlPage(title, FONTS, CSS, body);
+// 自動で字を縮める箱（common.js の fitScript）
+const FIT = ['.dia .title', '.dia .hdr', '.dia .cell'];
+const page = (title, body) => htmlPage(title, FONTS, CSS, body, FIT);
 
 // ---------------------------------------------------------------- 図解
 

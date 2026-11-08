@@ -10,8 +10,8 @@
 //   handoff    資料を渡す人と受け取る人の間に、ポン出し資料が流れる図
 //   statement  青地に見出しと、真ん中に黒い箱ひとつ
 //   expand     青地に3つの箱。中央から左右へ価値が広がる
-//   process    工程を矢羽根で並べ、目に見える部分と実際の工程を比べる
-//   three      3つの要素を × でつなぎ、説明と構成要素を添える
+//   process    工程を矢羽根で並べ、目に見える部分と実際の工程を比べる（工程ごとに owner: human で灰にできる）
+//   three      3つの要素を × でつなぎ、説明と構成要素を添える（sub で「を生み出す力」を差し替え）
 //   compare    行ごとに「ないと」「あると」を並べるケーススタディ表
 
 const fs = require('fs');
@@ -41,35 +41,36 @@ em{font-style:normal;color:var(--blue)}
 .panel{position:absolute;left:24px;right:24px;top:166px;bottom:34px;background:#fff;border-radius:10px}
 .foot{position:absolute;left:24px;right:30px;bottom:9px;display:flex;justify-content:space-between;font-size:12px;color:var(--mute)}
 .blue .foot{color:#fff}
-.kick{position:absolute;left:32px;top:30px;font-size:18px;font-weight:700;color:var(--blue);letter-spacing:.04em}
+.kick{position:absolute;left:32px;right:32px;top:30px;font-size:18px;font-weight:700;color:var(--blue);letter-spacing:.04em;white-space:nowrap}
 .ctr{text-align:center}
 
 /* cover */
 .cover{width:1500px;height:600px;background:#ecebea;position:relative;overflow:hidden;font-family:'Noto Sans JP',sans-serif}
 .cover .lines{position:absolute;left:0;right:0;top:66px;display:flex;flex-direction:column;align-items:center;gap:32px}
-.cover .lines span{background:#404040;color:#fff;font-size:126px;font-weight:700;line-height:170px;height:170px;padding:0 14px;letter-spacing:.02em}
-.cover .sub{position:absolute;left:0;right:0;top:472px;text-align:center;font-size:50px;font-weight:700;color:#404040;letter-spacing:.02em}
+.cover .lines span{background:#404040;color:#fff;font-size:126px;font-weight:700;line-height:170px;height:170px;padding:0 14px;letter-spacing:.02em;white-space:nowrap;max-width:1320px}
+.cover .sub{position:absolute;left:60px;right:60px;top:472px;text-align:center;font-size:50px;font-weight:700;color:#404040;letter-spacing:.02em;white-space:nowrap}
 
 /* slop（わざと盛ったポン出し資料） */
 .stack{position:relative}
 .stack .sheet{position:absolute;transform-origin:0 0;box-shadow:0 1px 3px rgba(0,0,0,.25);border:1px solid #c3c9d0}
 .sheet{width:1280px;height:720px;overflow:hidden;font-family:'Noto Sans JP',sans-serif;
   background:repeating-linear-gradient(0deg,rgba(120,140,160,.07) 0 1px,transparent 1px 40px),repeating-linear-gradient(90deg,rgba(120,140,160,.07) 0 1px,transparent 1px 40px),linear-gradient(135deg,#f6f8fb,#dfe6ee)}
-.sheet .s-title{position:absolute;left:0;right:0;top:30px;text-align:center;font-size:35px;font-weight:900;color:#1d2733}
+.sheet .s-title{position:absolute;left:30px;right:30px;top:30px;text-align:center;font-size:35px;font-weight:900;color:#1d2733;white-space:nowrap}
 .sheet .fig{position:absolute;left:96px;top:96px;width:560px;height:600px}
 .sheet .layer{position:absolute;left:22px;font-size:17px;font-weight:700;color:#1d2733;line-height:1.3;font-family:'Montserrat','Noto Sans JP',sans-serif}
 .sheet .layer small{display:block;font-size:15px;font-family:'Noto Sans JP',sans-serif}
 .sheet .box{position:absolute;left:650px;top:146px;width:590px;height:510px;background:#fff;border:1px solid #c6ced8;box-shadow:0 2px 8px rgba(30,50,80,.12);padding:28px 30px 20px 50px}
 .sheet .box li{font-size:24px;font-weight:700;color:#1d2733;line-height:1.5;margin-bottom:16px}
+.sheet .box li:last-child{margin-bottom:0}
 
 /* handoff */
-.handoff .h-title{top:42px;left:0;right:0;font-size:34px;font-weight:700}
-.handoff .say{top:205px;width:420px;font-size:30px;font-weight:700;line-height:1.45}
+.handoff .h-title{top:42px;left:40px;right:40px;font-size:34px;font-weight:700;white-space:nowrap}
+.handoff .say{top:205px;width:420px;height:90px;font-size:30px;font-weight:700;line-height:1.45}
 .handoff .pill{left:473px;top:207px;width:334px;height:80px;border-radius:40px;background:#404040;color:#fff;font-size:38px;font-weight:700;display:flex;align-items:center;justify-content:center}
-.handoff .cap{left:0;right:0;top:604px;font-size:26px;font-weight:700}
+.handoff .cap{left:60px;right:60px;top:604px;font-size:26px;font-weight:700;white-space:nowrap}
 
 /* statement / expand（青地） */
-.blue .b-title{left:0;right:0;top:92px;font-size:38px;font-weight:700;line-height:1.45;letter-spacing:.04em}
+.blue .b-title{left:60px;right:60px;top:92px;height:112px;font-size:38px;font-weight:700;line-height:1.45;letter-spacing:.04em}
 .blue .bbox{top:360px;width:302px;height:172px;border-radius:24px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:31px;font-weight:700;line-height:1.45;letter-spacing:.04em}
 .blue .bbox.black{background:#000;color:#fff}
 .blue .bbox.line{border:2px solid #fff;color:#fff}
@@ -77,8 +78,8 @@ em{font-style:normal;color:var(--blue)}
 .blue .badge{width:58px;height:58px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 2px var(--blue);color:var(--blue);font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center}
 
 /* process */
-.process .p-title{left:32px;top:76px;font-size:24px;font-weight:700;line-height:1.55}
-.process .note{font-size:22px;font-weight:700;text-align:center}
+.process .p-title{left:32px;right:32px;top:76px;height:75px;font-size:24px;font-weight:700;line-height:1.55}
+.process .note{font-size:22px;font-weight:700;text-align:center;white-space:nowrap}
 .process .chev{height:60px}
 .process .chev svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .process .chev span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;font-size:17px;font-weight:700;line-height:1.25;padding:0 10px 0 22px}
@@ -91,23 +92,23 @@ em{font-style:normal;color:var(--blue)}
 .process .concl .main{font-size:27px;font-weight:700}
 
 /* three */
-.three .t-title{left:62px;top:84px;font-size:35px;font-weight:700}
+.three .t-title{left:62px;right:62px;top:84px;font-size:35px;font-weight:700;white-space:nowrap}
 .three .card{top:223px;width:302px;height:170px;border-radius:26px;background:var(--blue);color:#fff;text-align:center;padding-top:32px}
 .three .card b{display:block;font-size:38px;font-weight:900;letter-spacing:.04em;line-height:1.2}
 .three .card i{display:block;font-style:normal;font-size:17px;font-weight:700;margin-top:6px}
 .three .card u{display:block;text-decoration:none;font-size:18px;font-weight:400;margin-top:14px;font-family:'Montserrat','Noto Sans JP',sans-serif}
-.three .desc{top:414px;width:302px;text-align:center;font-size:26px;font-weight:700;line-height:1.3}
+.three .desc{top:414px;width:302px;height:68px;text-align:center;font-size:26px;font-weight:700;line-height:1.3}
 .three .tag{top:513px;border:1.5px solid #404040;font-size:15px;font-weight:700;padding:2px 10px}
-.three .parts{top:551px;font-size:18px;font-weight:700;line-height:1.28}
+.three .parts{top:551px;width:310px;height:94px;font-size:18px;font-weight:700;line-height:1.28}
 .three .parts li{list-style:none;padding-left:34px;position:relative}
 .three .parts li::before{content:'•';position:absolute;left:10px}
 
 /* compare */
-.compare .c-title{left:0;right:0;top:86px;font-size:34px;font-weight:700}
-.compare .scene{left:58px;right:92px;top:188px;height:34px;background:#f5f5f5;border-radius:4px;display:flex;align-items:center;gap:20px;padding-left:16px;font-size:15px;font-weight:500}
+.compare .c-title{left:40px;right:40px;top:86px;font-size:34px;font-weight:700;white-space:nowrap}
+.compare .scene{left:58px;right:92px;top:188px;height:34px;white-space:nowrap;background:#f5f5f5;border-radius:4px;display:flex;align-items:center;gap:20px;padding-left:16px;font-size:15px;font-weight:500}
 .compare .scene b{color:var(--blue);font-weight:700}
-.compare .head{top:236px;font-size:26px;font-weight:700;text-align:center}
-.compare .cell{height:122px;border-radius:2px;display:flex;flex-direction:column;justify-content:center;padding:0 18px}
+.compare .head{top:236px;font-size:26px;font-weight:700;text-align:center;white-space:nowrap}
+.compare .cell{height:122px;border-radius:2px;display:flex;flex-direction:column;justify-content:center;padding:8px 18px}
 .compare .lab{left:74px;width:168px;background:var(--blue);color:#fff;border-radius:10px;text-align:center;padding:0 4px}
 .compare .lab b{font-size:22px;font-weight:900;white-space:nowrap}
 .compare .lab i{font-style:normal;font-size:14px;font-weight:700;margin-top:4px}
@@ -120,6 +121,17 @@ em{font-style:normal;color:var(--blue)}
 .compare .bad .r{color:#262626}
 .compare .good .r{color:var(--blue)}
 `;
+
+// 自動で字を縮める箱。同じ行に並べたセレクターは同じ倍率にそろえる
+const FIT = [
+  '.kick', '.cover .lines span', '.cover .sub',
+  '.sheet .s-title', '.sheet .box',
+  '.handoff .h-title', '.handoff .say', '.handoff .pill', '.handoff .cap',
+  '.blue .b-title', '.blue .bbox', '.blue .badge',
+  '.process .p-title', '.process .note', '.chev span', '.process .skills', '.process .concl',
+  '.three .t-title', '.three .card', '.three .desc', '.three .parts',
+  '.compare .c-title', '.compare .scene', '.compare .head', '.compare .lab', '.compare .bad, .compare .good',
+];
 
 // ---------------------------------------------------------------- 飾り
 
@@ -202,11 +214,11 @@ function slopSheet(s) {
 }
 
 // 同じ資料が何枚も重なっている様子。width は一番手前の1枚の幅
-function slopStack(s, width, gap) {
+function slopStack(s, width, gap, thumb = false) {
   const k = width / 1280;
-  const sheets = [2, 1, 0].map((i) => `<div class="sheet-wrap abs" style="left:${i * gap}px;top:${i * gap}px">
+  const sheets = [2, 1, 0].map((i) => `<div class="sheet-wrap abs${i ? ' behind' : ''}" style="left:${i * gap}px;top:${i * gap}px">
     ${slopSheet(s).replace('<div class="sheet">', `<div class="sheet" style="transform:scale(${k});transform-origin:0 0;box-shadow:0 1px 3px rgba(0,0,0,.25);outline:1px solid #b9c0c8">`)}</div>`).join('');
-  return `<div class="stack" style="width:${width + gap * 2}px;height:${720 * k + gap * 2}px">${sheets}</div>`;
+  return `<div class="stack${thumb ? ' mini' : ''}" style="width:${width + gap * 2}px;height:${720 * k + gap * 2}px">${sheets}</div>`;
 }
 
 // ---------------------------------------------------------------- 各レイアウト
@@ -236,7 +248,7 @@ const R = {
       ${band}
       <div class="abs" style="left:96px;top:350px;width:280px;height:280px">${ill(s.giver)}</div>
       <div class="abs" style="left:900px;top:346px;width:280px;height:280px">${ill(s.taker, 'g')}</div>
-      ${slop ? `<div class="abs" style="left:428px;top:338px">${slopStack(slop, 400, 10)}</div>` : ''}
+      ${slop ? `<div class="abs" style="left:428px;top:338px">${slopStack(slop, 400, 10, true)}</div>` : ''}
       <p class="abs ctr cap">${rich(s.caption)}</p>
       ${foot(n)}</div>` };
   },
@@ -272,12 +284,14 @@ const R = {
       return `<div class="abs chev" style="left:${x0 + i * step}px;top:${y}px;width:${cw}px">
         <svg viewBox="0 0 ${cw} 60" preserveAspectRatio="none"><polygon points="${pts}" ${look}/></svg>${label}</div>`;
     };
-    const skills = (i, y) => `<ul class="abs skills" style="left:${x0 + i * step + 10}px;top:${y}px">${s.steps[i].skills.map((k) => `<li>${rich(k)}</li>`).join('')}</ul>`;
+    const skills = (i, y, hh) => `<ul class="abs skills" style="left:${x0 + i * step + 10}px;top:${y}px;height:${hh}px">${s.steps[i].skills.map((k) => `<li>${rich(k)}</li>`).join('')}</ul>`;
     const f = s.focus;
     const fx = x0 + f * step;
     const top = s.steps.map((_, i) => chev(i, 263, i === f ? 'gray' : 'ghost')).join('');
-    const bottom = s.steps.map((_, i) => chev(i, 438, i === f ? 'gray' : 'blue')).join('');
-    const under = s.steps.map((_, i) => skills(i, 505)).join('');
+    // 工程に owner が書いてあれば、human は灰・それ以外は青。なければ focus の工程だけ灰
+    const owned = s.steps.some((st) => st.owner);
+    const bottom = s.steps.map((st, i) => chev(i, 438, (owned ? st.owner === 'human' : i === f) ? 'gray' : 'blue')).join('');
+    const under = s.steps.map((_, i) => skills(i, 505, 84)).join('');
     const xEnd = x0 + (s.steps.length - 1) * step + cw;
     const dbl = (xa, xb, y, color, sw, head) => `<path d="M${xa + head} ${y}H${xb - head}" stroke="${color}" stroke-width="${sw}"/>
       <path d="M${xa} ${y}l${head} -${head * 0.6}v${head * 1.2}z M${xb} ${y}l-${head} -${head * 0.6}v${head * 1.2}z" fill="${color}"/>`;
@@ -287,7 +301,7 @@ const R = {
       <div class="panel"></div>
       <p class="abs note" style="left:${fx + cw / 2 - 260}px;width:520px;top:200px">${rich(s.visible)}</p>
       <svg class="deco" viewBox="0 0 1280 720">${dbl(fx + 2, fx + cw - 8, 251, '#6f6f6f', 4, 14)}${dbl(x0, xEnd, 422, 'var(--blue)', 3, 14)}</svg>
-      ${top}${skills(f, 332)}
+      ${top}${skills(f, 332, 46)}
       <p class="abs note" style="left:0;right:0;top:380px">${rich(s.actual)}</p>
       ${bottom}${under}
       <div class="abs concl"><span class="lead">${rich(s.lead)}</span><span class="to">→</span><span class="main">${rich(s.conclusion)}</span></div>
@@ -297,7 +311,7 @@ const R = {
   three(s, n) {
     const xs = [132, 489, 846];
     const cards = s.items.map((it, i) => `
-      <div class="abs card" style="left:${xs[i]}px"><b>${rich(it.name)}</b><i>を生み出す力</i><u>${esc(it.en)}：${esc(it.ja)}</u></div>
+      <div class="abs card" style="left:${xs[i]}px"><b>${rich(it.name)}</b><i>${rich(it.sub ?? 'を生み出す力')}</i>${it.en ? `<u>${esc(it.en)}：${esc(it.ja)}</u>` : ''}</div>
       <p class="abs desc" style="left:${xs[i]}px">${rich(it.desc)}</p>
       <p class="abs tag" style="left:${xs[i]}px">構成要素</p>
       <ul class="abs parts" style="left:${xs[i]}px">${it.parts.map((p) => `<li>${rich(p)}</li>`).join('')}</ul>`).join('');
@@ -343,7 +357,7 @@ data.slides.forEach((s, i) => {
   const name = `${String(i + 1).padStart(2, '0')}-${s.type}`;
   const file = path.join(htmlDir, `${name}.html`);
   const title = String(s.title || (s.lines || []).join('') || name).replace(/\[\[|\]\]/g, '');
-  fs.writeFileSync(file, page(title, FONTS, CSS, html));
+  fs.writeFileSync(file, page(title, FONTS, CSS, html, FIT));
   jobs.push({ file, png: path.join(outDir, `${name}.png`), w, h, scale: 2 });
 });
 console.log(`HTML: ${path.relative(process.cwd(), htmlDir)}/ に ${jobs.length} 枚`);
