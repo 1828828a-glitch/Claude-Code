@@ -300,6 +300,7 @@ function makeChar(opts = {}) {
     head: part([0.64, 0.64, 0.64], [0, 1.1, 0], [0, 0.32, 0], headMats),
     setFace(e) { headMats[4] = faceMats[e] || faceMats.normal; },
   };
+  ch.partHome = ['head', 'body', 'armL', 'armR', 'legL', 'legR'].map((k) => [k, ch[k].position.clone()]);
   return ch;
 }
 function addChar(parent, opts, pos = [0, 0, 0], rotY = 0) {
@@ -313,6 +314,7 @@ function addChar(parent, opts, pos = [0, 0, 0], rotY = 0) {
 /* ---------- ポーズ ---------- */
 function reset(c) {
   ['head', 'body', 'armL', 'armR', 'legL', 'legR'].forEach((k) => c[k].rotation.set(0, 0, 0));
+  c.partHome.forEach(([k, v]) => c[k].position.copy(v));
   c.root.position.set(c.home.pos[0], c.home.pos[1], c.home.pos[2]);
   c.root.rotation.set(0, c.home.rotY, 0);
   c.root.scale.setScalar(c.home.scale);
@@ -330,6 +332,16 @@ function typing(c, t, speed = 22, amp = 0.12) {
   c.armL.rotation.x = -1.2 + Math.sin(t * speed) * amp;
   c.armR.rotation.x = -1.2 + Math.sin(t * speed + 1.7) * amp;
   c.head.rotation.x = 0.14 + Math.sin(t * 3) * 0.03;
+}
+/* 腰から上を前に倒す（a はラジアン。π で真下、2π で一回り） */
+function bend(c, a) {
+  const hipY = 0.5, cs = Math.cos(a), sn = Math.sin(a);
+  ['body', 'head', 'armL', 'armR'].forEach((k) => {
+    const p = c[k], home = c.partHome.find(([n]) => n === k)[1];
+    const ry = home.y - hipY, rz = home.z;
+    p.position.set(home.x, hipY + ry * cs - rz * sn, ry * sn + rz * cs);
+    p.rotation.x += a;
+  });
 }
 function banzai(c, k = 1, wob = 0) {
   c.armL.rotation.z = -2.7 * k - wob;
@@ -387,6 +399,6 @@ function newScene(o = {}) {
 
 const V = {
   T, clamp, lerp, prog, ease, mulberry32, mixHex, canvasTex, px, noisy, blockMat, solid, faces,
-  Blocks, box, group, textTex, makeChar, addChar, reset, walk, sit, typing, banzai,
+  Blocks, box, group, textTex, makeChar, addChar, reset, walk, sit, typing, banzai, bend,
   voxelDigit, gradientTex, repaintGradient, newScene, PIXEL_FONT,
 };
