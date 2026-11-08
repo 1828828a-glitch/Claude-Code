@@ -12,33 +12,17 @@
 
 const fs = require('fs');
 const path = require('path');
-const { pathToFileURL } = require('url');
 const { ILLUST } = require('./illust.js');
+const { parseArgs, esc, rich, makeIll, page: htmlPage, exportPng } = require('./common.js');
 
-const args = process.argv.slice(2);
-const flag = (name) => args.includes(name);
-const opt = (name, fallback) => {
-  const i = args.indexOf(name);
-  return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
-};
-const positional = args.filter((a, i) => !a.startsWith('--') && !(i > 0 && args[i - 1] === '--out'));
-const dataPath = path.resolve(positional[0] || path.join(__dirname, 'examples', 'ai_hanasu.json'));
-const outDir = path.resolve(opt('--out', path.join(__dirname, 'out')));
+const opts = parseArgs(process.argv, path.join(__dirname, 'examples', 'ai_hanasu.json'));
+const dataPath = opts.dataPath;
+const outDir = opts.out || path.join(__dirname, 'out');
 const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
 
 // ---------------------------------------------------------------- 部品
 
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-// [[ ]] で囲んだところを青にし、改行を <br> にする
-const rich = (s) => esc(s).replace(/\[\[(.+?)\]\]/g, '<em>$1</em>').replace(/\n/g, '<br>');
-
-function ill(name, cls = '') {
-  if (!name) return '';
-  if (ILLUST[name]) return `<span class="ill ${cls}">${ILLUST[name]}</span>`;
-  // 名前でなければ画像ファイルのパス（データの JSON から見た相対パス）として扱う
-  const src = /^(https?:|data:)/.test(name) ? name : pathToFileURL(path.resolve(path.dirname(dataPath), name)).href;
-  return `<span class="ill ${cls}"><img src="${esc(src)}" alt=""></span>`;
-}
+const ill = makeIll(dataPath);
 
 const ARROW_RIGHT = '<svg viewBox="0 0 48 32"><path d="M4 16h36M28 5l12 11-12 11" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ARROW_DOWN = '<svg viewBox="0 0 32 40"><path d="M16 4v30M7 25l9 9 9-9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -175,14 +159,7 @@ em{font-style:normal;color:var(--blue)}
 .s2 .box.last{color:var(--blue)}
 `;
 
-function page(title, body) {
-  return `<!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><title>${esc(title)}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="${FONTS}" rel="stylesheet">
-<style>${CSS}</style></head>
-<body>${body}</body></html>`;
-}
+const page = (title, body) => htmlPage(title, FONTS, CSS, body);
 
 // ---------------------------------------------------------------- 図解
 
@@ -330,29 +307,5 @@ slides.forEach((s, i) => {
 });
 console.log(`HTML: ${path.relative(process.cwd(), htmlDir)}/ に ${jobs.length} 枚`);
 
-async function exportPng() {
-  let chromium;
-  try {
-    ({ chromium } = require('playwright'));
-  } catch {
-    console.log('Playwright が見つからないので PNG は作らない。HTML をブラウザで開いて確認できる');
-    return;
-  }
-  const browser = await chromium.launch();
-  try {
-    // 版ごとの縮小図をスライドが読み込むので、図解から先に撮る
-    for (const j of jobs) {
-      const ctx = await browser.newContext({ viewport: { width: j.w, height: j.h }, deviceScaleFactor: j.scale });
-      const p = await ctx.newPage();
-      await p.goto(pathToFileURL(j.file).href, { waitUntil: 'networkidle' });
-      await p.evaluate(() => document.fonts.ready);
-      await p.screenshot({ path: j.png, clip: { x: 0, y: 0, width: j.w, height: j.h } });
-      await ctx.close();
-      console.log('PNG:', path.relative(process.cwd(), j.png));
-    }
-  } finally {
-    await browser.close();
-  }
-}
-
-if (!flag('--no-png')) exportPng().catch((e) => { console.error(e); process.exit(1); });
+// 版ごとの縮小図をスライドが読み込むので、図解から先に撮る
+if (opts.png) exportPng(jobs).catch((e) => { console.error(e); process.exit(1); });

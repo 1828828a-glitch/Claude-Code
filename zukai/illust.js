@@ -96,6 +96,53 @@ const ILLUST = {
   <rect x="71.5" y="83" width="4.5" height="13" fill="#a86d36"/>
 </svg>`,
 
+  // にこにこ顔で資料を差し出す部下
+  man_paper: `
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <path d="M16 100C16 77 30 66 50 66s34 11 34 34z" fill="#2d3a55"/>
+  <path d="M43 66l7 15 7-15z" fill="#fff"/>
+  <path d="M48.5 68h3l1 11-2.5 5-2.5-5z" fill="#1f9e7a"/>
+  <path d="M43 66l7 15-10-8zM57 66l-7 15 10-8z" fill="#222c42"/>
+  <rect x="45" y="55" width="10" height="12" fill="#efc6a6"/>
+  <ellipse cx="34.5" cy="41" rx="2.6" ry="3.6" fill="${SKIN}"/>
+  <ellipse cx="65.5" cy="41" rx="2.6" ry="3.6" fill="${SKIN}"/>
+  <ellipse cx="50" cy="39" rx="15.5" ry="17.5" fill="${SKIN}"/>
+  <path d="M34.5 38C32.5 22 41 17.5 50 17.5S67.5 22 65.5 38C64 30 60 27 54 28S42 30 37 27.5C35.8 30.5 35 34 34.5 38Z" fill="${HAIR}"/>
+  <path d="M40 41.5q3-3 6 0M54 41.5q3-3 6 0" stroke="#2a2a2a" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+  <circle cx="40" cy="47" r="3.2" fill="#f3a0a0" opacity=".6"/><circle cx="60" cy="47" r="3.2" fill="#f3a0a0" opacity=".6"/>
+  <path d="M45 49.5q5 5.5 10 0z" fill="#c0504d"/>
+  <g transform="rotate(-3 50 86)">
+    <rect x="22" y="74" width="56" height="24" rx="1" fill="#fff" stroke="#9aa3ad" stroke-width="1.2"/>
+    <path d="M28 80h44M28 84.5h44M28 89h44M28 93.5h30" stroke="#a9b1ba" stroke-width="1.3" stroke-dasharray="3 1.5"/>
+  </g>
+  <ellipse cx="24" cy="85" rx="4.6" ry="4" fill="${SKIN}"/>
+  <ellipse cx="76" cy="83" rx="4.6" ry="4" fill="${SKIN}"/>
+</svg>`,
+
+  // 腕を組んで資料をにらむ上司
+  boss_crossed: `
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <path d="M14 100C14 76 29 64 50 64s36 12 36 36z" fill="#2b2f36"/>
+  <path d="M43 64l7 14 7-14z" fill="#fff"/>
+  <path d="M48.6 66h2.8l1 10-2.4 5-2.4-5z" fill="#6b7078"/>
+  <rect x="45" y="53" width="10" height="12" fill="#efc6a6"/>
+  <ellipse cx="34.5" cy="39" rx="2.6" ry="3.6" fill="${SKIN}"/>
+  <ellipse cx="65.5" cy="39" rx="2.6" ry="3.6" fill="${SKIN}"/>
+  <ellipse cx="50" cy="37" rx="15.5" ry="17.5" fill="${SKIN}"/>
+  <path d="M34.5 36C33 20 41 15.5 50 15.5S67 20 65.5 36C64 29 61 26.5 56 26.5 49 26.5 42 25 38 22.5 36 26 35 30 34.5 36Z" fill="${HAIR}"/>
+  <path d="M39 31.5l7 1M61 31.5l-7 1" stroke="#222" stroke-width="1.5" stroke-linecap="round"/>
+  <g fill="#fff" fill-opacity=".55" stroke="#1d1d1d" stroke-width="1.6">
+    <rect x="38.5" y="34" width="10.5" height="8" rx="1.6"/><rect x="51" y="34" width="10.5" height="8" rx="1.6"/>
+  </g>
+  <path d="M49 37h2" stroke="#1d1d1d" stroke-width="1.6"/>
+  <circle cx="43.8" cy="38.2" r="1.3" fill="#222"/><circle cx="56.2" cy="38.2" r="1.3" fill="#222"/>
+  <path d="M45.5 49h9" stroke="#7a4b3a" stroke-width="1.5" stroke-linecap="round"/>
+  <rect x="22" y="76" width="58" height="13" rx="6.5" fill="#4b515b" stroke="#22262c" stroke-width="1"/>
+  <rect x="20" y="82" width="58" height="13" rx="6.5" fill="#5a616c" stroke="#22262c" stroke-width="1" transform="rotate(-4 49 88)"/>
+  <ellipse cx="25" cy="80.5" rx="4.4" ry="3.8" fill="${SKIN}"/>
+  <ellipse cx="76" cy="86" rx="4.4" ry="3.8" fill="${SKIN}"/>
+</svg>`,
+
   // かばんを持って走る営業
   salesman_run: `
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
