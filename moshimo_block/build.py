@@ -12,7 +12,7 @@ OUT = ROOT / "dist" / "moshimo-block.html"
 
 # JS はひとつの即時関数の中でスコープを共有する。順番に意味がある（部品 → 回 → プレイヤー）
 CSS_FILES = ["style.css"]
-JS_FILES = ["voxel.js", "props.js", "audio.js", "overlay.js"]
+JS_FILES = ["voxel.js", "props.js", "audio.js", "overlay.js", "kit.js"]
 JS_FILES += [f"episodes/{p.name}" for p in sorted((SRC / "episodes").glob("*.js"))]
 JS_FILES += ["player.js"]
 

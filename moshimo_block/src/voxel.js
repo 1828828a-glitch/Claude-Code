@@ -253,9 +253,23 @@ function charTextures(o) {
 }
 const lam = (tex) => new T.MeshLambertMaterial({ map: tex });
 
+/* 同じ見た目のキャラはテクスチャと材質を共有する（大勢出す回のため） */
+const CHAR_PACKS = new Map();
+function charPack(o) {
+  const key = JSON.stringify(o);
+  if (!CHAR_PACKS.has(key)) {
+    const tx = charTextures(o), faceMats = {};
+    ['normal', 'happy', 'shock', 'shades', 'sleepy'].forEach((e) => { faceMats[e] = lam(faceTex(o, e)); });
+    CHAR_PACKS.set(key, {
+      faceMats, sideM: lam(tx.side), topM: lam(tx.top), backM: lam(tx.back), armM: lam(tx.arm), legM: lam(tx.leg),
+      frontM: lam(tx.bodyFront), bodyBackM: lam(tx.bodyBack),
+    });
+  }
+  return CHAR_PACKS.get(key);
+}
 function makeChar(opts = {}) {
   const o = Object.assign({}, CHAR_DEFAULT, opts);
-  const tx = charTextures(o);
+  const pk = charPack(o);
   const root = new T.Group();
   const part = (size, pivot, offset, mats) => {
     const p = new T.Group();
@@ -267,17 +281,15 @@ function makeChar(opts = {}) {
     p.mesh = m;
     return p;
   };
-  const faceMats = {};
-  ['normal', 'happy', 'shock', 'shades', 'sleepy'].forEach((e) => { faceMats[e] = lam(faceTex(o, e)); });
+  const faceMats = pk.faceMats;
   const skin = solid(o.skin), suit = solid(o.suit);
-  const sideM = lam(tx.side);
-  const headMats = [sideM, sideM, lam(tx.top), skin, faceMats.normal, lam(tx.back)];
-  const armM = lam(tx.arm), legM = lam(tx.leg);
+  const headMats = [pk.sideM, pk.sideM, pk.topM, skin, faceMats.normal, pk.backM];
+  const armM = pk.armM, legM = pk.legM;
   const ch = {
     root,
     legL: part([0.27, 0.5, 0.3], [-0.15, 0.5, 0], [0, -0.25, 0], faces(legM, { top: solid(o.pants), bottom: solid(o.shoe) })),
     legR: part([0.27, 0.5, 0.3], [0.15, 0.5, 0], [0, -0.25, 0], faces(legM, { top: solid(o.pants), bottom: solid(o.shoe) })),
-    body: part([0.62, 0.6, 0.36], [0, 0.5, 0], [0, 0.3, 0], faces(suit, { front: lam(tx.bodyFront), back: lam(tx.bodyBack) })),
+    body: part([0.62, 0.6, 0.36], [0, 0.5, 0], [0, 0.3, 0], faces(suit, { front: pk.frontM, back: pk.bodyBackM })),
     armL: part([0.22, 0.6, 0.22], [-0.42, 1.06, 0], [0, -0.27, 0], faces(armM, { top: suit, bottom: skin })),
     armR: part([0.22, 0.6, 0.22], [0.42, 1.06, 0], [0, -0.27, 0], faces(armM, { top: suit, bottom: skin })),
     head: part([0.64, 0.64, 0.64], [0, 1.1, 0], [0, 0.32, 0], headMats),

@@ -38,6 +38,8 @@ const SFX = {
   smash: (t) => [noise(t, 0.6, { filter: 'lowpass', freq: 1300, gain: 0.26, decay: true }), tone(t, 120, 0.55, { type: 'sine', f2: 30, gain: 0.38, decay: true })],
   whistle: (t, dur = 0.8) => [tone(t, 1900, dur, { type: 'sine', f2: 420, gain: 0.06 })],
   floaty: (t) => [tone(t, 380, 1.8, { type: 'sine', f2: 1300, gain: 0.07 }), tone(t + 0.05, 760, 1.6, { type: 'triangle', f2: 2400, gain: 0.025 })],
+  grow: (t) => [tone(t, 180, 0.38, { wave: 'pulse25', f2: 720, gain: 0.07 }), tone(t + 0.36, 'C6', 0.12, { type: 'triangle', gain: 0.08, decay: true })],
+  stamp: (t) => [tone(t, 70, 0.3, { type: 'sine', f2: 30, gain: 0.45, decay: true }), noise(t, 0.12, { filter: 'lowpass', freq: 1500, gain: 0.2, decay: true })],
   dust: (t) => [noise(t, 0.45, { filter: 'lowpass', freq: 800, gain: 0.12, decay: true })],
   sparkle: (t) => ['E6', 'G6', 'C7'].map((n, i) => tone(t + i * 0.06, n, 0.12, { wave: 'pulse12', gain: 0.035, decay: true })),
 };

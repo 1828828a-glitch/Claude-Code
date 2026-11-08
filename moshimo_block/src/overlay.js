@@ -20,7 +20,7 @@ class Overlay {
   }
   make(it) {
     const el = document.createElement('div');
-    el.className = 'ov ov-' + it.type;
+    el.className = 'ov ov-' + it.type + (it.cls ? ' ' + it.cls : '');
     el.hidden = true;
     if (it.type === 'caption') {
       it.lines.forEach((ln) => {

@@ -292,26 +292,26 @@ function dustPuff(parent, n = 8, seed = 3) {
 /* 断面のビル。H ブロックごとに1フロア（床2段＋天井まで3段）。holes の [x, y, z] は空けておき、壊れるブロックに使う */
 const FLOOR_H = 5;
 function tower(S, o = {}) {
-  const floors = o.floors || 5, x0 = -6, x1 = 5, z0 = -3, z1 = 1, wz = z0 - 1;
+  const floors = o.floors || 5, FH = o.floorH || FLOOR_H, slab = o.slab || 2, x0 = -6, x1 = 5, z0 = -3, z1 = 1, wz = z0 - 1;
   const holes = new Set((o.holes || []).map((c) => c.join(',')));
   const B = new Blocks();
   const put = (type, x, y, z) => { if (!holes.has(`${x},${y},${z}`)) B.set(type, x, y, z); };
   for (let f = 0; f <= floors; f++) {
-    const y = f * FLOOR_H;
+    const y = f * FH;
     for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) {
       put(f === 0 || f === floors ? 'stone' : o.floor || 'carpet', x, y - 1, z);
-      put('foundation', x, y - 2, z);
+      if (slab > 1 || f === 0) put('foundation', x, y - 2, z);
     }
   }
-  const wallAt = (y) => { const m = ((y % FLOOR_H) + FLOOR_H) % FLOOR_H; return m >= 3 ? 'foundation' : m === 0 ? 'wallBase' : 'wall'; };
-  for (let y = -2; y < floors * FLOOR_H - 2; y++) {
+  const wallAt = (y) => { const m = ((y % FH) + FH) % FH; return m >= FH - slab ? 'foundation' : m === 0 ? 'wallBase' : 'wall'; };
+  for (let y = -2; y < floors * FH - slab; y++) {
     for (let x = x0 - 1; x <= x1; x++) B.set(wallAt(y), x, y, wz);
     for (let z = z0; z <= z1; z++) B.set(wallAt(y), x0 - 1, y, z);
   }
-  for (let f = 0; f < floors; f++) [2, 3].forEach((x) => [1, 2].forEach((dy) => B.set('window', x, f * FLOOR_H + dy, wz)));
+  for (let f = 0; f < floors; f++) [2, 3].forEach((x) => [1, 2].forEach((dy) => B.set('window', x, f * FH + dy, wz)));
   B.build(S, {}, { cast: false });
   for (let f = 0; f < floors; f++) {
-    const sign = box(S, [0.9, 0.5, 0.05], [x0 + 0.8, f * FLOOR_H + 2.1, z0 + 0.03], faces(solid('#1d2333'), { front: glow(textTex(`${f + 1}F`, { w: 128, h: 64, size: 40, bg: '#1d2333', fg: '#f2c230' })) }));
+    const sign = box(S, [0.9, 0.5, 0.05], [x0 + 0.8, f * FH + 2.1, z0 + 0.03], faces(solid('#1d2333'), { front: glow(textTex(`${f + 1}F`, { w: 128, h: 64, size: 40, bg: '#1d2333', fg: '#f2c230' })) }));
     sign.castShadow = false;
   }
   return B;

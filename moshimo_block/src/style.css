@@ -110,6 +110,7 @@ body { background: var(--bg); color: var(--ink); font-family: var(--f-body); fon
   text-shadow: 3px 0 #fff, -3px 0 #fff, 0 3px #fff, 0 -3px #fff, 3px 3px #fff, -3px -3px #fff, 3px -3px #fff, -3px 3px #fff;
 }
 .cap-line.title { font-size: 42px; }
+.cap-line.title.small { font-size: 34px; }
 .cap-line.sub { font-size: 21px; color: #39425a; }
 .cap-line.mark { margin-top: 4px; }
 .cap-line.mark span { display: inline-block; font-size: 56px; background: #f2c230; padding: 2px 14px; box-shadow: 5px 5px 0 #1d2333; text-shadow: none; }
@@ -124,6 +125,8 @@ body { background: var(--bg); color: var(--ink); font-family: var(--f-body); fon
 .b-tail::before { content: ""; position: absolute; left: 4px; top: -4px; width: 8px; height: 8px; background: #fff; }
 .b-tail::after { content: ""; position: absolute; left: 4px; top: 10px; width: 8px; height: 8px; background: #1d2333; }
 
+.ov-bubble.big { font-size: 46px; padding: 10px 22px; border-width: 6px; }
+.ov-bubble.small { font-size: 19px; padding: 8px 12px; }
 .ov-fx {
   font-size: 58px; color: #ffd23a; white-space: nowrap; letter-spacing: 0.02em;
   text-shadow: 4px 0 #1d2333, -4px 0 #1d2333, 0 4px #1d2333, 0 -4px #1d2333, 4px 4px #1d2333, -4px -4px #1d2333, 4px -4px #1d2333, -4px 4px #1d2333, 8px 8px 0 rgba(29, 35, 51, 0.3);
