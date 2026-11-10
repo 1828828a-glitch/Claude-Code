@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>crack note promo</title>
+<link rel="stylesheet" href="fonts/fontsource-shippori-mincho-b1/500.css">
+<link rel="stylesheet" href="fonts/fontsource-shippori-mincho-b1/800.css">
+<link rel="stylesheet" href="fonts/fontsource-zen-kaku-gothic-new/500.css">
+<link rel="stylesheet" href="fonts/fontsource-zen-kaku-gothic-new/700.css">
+<link rel="stylesheet" href="fonts/fontsource-bodoni-moda/500.css">
+<link rel="stylesheet" href="fonts/fontsource-bodoni-moda/700.css">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+'use strict';
+const W = 1920, H = 1080, FPS = 30, DURATION = 50;
+const TAU = Math.PI * 2;
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+
+const M = '"Shippori Mincho B1"', G = '"Zen Kaku Gothic New"', B = '"Bodoni Moda"';
+const BG = '#0b0a09', PAPER = '#f2ede4', GREY = '#8a857d', DIM = '#57534d', RED = '#e8452c';
+const PAL = ['#e8452c', '#f2b01e', '#1f5fd1', '#12a37a', '#e23d8f', '#6b3fd6', '#ff7a1a', '#f2ede4'];
+
+// ---------- helpers ----------
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, u) => a + (b - a) * u;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const eOut = u => 1 - Math.pow(1 - u, 3);
+const eIO = u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+const eExpo = u => u >= 1 ? 1 : 1 - Math.pow(2, -10 * u);
+function rngOf(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function hash2(x, y, s) { let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263)) ^ s; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+function vnoise(x, y, s) {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  return lerp(lerp(hash2(xi, yi, s), hash2(xi + 1, yi, s), u), lerp(hash2(xi, yi + 1, s), hash2(xi + 1, yi + 1, s), u), v);
+}
+const fbm = (x, y, s) => vnoise(x, y, s) * .65 + vnoise(x * 2.1 + 9.2, y * 2.1 + 3.7, s) * .35;
+function mk(w = W, h = H) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+
+// ---------- text ----------
+function charWidths(str, size, weight, fam) {
+  ctx.font = `${weight} ${size}px ${fam}`;
+  return [...str].map(ch => ctx.measureText(ch).width);
+}
+// line with per-character reveal. returns nothing.
+function line(t, str, x, y, o) {
+  const { size = 60, weight = 800, fam = M, color = PAPER, ls = 0, align = 'center', tIn = 0, tOut = 1e9,
+    stagger = 0.045, rise = 0.35, fadeOut = 0.35, alpha = 1 } = o;
+  if (t < tIn || t > tOut + fadeOut) return;
+  const chars = [...str], ws = charWidths(str, size, weight, fam);
+  const total = ws.reduce((a, b) => a + b, 0) + ls * (chars.length - 1);
+  let cx = align === 'center' ? x - total / 2 : align === 'right' ? x - total : x;
+  const out = 1 - prog(t, tOut, tOut + fadeOut);
+  ctx.save();
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillStyle = color;
+  ctx.font = `${weight} ${size}px ${fam}`;
+  for (let i = 0; i < chars.length; i++) {
+    const u = eOut(prog(t, tIn + i * stagger, tIn + i * stagger + 0.5));
+    if (u > 0) { ctx.globalAlpha = u * out * alpha; ctx.fillText(chars[i], cx, y + (1 - u) * size * rise); }
+    cx += ws[i] + ls;
+  }
+  ctx.restore();
+}
+// mixed-font segments on a common baseline, centred
+function segs(parts, x, y, alpha = 1) {
+  ctx.save(); ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  let total = 0;
+  for (const p of parts) { ctx.font = `${p.weight || 700} ${p.size}px ${p.fam}`; p.w = ctx.measureText(p.txt).width + (p.pad || 0); total += p.w; }
+  let cx = x - total / 2;
+  for (const p of parts) {
+    ctx.font = `${p.weight || 700} ${p.size}px ${p.fam}`; ctx.fillStyle = p.color || PAPER; ctx.globalAlpha = alpha * (p.alpha ?? 1);
+    ctx.fillText(p.txt, cx + (p.pad || 0) / 2, y + (p.dy || 0)); cx += p.w;
+  }
+  ctx.restore();
+}
+function veil(a, color = '#000') { if (a <= 0) return; ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = color; ctx.fillRect(0, 0, W, H); ctx.restore(); }
+function band(cx, cy, rx, ry, a) { // soft dark ellipse behind text
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(rx, ry);
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+  g.addColorStop(0, `rgba(8,7,6,${a})`); g.addColorStop(.55, `rgba(8,7,6,${a * .8})`); g.addColorStop(1, 'rgba(8,7,6,0)');
+  ctx.fillStyle = g; ctx.fillRect(-1, -1, 2, 2); ctx.restore();
+}
+
+// ---------- overlays ----------
+const grainTiles = [];
+function initGrain() {
+  const r = rngOf(77);
+  for (let k = 0; k < 4; k++) {
+    const c = mk(480, 270), x = c.getContext('2d'), id = x.createImageData(480, 270);
+    for (let i = 0; i < id.data.length; i += 4) { const v = 128 + (r() - .5) * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; }
+    x.putImageData(id, 0, 0); grainTiles.push(c);
+  }
+}
+let vignette;
+function initVignette() {
+  vignette = mk(); const x = vignette.getContext('2d');
+  const g = x.createRadialGradient(W / 2, H / 2, H * .35, W / 2, H / 2, H * 1.05);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.72)');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+}
+function overlays(i) {
+  ctx.drawImage(vignette, 0, 0);
+  ctx.save(); ctx.globalAlpha = 0.085; ctx.globalCompositeOperation = 'overlay'; ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(grainTiles[i % 4], 0, 0, W, H); ctx.restore();
+}
+
+// ---------- painting engine ----------
+class Painting {
+  constructor(seed, n, opts = {}) {
+    this.seed = seed; this.r = rngOf(seed); this.c = mk(); this.x = this.c.getContext('2d');
+    this.scale = opts.scale || 0.0016; this.turn = opts.turn || 1.6; this.speed = opts.speed || 4.5;
+    this.widths = opts.widths || [1.6, 4.5, 11]; this.alpha = opts.alpha ?? .82; this.z = 0;
+    this.pal = opts.pal || PAL;
+    this.p = [];
+    for (let i = 0; i < n; i++) this.p.push(this.spawn({}));
+    this.x.lineCap = 'round'; this.x.lineJoin = 'round';
+  }
+  colorAt(x, y) { const L = this.pal.length; return Math.floor(fbm(x * .0021, y * .0021, this.seed + 5) * L * 2.2 + this.r() * 1.3) % L; }
+  spawn(p) {
+    p.x = this.r() * W; p.y = this.r() * H; p.c = this.colorAt(p.x, p.y);
+    const k = this.r(); p.w = k < .55 ? 0 : k < .9 ? 1 : 2; p.life = 30 + this.r() * 150; return p;
+  }
+  angle(x, y) { return fbm(x * this.scale, y * this.scale + this.z, this.seed) * TAU * this.turn; }
+  step() {
+    const x = this.x, groups = new Map();
+    for (const p of this.p) {
+      const a = this.angle(p.x, p.y), nx = p.x + Math.cos(a) * this.speed, ny = p.y + Math.sin(a) * this.speed;
+      const key = p.c * 3 + p.w; let g = groups.get(key); if (!g) groups.set(key, g = []);
+      g.push(p.x, p.y, nx, ny); p.x = nx; p.y = ny;
+      if (--p.life < 0 || nx < -20 || nx > W + 20 || ny < -20 || ny > H + 20) this.spawn(p);
+    }
+    x.globalAlpha = this.alpha;
+    for (const [key, g] of groups) {
+      x.strokeStyle = this.pal[Math.floor(key / 3)]; x.lineWidth = this.widths[key % 3]; x.beginPath();
+      for (let i = 0; i < g.length; i += 4) { x.moveTo(g[i], g[i + 1]); x.lineTo(g[i + 2], g[i + 3]); }
+      x.stroke();
+    }
+    this.z += 0.0009;
+  }
+}
+let paintA, paintB;
+function initPaintA() {
+  paintA = new Painting(2024, 1500);
+  const x = paintA.x, r = rngOf(31);
+  x.fillStyle = '#efe7d8'; x.fillRect(0, 0, W, H);
+  for (let i = 0; i < 26; i++) {
+    const cx = r() * W, cy = r() * H, rad = 220 + r() * 520, col = PAL[Math.floor(r() * 7)];
+    const g = x.createRadialGradient(cx, cy, 0, cx, cy, rad);
+    g.addColorStop(0, col + 'e0'); g.addColorStop(.6, col + '70'); g.addColorStop(1, col + '00');
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+  }
+  for (let i = 0; i < 300; i++) paintA.step();
+}
+
+// ---------- scene 1/2: the grid of sameness ----------
+const COLS = 8, ROWS = 5, CW = 196, CH = 150, GX = 240, GY = 216;
+const cards = [];
+function initCards() {
+  const r = rngOf(5);
+  for (let j = 0; j < ROWS; j++) for (let i = 0; i < COLS; i++)
+    cards.push({ i, j, x: W / 2 + (i - (COLS - 1) / 2) * GX, y: H / 2 + (j - (ROWS - 1) / 2) * GY, d: r(), rot: (r() - .5) * 1.6, rank: 0, v: r() });
+  const order = cards.map((c, k) => k).sort((a, b) => cards[a].v - cards[b].v);
+  order.forEach((k, n) => cards[k].rank = n + 1);
+}
+const CHOSEN = 1 * COLS + 5;
+function drawCard(c, a, hot) {
+  const w = CW, h = CH;
+  ctx.save(); ctx.globalAlpha = a; ctx.strokeStyle = hot ? RED : GREY; ctx.fillStyle = hot ? RED : GREY; ctx.lineWidth = 1.6;
+  if (hot) { ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = RED; ctx.fillRect(-w / 2, -h / 2, w, h); ctx.restore(); ctx.strokeStyle = BG; ctx.fillStyle = BG; }
+  ctx.strokeRect(-w / 2, -h / 2, w, h);
+  ctx.beginPath(); ctx.moveTo(-w / 2, -h / 2 + 18); ctx.lineTo(w / 2, -h / 2 + 18); ctx.stroke();
+  ctx.fillRect(-w / 2 + 8, -h / 2 + 7, 22, 4); ctx.fillRect(w / 2 - 60, -h / 2 + 7, 14, 4); ctx.fillRect(w / 2 - 40, -h / 2 + 7, 14, 4); ctx.fillRect(w / 2 - 20, -h / 2 + 7, 12, 4);
+  ctx.strokeRect(-w / 2 + 12, -h / 2 + 30, w - 24, 58);
+  ctx.fillRect(-w / 2 + 12, h / 2 - 50, w * .55, 5); ctx.fillRect(-w / 2 + 12, h / 2 - 38, w * .38, 5);
+  ctx.strokeRect(-w / 2 + 12, h / 2 - 24, 46, 13);
+  if (!hot) { ctx.font = `500 17px ${B}`; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText('No.' + c.rank, w / 2 - 12, h / 2 - 17); }
+  ctx.restore();
+}
+function sceneGrid(t) {
+  ctx.save();
+  const z = 1 + 0.07 * (t / 11);
+  ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
+  const tf = t - 7.6;
+  cards.forEach((c, k) => {
+    const appear = eOut(prog(t, 0.2 + c.d * 1.6, 0.9 + c.d * 1.6));
+    if (appear <= 0) return;
+    ctx.save();
+    if (k === CHOSEN && tf > 0) {
+      const u = eExpo(prog(tf, 0, 1.1));
+      ctx.translate(c.x, c.y); ctx.scale(1 + u * .22, 1 + u * .22);
+      const g = ctx.createRadialGradient(0, 0, 20, 0, 0, 330);
+      g.addColorStop(0, `rgba(232,69,44,${.42 * u})`); g.addColorStop(1, 'rgba(232,69,44,0)');
+      ctx.fillStyle = g; ctx.fillRect(-340, -340, 680, 680);
+      drawCard(c, 1, true);
+    } else {
+      let a = appear * .6, dy = 0, rot = 0;
+      if (tf > 0) { const tt = Math.max(0, tf - c.d * .55); dy = 1500 * tt * tt; rot = c.rot * tt; a *= 1 - prog(tt, .5, 1.3); }
+      ctx.translate(c.x, c.y + dy); ctx.rotate(rot); drawCard(c, a, false);
+    }
+    ctx.restore();
+  });
+  ctx.restore();
+  band(W / 2, H / 2 + 10, 900, 330, .9);
+  line(t, 'デザインでは、', W / 2, 470, { size: 92, tIn: 0.7, tOut: 5.4, ls: 10, color: GREY });
+  line(t, '勝てない。', W / 2, 615, { size: 168, tIn: 1.4, tOut: 5.4, ls: 14 });
+  line(t, '美しいウェブサイトは、世の中に無数にある。', W / 2, 800, { size: 38, weight: 500, fam: G, tIn: 3.3, tOut: 5.4, ls: 8, color: GREY, stagger: .03 });
+  line(t, 'ナンバーワンではなく、', W / 2, 440, { size: 70, tIn: 6.2, tOut: 10.5, ls: 10, color: GREY });
+  line(t, 'ビーユニーク。', W / 2, 590, { size: 176, tIn: 7.6, tOut: 10.5, ls: 12 });
+  line(t, '比較の土俵そのものに、上がらない。', W / 2, 790, { size: 40, weight: 500, fam: G, tIn: 9.0, tOut: 10.5, ls: 9, color: PAPER, stagger: .03 });
+}
+
+// ---------- scene 3: the cloth ----------
+const maskC = mk(), maskX = maskC.getContext('2d'), tmpC = mk(), tmpX = tmpC.getContext('2d');
+let weave, lastWipeU = 0;
+function initWeave() {
+  weave = mk(1000, 564); const x = weave.getContext('2d'), r = rngOf(9);
+  x.fillStyle = '#3a3733'; x.fillRect(0, 0, 1000, 564);
+  for (let i = 0; i < 1000; i += 3) { x.fillStyle = `rgba(255,255,255,${.02 + r() * .035})`; x.fillRect(i, 0, 1, 564); }
+  for (let j = 0; j < 564; j += 3) { x.fillStyle = `rgba(0,0,0,${.06 + r() * .08})`; x.fillRect(0, j, 1000, 1); }
+  const g = x.createLinearGradient(0, 0, 1000, 564); g.addColorStop(0, 'rgba(255,255,255,.10)'); g.addColorStop(1, 'rgba(0,0,0,.22)');
+  x.fillStyle = g; x.fillRect(0, 0, 1000, 564);
+}
+const wipePos = u => ({ x: W / 2 + 800 * Math.sin(u * 5 * Math.PI), y: lerp(90, H - 90, u) + 40 * Math.sin(u * 23) });
+function sceneCloth(t) {
+  paintA.step();
+  // wipe mask
+  const u = eIO(prog(t, 12.3, 17.0));
+  if (u > lastWipeU) {
+    for (let k = 1; k <= 14; k++) {
+      const p = wipePos(lerp(lastWipeU, u, k / 14)), g = maskX.createRadialGradient(p.x, p.y, 0, p.x, p.y, 250);
+      g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(.6, 'rgba(255,255,255,.3)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      maskX.fillStyle = g; maskX.fillRect(p.x - 250, p.y - 250, 500, 500);
+    }
+    lastWipeU = u;
+  }
+  if (t > 16.8) { maskX.fillStyle = 'rgba(255,255,255,.2)'; maskX.fillRect(0, 0, W, H); }
+  tmpX.globalCompositeOperation = 'source-over'; tmpX.clearRect(0, 0, W, H); tmpX.drawImage(paintA.c, 0, 0);
+  tmpX.globalCompositeOperation = 'destination-in'; tmpX.drawImage(maskC, 0, 0);
+
+  const zu = eIO(prog(t, 17.2, 18.0));
+  const enter = eOut(prog(t, 11.0, 12.0));
+  const s = lerp(1000 / W, 1, zu) * lerp(.94, 1, enter) * (1 + .02 * prog(t, 12, 17.2) * (1 - zu));
+  const cy = lerp(480, H / 2, zu), rot = lerp(-0.045, 0, zu);
+  ctx.save(); ctx.globalAlpha = enter;
+  ctx.translate(W / 2, cy); ctx.rotate(rot); ctx.scale(s, s);
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.8)'; ctx.shadowBlur = 90; ctx.shadowOffsetY = 40; ctx.fillStyle = '#1b1917'; ctx.fillRect(-W / 2, -H / 2, W, H); ctx.restore();
+  ctx.drawImage(weave, -W / 2, -H / 2, W, H);
+  ctx.drawImage(tmpC, -W / 2, -H / 2);
+  // wiping highlight
+  if (u > 0 && u < 1) {
+    const p = wipePos(u), g = ctx.createRadialGradient(p.x - W / 2, p.y - H / 2, 0, p.x - W / 2, p.y - H / 2, 190);
+    g.addColorStop(0, 'rgba(255,255,255,.34)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(p.x - W / 2 - 200, p.y - H / 2 - 200, 400, 400);
+  }
+  ctx.restore();
+
+  line(t, 'ある日、一枚の眼鏡拭きに出会った。', W / 2, 108, { size: 36, weight: 500, fam: G, tIn: 11.3, tOut: 16.6, ls: 9, color: GREY, stagger: .03 });
+  line(t, '「磨く行為が、かっこいい。」', W / 2, 930, { size: 66, tIn: 12.8, tOut: 14.6, ls: 6 });
+  line(t, '「だったら、磨く道具もかっこよくなくてはならない。」', W / 2, 930, { size: 54, tIn: 15.0, tOut: 17.0, ls: 3, stagger: .035 });
+  if (t > 17.5) {
+    const a = eOut(prog(t, 17.5, 18.1));
+    veil(.28 * a); band(W / 2, H / 2, 1000, 380, .6 * a);
+    const k = 1 + .05 * (1 - eExpo(prog(t, 17.8, 19.0))) + .012 * (t - 17.8);
+    ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(k, k);
+    line(t, 'アートでしょ？', 0, 0, { size: 230, tIn: 17.8, tOut: 20, ls: 10, stagger: .05 });
+    ctx.restore();
+  }
+}
+
+// ---------- scene 4: words become painting ----------
+const PHRASES = ['人を大事に', '社会に貢献', 'お客様第一', '挑戦し続ける'];
+let phraseC, wordP = [];
+function initWords() {
+  phraseC = mk(); const x = phraseC.getContext('2d');
+  x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = `800 58px ${M}`;
+  for (let j = 0; j < 7; j++) for (let i = 0; i < 4; i++) {
+    const px = W / 2 + (i - 1.5) * 450 + (j % 2 ? 110 : -110), py = 120 + j * 140;
+    x.fillText(PHRASES[(i + j) % 4], px, py);
+  }
+  const d = x.getImageData(0, 0, W, H).data, r = rngOf(404), pts = [];
+  for (let y = 0; y < H; y += 3) for (let xx = 0; xx < W; xx += 3) if (d[(y * W + xx) * 4 + 3] > 140) pts.push(xx, y);
+  const n = pts.length / 2, keep = Math.min(1, 9000 / n);
+  paintB = new Painting(808, 0, { speed: 3.6, scale: 0.0019, turn: 1.9, alpha: .55, widths: [1.3, 2.6, 6] });
+  paintB.x.fillStyle = '#080706'; paintB.x.fillRect(0, 0, W, H);
+  for (let k = 0; k < n; k++) {
+    if (r() > keep) continue;
+    const px = pts[k * 2], py = pts[k * 2 + 1], q = r();
+    wordP.push({ x: px, y: py, c: paintB.colorAt(px, py) % 7, w: q < .6 ? 0 : q < .93 ? 1 : 2, delay: (px / W) * 1.5 + r() * .7, life: 60 + r() * 200 });
+  }
+}
+function sceneWords(t) {
+  const T0 = 23.5;
+  if (t < T0 + 1.2) {
+    ctx.save(); ctx.globalAlpha = .34 * eOut(prog(t, 20.1, 21.0)) * (1 - prog(t, T0, T0 + 1.2));
+    ctx.drawImage(phraseC, 0, 0); ctx.restore();
+  }
+  if (t >= T0) {
+    const pb = paintB, x = pb.x, groups = new Map(), heads = [];
+    const tt = t - T0;
+    for (const p of wordP) {
+      if (tt < p.delay) continue;
+      const a = pb.angle(p.x, p.y), sp = pb.speed * (0.6 + .5 * p.w), nx = p.x + Math.cos(a) * sp, ny = p.y + Math.sin(a) * sp;
+      const key = p.c * 3 + p.w; let g = groups.get(key); if (!g) groups.set(key, g = []);
+      g.push(p.x, p.y, nx, ny); p.x = nx; p.y = ny; heads.push(nx, ny, p.c);
+      if (--p.life < 0 || nx < -10 || nx > W + 10 || ny < -10 || ny > H + 10) { p.x = pb.r() * W; p.y = pb.r() * H; p.c = pb.colorAt(p.x, p.y) % 7; p.life = 60 + pb.r() * 200; }
+    }
+    x.globalAlpha = pb.alpha;
+    for (const [key, g] of groups) {
+      x.strokeStyle = PAL[Math.floor(key / 3)]; x.lineWidth = pb.widths[key % 3]; x.beginPath();
+      for (let i = 0; i < g.length; i += 4) { x.moveTo(g[i], g[i + 1]); x.lineTo(g[i + 2], g[i + 3]); }
+      x.stroke();
+    }
+    pb.z += 0.0012;
+    ctx.drawImage(pb.c, 0, 0);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .7 * (1 - prog(t, 25.5, 27));
+    for (let i = 0; i < heads.length; i += 3) { ctx.fillStyle = PAL[heads[i + 2]]; ctx.fillRect(heads[i] - 1.5, heads[i + 1] - 1.5, 3, 3); }
+    ctx.restore();
+  }
+  if (t < T0 + .6) band(W / 2, H / 2 + 20, 880, 260, .93 * (1 - prog(t, T0, T0 + .6)));
+  line(t, '言葉にすると、似てしまう。', W / 2, 520, { size: 104, tIn: 21.0, tOut: 23.3, ls: 8 });
+  line(t, 'その背景にある思いは、全く違うのに。', W / 2, 660, { size: 38, weight: 500, fam: G, tIn: 22.1, tOut: 23.3, ls: 9, color: GREY, stagger: .03 });
+  if (t > 25.6) {
+    const a = eOut(prog(t, 25.6, 26.4));
+    veil(.34 * a); band(W / 2, H / 2 + 20, 1050, 400, .78 * a);
+    line(t, '理念を、アートに。', W / 2, 510, { size: 178, tIn: 26.0, tOut: 29, ls: 10, stagger: .06 });
+    line(t, '翻訳ではなく、昇華。', W / 2, 700, { size: 50, weight: 500, fam: G, tIn: 27.4, tOut: 29, ls: 16, color: PAPER, stagger: .04 });
+  }
+}
+
+// ---------- scene 5: instant decision ----------
+function sceneDecision(t) {
+  line(t, '年商3,500億円企業の社長に、提案した。', W / 2, H / 2, { size: 54, weight: 500, fam: G, tIn: 29.3, tOut: 30.3, ls: 8, color: GREY, stagger: .025, fadeOut: .2 });
+  if (t >= 30.6 && t < 32.2) {
+    const u = t - 30.6, r = rngOf(Math.floor(t * FPS)), sh = 26 * Math.exp(-u * 9);
+    const k = 1 + .5 * (1 - eExpo(prog(u, 0, .35))) + .02 * u;
+    ctx.save(); ctx.translate(W / 2 + (r() - .5) * sh, H / 2 + 6 + (r() - .5) * sh); ctx.scale(k, k);
+    ctx.globalAlpha = clamp(u / .08) * (1 - prog(t, 31.95, 32.2));
+    ctx.font = `800 400px ${M}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = PAPER;
+    ctx.fillText('即決。', 30, 0);
+    ctx.restore();
+    ctx.save(); ctx.globalAlpha = .9 * Math.exp(-u * 12); ctx.fillStyle = PAPER; ctx.fillRect(0, 0, W, H); ctx.restore();
+  }
+  line(t, '「伝わらない悔しさがある」', W / 2, 500, { size: 96, tIn: 32.4, tOut: 34.6, ls: 6 });
+  line(t, '比べる相手が、いない。だから即決が生まれた。', W / 2, 650, { size: 38, weight: 500, fam: G, tIn: 33.4, tOut: 34.6, ls: 8, color: GREY, stagger: .025 });
+}
+
+// ---------- scene 6: numbers ----------
+const STATS = [
+  { t: 35.2, label: '採用応募数', cap: '導入企業の事例より', build: n => [{ txt: String(Math.round(13 * n)), fam: B, size: 400 }, { txt: '倍', fam: M, size: 150, weight: 800, pad: 30 }] },
+  { t: 36.9, label: '社員の自社肯定感', cap: '導入企業の事例より', build: n => [{ txt: '33', fam: B, size: 210, color: GREY }, { txt: '%', fam: B, size: 100, color: GREY }, { txt: '→', fam: G, size: 110, color: RED, pad: 90, dy: -30 }, { txt: String(Math.round(lerp(33, 100, n))), fam: B, size: 400 }, { txt: '%', fam: B, size: 170, pad: 16 }] },
+  { t: 38.6, label: 'マスコミ取材率', cap: '', build: n => [{ txt: String(Math.round(100 * n)), fam: B, size: 400 }, { txt: '%', fam: B, size: 170, pad: 16 }] },
+  { t: 40.3, label: '提携する世界のアーティスト', cap: 'Symboling（シンボリング）', build: n => [{ txt: String(Math.round(200 * n)), fam: B, size: 400 }, { txt: '名以上', fam: M, size: 120, weight: 800, pad: 30 }] },
+];
+function sceneStats(t) {
+  const z = 1.04 + .05 * prog(t, 35, 42);
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.rotate(.01 * (t - 35)); ctx.drawImage(paintB.c, -W / 2, -H / 2); ctx.restore();
+  veil(.74);
+  STATS.forEach((s, k) => {
+    const end = k < 3 ? STATS[k + 1].t : 42.0;
+    if (t < s.t || t >= end) return;
+    const u = t - s.t, a = clamp(u / .12) * (1 - prog(t, end - .15, end));
+    const n = eExpo(prog(u, 0, .85));
+    const k2 = 1 + .12 * (1 - eExpo(prog(u, 0, .5)));
+    ctx.save(); ctx.translate(W / 2, 560); ctx.scale(k2, k2);
+    segs(s.build(n), 0, 130, a);
+    ctx.restore();
+    ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = RED; ctx.fillRect(W / 2 - 40, 236, 80 * eOut(prog(u, 0, .4)), 5); ctx.restore();
+    line(t, s.label, W / 2, 180, { size: 46, weight: 700, fam: G, tIn: s.t, tOut: end - .15, ls: 14, stagger: .02, fadeOut: .15 });
+    if (s.cap) line(t, s.cap, W / 2, 860, { size: 28, weight: 500, fam: G, tIn: s.t + .3, tOut: end - .15, ls: 8, color: GREY, stagger: .012, fadeOut: .15 });
+    // progress ticks
+    ctx.save();
+    for (let q = 0; q < 4; q++) { ctx.globalAlpha = q === k ? .95 : .25; ctx.fillStyle = PAPER; ctx.fillRect(W / 2 - 122 + q * 64, 968, 52, 3); }
+    ctx.restore();
+  });
+}
+
+// ---------- scene 7: the crack + title ----------
+let crackSegs = [], crackMax = 0;
+function initCrack() {
+  const r = rngOf(1201);
+  function grow(x, y, ang, d, w, depth) {
+    let steps = 0;
+    while (x > -80 && x < W + 80 && y > -80 && y < H + 80 && steps++ < 90) {
+      const len = 26 + r() * 56; ang += (r() - .5) * 0.95;
+      const nx = x + Math.cos(ang) * len, ny = y + Math.sin(ang) * len;
+      crackSegs.push({ x1: x, y1: y, x2: nx, y2: ny, d, w });
+      d += len; x = nx; y = ny; w *= 0.975;
+      if (depth < 3 && r() < (depth === 0 ? .26 : .14)) grow(x, y, ang + (r() < .5 ? -1 : 1) * (0.5 + r() * .8), d, w * .6, depth + 1);
+      if (depth > 0 && r() < .045 * depth) break;
+    }
+    crackMax = Math.max(crackMax, d);
+  }
+  const n = 7, off = r() * TAU;
+  for (let i = 0; i < n; i++) grow(W / 2, H / 2, off + (i / n) * TAU + (r() - .5) * .5, 0, 1, 0);
+}
+function sceneCrack(t) {
+  paintA.step();
+  const OPEN = 44.6;
+  if (t < OPEN) {
+    const g = eIO(prog(t, 43.55, 44.6)), reach = g * crackMax * .8, wide = 2 + 46 * Math.pow(g, 2.2);
+    if (g > 0) {
+      maskX.globalCompositeOperation = 'source-over'; maskX.clearRect(0, 0, W, H); maskX.strokeStyle = '#fff'; maskX.lineCap = 'round';
+      for (const s of crackSegs) { if (s.d > reach) continue; maskX.lineWidth = Math.max(1, wide * s.w * (1 - s.d / (reach + 1) * .75)); maskX.beginPath(); maskX.moveTo(s.x1, s.y1); maskX.lineTo(s.x2, s.y2); maskX.stroke(); }
+      tmpX.globalCompositeOperation = 'source-over'; tmpX.clearRect(0, 0, W, H); tmpX.drawImage(paintA.c, 0, 0);
+      tmpX.globalCompositeOperation = 'destination-in'; tmpX.drawImage(maskC, 0, 0);
+      ctx.drawImage(tmpC, 0, 0);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = 'rgba(255,250,235,.9)'; ctx.lineCap = 'round';
+      for (const s of crackSegs) { if (s.d > reach || s.d < reach - 260) continue; ctx.lineWidth = 1.2 + 2.2 * s.w; ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke(); }
+      ctx.restore();
+      const sh = 5 * g, r = rngOf(Math.floor(t * FPS) + 3);
+      if (g > .3) ctx.drawImage(cv, (r() - .5) * sh, (r() - .5) * sh);
+    }
+    if (g > 0) band(W / 2, 530, 760, 250, .7 * Math.min(1, g * 3));
+    line(t, '誰も喜んでいない常識に、', W / 2, 440, { size: 62, tIn: 42.2, tOut: 44.4, ls: 10, color: GREY, fadeOut: .15 });
+    line(t, 'ヒビを入れる。', W / 2, 590, { size: 150, tIn: 43.0, tOut: 44.4, ls: 12, fadeOut: .15 });
+    return;
+  }
+  const u = t - OPEN, z = 1.1 - .07 * eOut(prog(u, 0, 5.4));
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.drawImage(paintA.c, -W / 2, -H / 2); ctx.restore();
+  const a = eOut(prog(u, .25, 1.3));
+  veil(.36 * a); band(W / 2, H / 2 + 20, 1250, 560, .74 * a);
+  const T = OPEN + .7;
+  // note pill
+  const pa = eOut(prog(t, T, T + .5));
+  ctx.save(); ctx.globalAlpha = pa; ctx.strokeStyle = PAPER; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(W / 2 - 150, 232, 300, 58, 29); ctx.stroke(); ctx.restore();
+  line(t, 'note で公開中', W / 2, 262, { size: 28, weight: 700, fam: G, tIn: T, ls: 8, stagger: .02 });
+  line(t, '「企業の理念をアートにする」', W / 2, 450, { size: 122, tIn: T + .25, ls: 2, stagger: .05 });
+  line(t, 'アートブランディングという発想が降りてきた日のこと', W / 2, 590, { size: 47, tIn: T + 1.0, ls: 6, stagger: .022, weight: 500 });
+  ctx.save(); ctx.globalAlpha = .9; ctx.fillStyle = RED; const lw = 120 * eOut(prog(t, T + 1.6, T + 2.2)); ctx.fillRect(W / 2 - lw / 2, 690, lw, 5); ctx.restore();
+  line(t, 'crack株式会社　代表　大野 陣', W / 2, 770, { size: 38, weight: 700, fam: G, tIn: T + 1.8, ls: 10, stagger: .02 });
+  line(t, 'note.com/crack1201', W / 2, 850, { size: 36, weight: 500, fam: B, tIn: T + 2.2, ls: 5, stagger: .02, color: PAPER });
+  ctx.save(); ctx.globalAlpha = Math.exp(-u * 4.2); ctx.fillStyle = '#fffaf0'; ctx.fillRect(0, 0, W, H); ctx.restore();
+}
+
+// ---------- master ----------
+function frame(i) {
+  const t = i / FPS;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
+  if (t < 11) sceneGrid(t);
+  else if (t < 20) sceneCloth(t);
+  else if (t < 29) sceneWords(t);
+  else if (t < 35) sceneDecision(t);
+  else if (t < 42) sceneStats(t);
+  else sceneCrack(t);
+  overlays(i);
+  // scene transitions: quick dips
+  for (const c of [11, 20, 29, 35, 42]) { const d = Math.abs(t - c); if (d < .2 && c !== 29) veil(1 - d / .2); }
+  veil(1 - prog(t, 0, .5)); veil(prog(t, DURATION - .7, DURATION - .1));
+}
+
+async function init() {
+  const all = 'デザインでは、勝てない。美しいウェブサイトは世の中に無数にある。ナンバーワンではなくビーユニーク比較の土俵そのものに上がらない。ある日一枚の眼鏡拭きに出会った「磨く行為が、かっこいい。」だったら、磨く道具もかっこよくなくてはならない。アートでしょ？人を大事に社会に貢献お客様第一挑戦し続ける言葉にすると、似てしまう。その背景にある思いは全く違うのに理念を、アートに。翻訳ではなく昇華年商3,500億円企業の社長に提案した即決伝わらない悔しさがある比べる相手がいないだから即決が生まれた採用応募数倍導入企業の事例より社員の自社肯定感マスコミ取材率提携する世界のアーティストSymboling（シンボリング）名以上誰も喜んでいない常識にヒビを入れる note で公開中企業の理念をアートにするアートブランディングという発想が降りてきた日のことcrack株式会社　代表大野 陣→No.0123456789%/.';
+  const loads = [];
+  for (const f of [`500 40px ${M}`, `800 40px ${M}`, `500 40px ${G}`, `700 40px ${G}`, `500 40px ${B}`, `700 40px ${B}`]) loads.push(document.fonts.load(f, all));
+  await Promise.all(loads); await document.fonts.ready;
+  initGrain(); initVignette(); initPaintA(); initCards(); initWeave(); initWords(); initCrack();
+  window.READY = true;
+}
+window.renderFrame = i => { frame(i); };
+window.grab = () => cv.toDataURL('image/jpeg', 0.93);
+init();
+</script>
+</body>
+</html>
