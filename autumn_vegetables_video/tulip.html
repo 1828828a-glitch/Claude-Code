@@ -13,6 +13,7 @@
   canvas { width: 100vw; max-width: calc(100vh * 16 / 9); aspect-ratio: 16 / 9; display: block; }
 </style>
 <script src="assets/logo.js"></script>
+<script src="assets/magamp.js"></script>
 </head>
 <body>
 <canvas id="c" width="1920" height="1080"></canvas>
@@ -422,7 +423,7 @@ function softPill(s, x, y, { size = 28, bg = C.mint, color = C.deep, p = 1 } = {
   return w;
 }
 
-let LOGO = null;
+let LOGO = null, MAGAMP = null;
 function drawLogo(cx, cy, w, alpha = 1) {
   if (!LOGO || alpha <= 0) return;
   const h = w * LOGO.height / LOGO.width;
@@ -745,8 +746,18 @@ function t6SoilCold(lt, t) {
         }
         bx += sw;
       });
-      focusText('水はけのよい土に、緩効性肥料を', x + 60, y + 520, { size: 34, w: 700, color: C.ink }, P(lt, 2.4, 3.0));
-      focusText('元肥として混ぜておく', x + 60, y + 570, { size: 34, w: 700, color: C.ink }, P(lt, 2.6, 3.2));
+      // 元肥: マグァンプK 中粒 (背景を透過したパッケージ画像)
+      const mp = eSpring(P(lt, 2.1, 2.8));
+      if (MAGAMP && mp > 0) {
+        const ih = 270, iw = ih * MAGAMP.width / MAGAMP.height;
+        ctx.save(); ctx.translate(x + 60 + iw / 2, y + 430 + ih / 2 + Math.sin(t * 1.6) * 4); ctx.scale(mp, mp); ctx.rotate(-0.04);
+        ctx.shadowColor = 'rgba(36,85,58,.22)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 10;
+        ctx.drawImage(MAGAMP, -iw / 2, -ih / 2, iw, ih);
+        ctx.restore();
+      }
+      focusText('元肥には緩効性肥料', x + 290, y + 510, { size: 32, w: 700, color: C.ink }, P(lt, 2.4, 3.0));
+      focusText('マグァンプK中粒', x + 288, y + 578, { size: 48, w: 900, color: C.green }, P(lt, 2.6, 3.2));
+      focusText('を、土に混ぜこむだけ', x + 290, y + 634, { size: 32, w: 700, color: C.ink }, P(lt, 2.8, 3.4));
       ctx.restore();
     }
   }
@@ -823,7 +834,7 @@ function t8Close(lt, t) {
     drawLogo(W / 2, 830, 520);
     ctx.restore();
   }
-  text('参考：PLANTIA（ハイポネックス）「【チューリップの育て方】チューリップは秋植え春咲き！」', W / 2, 1040, { size: 22, fam: SANS, w: 500, color: C.deep, align: 'center', alpha: P(lt, 3.0, 3.6) * 0.8 });
+  text('参考：Plantia（ハイポネックス）「【チューリップの育て方】チューリップは秋植え春咲き！」', W / 2, 1040, { size: 22, fam: SANS, w: 500, color: C.deep, align: 'center', alpha: P(lt, 3.0, 3.6) * 0.8 });
 }
 
 const SCENES = [
@@ -865,6 +876,7 @@ window.frameJPEG = t => { render(t); return cv.toDataURL('image/jpeg', 0.95).spl
 (async () => {
   const src = document.getElementById('main').textContent;
   if (window.LOGO_SRC) { const img = new Image(); img.src = window.LOGO_SRC; await img.decode(); LOGO = img; }
+  if (window.MAGAMP_SRC) { const img = new Image(); img.src = window.MAGAMP_SRC; await img.decode(); MAGAMP = img; }
   await Promise.all([500, 700, 900].map(w => document.fonts.load(`${w} 100px "Zen Maru Gothic"`, src)));
   await document.fonts.ready;
   window.__ready = true;
