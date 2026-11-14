@@ -9,7 +9,7 @@ description: プラグイン harness を入れたリポジトリで、最初の1
 
 ## 1. テストのコマンドを決める
 
-リポジトリの中を見て、普段使うテストのコマンドを1つ決める。手がかりは次のとおり。
+リポジトリの中にあるファイルを手がかりに、普段使うテストのコマンドを1つ決める。
 
 - package.json の scripts.test があれば npm test（pnpm-lock.yaml なら pnpm test、yarn.lock なら yarn test）
 - pyproject.toml、pytest.ini、tests/ があれば python3 -m pytest -q -x
@@ -54,7 +54,7 @@ CLAUDE.md が無ければ作る。あれば末尾に次の節を足す。リポ�
 
 ## 品質の関所
 
-ユーザーに完了を伝える前に、検品係の kenpin を通す。人が読む日本語を書いたら ja-text-checker にも通す。差し戻されたら直してから、もう一度通す。
+ユーザーに完了を伝える前に、検品係の kenpin を通す。人が読む日本語を書いたときは、ja-text-checker の検品も受ける。差し戻されたら直してから、もう一度通す。
 
 ## 書き足した決まり
 
