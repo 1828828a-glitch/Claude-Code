@@ -1,0 +1,421 @@
+<title>フリオチ新問の選別台</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Old+Mincho:wght@600;700&display=swap">
+<style>
+/* Layout: 朝便が置いた候補を日付ごとに縦に並べる。お題は寄席のめくりの紙に載せ、その下に採用・見送りの札とメモを置く。配色と書体はフリオチLAB の Web版と同じ */
+:root {
+  --paper: #F4F5F8;
+  --surface: #FFFFFF;
+  --ink: #1B2130;
+  --muted: #5C6477;
+  --line: #D8DCE4;
+  --kin: #946609;
+  --kin-soft: #F4EAD2;
+  --on-kin: #FFFFFF;
+  --ai: #2D4C82;
+  --ai-soft: #E4EAF5;
+  --good: #26754A;
+  --good-soft: #E1F1E8;
+  --bad: #B0261E;
+  --bad-soft: #FBE5E3;
+  --mk-paper: #FFFDF8;
+  --mk-sheet: #ECE4D3;
+  --mk-ink: #1A1613;
+  --mk-muted: #6A5E4B;
+  --mk-rule: #E3D9C6;
+  --f-display: "Dela Gothic One", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --f-script: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  --f-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --r: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #10131A; --surface: #191E28; --ink: #E7EAF0; --muted: #9AA2B3; --line: #2B3240;
+    --kin: #E3B653; --kin-soft: #352C17; --on-kin: #1A1406;
+    --ai: #A3BCEA; --ai-soft: #1D283D;
+    --good: #72CB98; --good-soft: #17301F; --bad: #F2867E; --bad-soft: #3A1916;
+    --mk-paper: #1E1B16; --mk-sheet: #2B261F; --mk-ink: #EEE6D6; --mk-muted: #AA9E89; --mk-rule: #3A342B;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #10131A; --surface: #191E28; --ink: #E7EAF0; --muted: #9AA2B3; --line: #2B3240;
+  --kin: #E3B653; --kin-soft: #352C17; --on-kin: #1A1406;
+  --ai: #A3BCEA; --ai-soft: #1D283D;
+  --good: #72CB98; --good-soft: #17301F; --bad: #F2867E; --bad-soft: #3A1916;
+  --mk-paper: #1E1B16; --mk-sheet: #2B261F; --mk-ink: #EEE6D6; --mk-muted: #AA9E89; --mk-rule: #3A342B;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.75; }
+.wrap {
+  max-width: 760px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+  display: grid; gap: 22px;
+}
+:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+
+header { display: grid; gap: 10px; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; color: var(--kin); font-weight: 700; }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(28px, 6vw, 40px); line-height: 1.2; margin: 0; text-wrap: balance; }
+.lede { margin: 0; color: var(--muted); max-width: 62ch; }
+
+.tally { display: flex; flex-wrap: wrap; gap: 8px; }
+.tally button {
+  font: inherit; font-size: 13px; cursor: pointer; display: inline-flex; align-items: baseline; gap: 6px;
+  padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
+.tally button b { font-family: var(--f-display); font-weight: 400; font-size: 16px; font-variant-numeric: tabular-nums; }
+.tally button[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.tally .k-adopt b { color: var(--kin); }
+.tally .k-done b { color: var(--good); }
+
+.howto { font-size: 13px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 14px; }
+.howto code { font-family: inherit; font-weight: 700; color: var(--ink); }
+
+.status { font-size: 13px; color: var(--muted); min-height: 1.5em; }
+.status.err { color: var(--bad); }
+
+.day { display: grid; gap: 14px; }
+.day h2 { margin: 6px 0 0; font-size: 14px; font-weight: 700; color: var(--muted); display: flex; align-items: center; gap: 10px; }
+.day h2::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.card[data-verdict="adopt"] { border-color: var(--kin); box-shadow: inset 4px 0 0 var(--kin); }
+.card[data-verdict="skip"] { opacity: .72; }
+.card[data-applied="true"] { border-color: var(--good); box-shadow: inset 4px 0 0 var(--good); }
+
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12.5px; color: var(--muted); }
+.mode { font-weight: 700; color: var(--ai); background: var(--ai-soft); border-radius: 6px; padding: 1px 8px; }
+.mode b { font-family: var(--f-display); font-weight: 400; margin-right: 4px; }
+.pid { font-variant-numeric: tabular-nums; }
+.badge { margin-left: auto; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 1px 10px; }
+.badge.adopt { background: var(--kin); color: var(--on-kin); }
+.badge.skip { background: var(--line); color: var(--muted); }
+.badge.done { background: var(--good); color: var(--surface); }
+
+/* めくり：お題の紙 */
+.mekuri {
+  background: var(--mk-paper); color: var(--mk-ink); border-radius: 4px; padding: 18px 18px 16px;
+  box-shadow: 0 0 0 1px var(--mk-rule), 0 6px 0 -2px var(--mk-sheet), 0 6px 0 -1px var(--mk-rule);
+}
+.mekuri .q { font-family: var(--f-script); font-weight: 700; font-size: clamp(19px, 4.4vw, 23px); line-height: 1.6; margin: 0; overflow-wrap: anywhere; }
+.mekuri .cond { margin-top: 8px; font-size: 13px; color: var(--mk-muted); }
+
+dl.facts { margin: 0; display: grid; grid-template-columns: 4.5em 1fr; gap: 4px 12px; font-size: 14px; }
+dl.facts dt { color: var(--muted); font-size: 12.5px; padding-top: 2px; }
+dl.facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+
+.examples { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.examples li { border-left: 3px solid var(--mk-rule); padding: 2px 0 2px 12px; display: grid; gap: 2px; }
+.examples .ex { font-weight: 500; overflow-wrap: anywhere; }
+.examples .ex-meta { font-size: 12.5px; color: var(--muted); }
+.examples .ex-meta span { color: var(--kin); font-weight: 700; margin-right: 6px; }
+.label { font-size: 12.5px; color: var(--muted); margin: 0 0 6px; }
+
+details { font-size: 13.5px; color: var(--muted); }
+details summary { cursor: pointer; font-size: 12.5px; }
+details p { margin: 6px 0 0; }
+
+.decide { display: grid; gap: 10px; border-top: 1px dashed var(--line); padding-top: 12px; }
+.fuda { display: flex; flex-wrap: wrap; gap: 8px; }
+.fuda button {
+  font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; min-height: 40px; padding: 6px 18px;
+  border-radius: 6px; border: 1px solid var(--line); background: var(--paper); color: var(--ink);
+}
+.fuda button:disabled { cursor: not-allowed; opacity: .55; }
+.fuda .adopt[aria-pressed="true"] { background: var(--kin); border-color: var(--kin); color: var(--on-kin); }
+.fuda .skip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.fuda .clear { font-weight: 500; color: var(--muted); }
+.memo { display: grid; gap: 4px; }
+.memo label { font-size: 12.5px; color: var(--muted); }
+.memo textarea {
+  font: inherit; font-size: 14px; width: 100%; min-height: 2.8em; resize: vertical; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink);
+}
+.saved { font-size: 12px; color: var(--muted); min-height: 1.4em; }
+.saved.err { color: var(--bad); }
+
+.empty { text-align: center; color: var(--muted); padding: 32px 16px; background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .card { transition: border-color .15s ease, box-shadow .15s ease, opacity .15s ease; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">フリオチ新問の朝便から</div>
+    <h1>フリオチ新問の選別台</h1>
+    <p class="lede">毎朝6時50分に届いた候補を、ここで1問ずつ選びます。採るものは採用、外すものは見送り。言い回しを直してから入れたいときは、メモに書いてください。</p>
+    <div class="tally" id="tally" role="group" aria-label="絞り込み"></div>
+    <div class="howto">選び終わったら、Claude に <code>選別台で採用した候補をバンクに入れて</code> と頼んでください。メモの直しを反映して problems.py に移し、Web版も作り直します。</div>
+    <div class="status" id="status" role="status">候補を読み込んでいます。</div>
+  </header>
+  <main id="list"></main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var MODE_NAMES = {
+    M01: "フリ→オチ", M02: "オチ→フリ", M03: "期待の言語化", M04: "同一フリ3オチ",
+    M05: "フリオチ自作", M06: "ネタの修理", M07: "ツッコミ設計"
+  };
+  var FILTERS = [
+    { key: "open", label: "未判定" }, { key: "adopt", label: "採用" },
+    { key: "skip", label: "見送り" }, { key: "done", label: "バンク入り済み" }, { key: "all", label: "すべて" }
+  ];
+
+  var candidates = [];          // {id, ...problem, date}
+  var decisions = {};           // id -> {verdict, note, applied}
+  var filter = null;            // 最初の描画で決める
+  var canWrite = true;
+  var db = null;
+  var gotCandidates = false, gotDecisions = false;
+  var listEl = document.getElementById("list");
+  var statusEl = document.getElementById("status");
+  var tallyEl = document.getElementById("tally");
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function stateOf(id) {
+    var d = decisions[id] || {};
+    if (d.applied) return "done";
+    if (d.verdict === "adopt" || d.verdict === "skip") return d.verdict;
+    return "open";
+  }
+  function setStatus(text, isErr) {
+    statusEl.textContent = text || "";
+    statusEl.classList.toggle("err", !!isErr);
+  }
+
+  // ── 保存：1つの候補につき書き込みは1本ずつ ──
+  var queues = {};
+  function save(id, patch, savedEl) {
+    var next = Object.assign({}, decisions[id] || {}, patch, { updatedAt: new Date().toISOString() });
+    decisions[id] = next;
+    render();
+    var prev = queues[id] || Promise.resolve();
+    queues[id] = prev.then(function () {
+      if (savedEl) { savedEl.textContent = "保存しています"; savedEl.classList.remove("err"); }
+      return db.collection("decisions").doc(id).set({
+        verdict: next.verdict || "", note: next.note || "", applied: !!next.applied, updatedAt: next.updatedAt
+      });
+    }).then(function () {
+      var s = document.querySelector('[data-saved="' + id + '"]');
+      if (s) { s.textContent = "保存しました"; s.classList.remove("err"); }
+    }).catch(function (e) {
+      var s = document.querySelector('[data-saved="' + id + '"]');
+      var msg = e && e.code === "invalid_argument" ? "このページでは保存できません。閲覧のみです" : "保存できませんでした。少し待ってからもう一度押してください";
+      if (s) { s.textContent = msg; s.classList.add("err"); }
+      if (e && e.code === "invalid_argument") { canWrite = false; render(); }
+    });
+  }
+
+  // ── 描画 ──
+  function renderTally() {
+    var counts = { open: 0, adopt: 0, skip: 0, done: 0, all: candidates.length };
+    candidates.forEach(function (c) { counts[stateOf(c.id)]++; });
+    if (filter === null && gotCandidates && gotDecisions) filter = counts.open ? "open" : "all";
+    tallyEl.textContent = "";
+    FILTERS.forEach(function (f) {
+      var b = el("button", "k-" + f.key);
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(filter === f.key));
+      b.appendChild(document.createTextNode(f.label));
+      b.appendChild(el("b", null, String(counts[f.key])));
+      b.addEventListener("click", function () { filter = f.key; render(); });
+      tallyEl.appendChild(b);
+    });
+  }
+
+  function renderCard(c) {
+    var st = stateOf(c.id);
+    var d = decisions[c.id] || {};
+    var card = el("article", "card");
+    card.dataset.verdict = d.verdict || "";
+    card.dataset.applied = String(!!d.applied);
+
+    var meta = el("div", "meta");
+    var mode = el("span", "mode");
+    mode.appendChild(el("b", null, c.mode));
+    mode.appendChild(document.createTextNode(MODE_NAMES[c.mode] || ""));
+    meta.appendChild(mode);
+    meta.appendChild(el("span", null, "レベル" + c.level));
+    if (c.scene) meta.appendChild(el("span", null, c.scene));
+    meta.appendChild(el("span", "pid", c.id));
+    if (st === "adopt") meta.appendChild(el("span", "badge adopt", "採用"));
+    if (st === "skip") meta.appendChild(el("span", "badge skip", "見送り"));
+    if (st === "done") meta.appendChild(el("span", "badge done", "バンク入り済み"));
+    card.appendChild(meta);
+
+    var mk = el("div", "mekuri");
+    mk.appendChild(el("p", "q", c.prompt));
+    if (c.condition) mk.appendChild(el("div", "cond", "条件　" + c.condition));
+    card.appendChild(mk);
+
+    var dl = el("dl", "facts");
+    [["期待", c.expectation], ["尺度", c.axis], ["型", c.pattern], ["弱い理由", c.weak_reason]].forEach(function (p) {
+      if (!p[1]) return;
+      dl.appendChild(el("dt", null, p[0]));
+      dl.appendChild(el("dd", null, p[1]));
+    });
+    card.appendChild(dl);
+
+    if (c.examples && c.examples.length) {
+      var box = el("div");
+      box.appendChild(el("p", "label", "成立例"));
+      var ul = el("ul", "examples");
+      c.examples.forEach(function (ex) {
+        var li = el("li");
+        li.appendChild(el("div", "ex", ex.text));
+        var m = el("div", "ex-meta");
+        if (ex.pattern) m.appendChild(el("span", null, ex.pattern));
+        if (ex.note) m.appendChild(document.createTextNode(ex.note));
+        li.appendChild(m);
+        ul.appendChild(li);
+      });
+      box.appendChild(ul);
+      card.appendChild(box);
+    }
+
+    if (c.focus || c.scoring_hint) {
+      var det = el("details");
+      det.appendChild(el("summary", null, "解説の焦点と採点のヒント"));
+      if (c.focus) det.appendChild(el("p", null, "焦点　" + c.focus));
+      if (c.scoring_hint) det.appendChild(el("p", null, "採点　" + c.scoring_hint));
+      card.appendChild(det);
+    }
+
+    var decide = el("div", "decide");
+    var fuda = el("div", "fuda");
+    fuda.setAttribute("role", "group");
+    fuda.setAttribute("aria-label", c.id + " の判定");
+    [["adopt", "採用"], ["skip", "見送り"]].forEach(function (v) {
+      var b = el("button", v[0], v[1]);
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(d.verdict === v[0]));
+      b.disabled = !canWrite || !!d.applied;
+      b.addEventListener("click", function () {
+        save(c.id, { verdict: d.verdict === v[0] ? "" : v[0] });
+      });
+      fuda.appendChild(b);
+    });
+    decide.appendChild(fuda);
+
+    var memo = el("div", "memo");
+    var tid = "memo-" + c.id;
+    var lab = el("label", null, "手直しメモ（任意）");
+    lab.htmlFor = tid;
+    var ta = el("textarea");
+    ta.id = tid;
+    ta.value = d.note || "";
+    ta.disabled = !canWrite || !!d.applied;
+    ta.placeholder = "例：2つ目の成立例は長いので削る";
+    var timer = null;
+    function flush() {
+      clearTimeout(timer);
+      if ((decisions[c.id] || {}).note === ta.value || (!decisions[c.id] && ta.value === "")) return;
+      save(c.id, { note: ta.value });
+    }
+    ta.addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(flush, 900); });
+    ta.addEventListener("blur", flush);
+    memo.appendChild(lab);
+    memo.appendChild(ta);
+    decide.appendChild(memo);
+    var saved = el("div", "saved");
+    saved.dataset.saved = c.id;
+    decide.appendChild(saved);
+    card.appendChild(decide);
+    return card;
+  }
+
+  function render() {
+    renderTally();
+    if (!gotCandidates) return;
+    // メモを打っている最中なら、その欄を作り直さない
+    var active = document.activeElement;
+    if (active && active.tagName === "TEXTAREA" && listEl.contains(active)) return;
+
+    listEl.textContent = "";
+    var f = filter || "all";
+    var shown = candidates.filter(function (c) { return f === "all" || stateOf(c.id) === f; });
+    if (!candidates.length) {
+      listEl.appendChild(el("div", "empty", "まだ候補がありません。朝便が候補を置き、Claude がこの選別台に入れると、ここに並びます。"));
+      return;
+    }
+    if (!shown.length) {
+      listEl.appendChild(el("div", "empty", filter === "open" ? "未判定の候補はありません。すべて選び終えました。" : "この絞り込みに当たる候補はありません。"));
+      return;
+    }
+    var byDate = {};
+    shown.forEach(function (c) { (byDate[c.date] = byDate[c.date] || []).push(c); });
+    Object.keys(byDate).sort().reverse().forEach(function (date) {
+      var sec = el("section", "day");
+      var parts = date.split("-");
+      sec.appendChild(el("h2", null, parts.length === 3 ? Number(parts[1]) + "月" + Number(parts[2]) + "日の朝便" : date));
+      byDate[date].sort(function (a, b) { return a.id < b.id ? -1 : 1; }).forEach(function (c) { sec.appendChild(renderCard(c)); });
+      listEl.appendChild(sec);
+    });
+  }
+
+  // ── 起動 ──
+  render();
+  var loadTimer = setTimeout(function () {
+    if (!gotCandidates) setStatus("保存場所にまだ届きません。通信が戻ると自動で並びます。", true);
+  }, 10000);
+
+  window.claude && window.claude.use && window.claude.use("user").then(function (user) {
+    if (!user || !user.can) return;
+    Promise.resolve(user.can("data.write")).then(function (ok) {
+      if (ok === false) { canWrite = false; setStatus("閲覧のみです。判定を変えるには、このページの編集権限が要ります。"); render(); }
+    }).catch(function () {});
+  }).catch(function () {});
+
+  if (!window.claude || !window.claude.use) {
+    setStatus("このページは claude.ai の中で開くと候補が並びます。", true);
+    return;
+  }
+  window.claude.use("db").then(function (store) {
+    if (!store) {
+      clearTimeout(loadTimer);
+      setStatus("この画面では保存場所を使えません。claude.ai にサインインして開き直してください。", true);
+      return;
+    }
+    db = store;
+    db.collection("candidates").onSnapshot(function (snap) {
+      candidates = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      gotCandidates = true;
+      if (!snap.metadata.fromCache) { clearTimeout(loadTimer); setStatus(""); }
+      render();
+    }, function (e) {
+      clearTimeout(loadTimer);
+      setStatus("候補を読み込めませんでした。ページを開き直してください。（" + (e && e.code || "unknown") + "）", true);
+    });
+    db.collection("decisions").onSnapshot(function (snap) {
+      var next = {};
+      snap.docs.forEach(function (d) { next[d.id] = d.data(); });
+      decisions = next;
+      gotDecisions = true;
+      render();
+    }, function () {
+      gotDecisions = true;
+      render();
+    });
+  }).catch(function () {
+    clearTimeout(loadTimer);
+    setStatus("保存場所につながりませんでした。ページを開き直してください。", true);
+  });
+})();
+</script>

@@ -56,7 +56,7 @@ plugins/harness/scripts/guard.py が、すべての Bash とファイル操作�
 
 フリオチ新問の朝便が、毎朝6時50分（日本時間）に動く。届け先は実行用セッションの フリオチ新問の朝便（実行用） で、このリポジトリと furiochi-candidates への書き込み先を最初から持っている。毎回、前回の続きではなく同じ手順を最初からやり直す。新問を3つ作り、scripts/check_candidates.py で形を確かめ、furiochi-problem-checker に通して、残ったものを furiochi-candidates ブランチの furiochi_lab/data/candidates/日付.json に置く。PR は作らず、problems.py にも触らない。
 
-候補を問題バンクに入れるかどうかは人が決める。入れると言われたら problems.py に移し、id はモードの接頭辞で次の番号を振り直す。そのあと Web版を作り直す。候補は git show origin/furiochi-candidates:furiochi_lab/data/candidates/日付.json で読み、furiochi-candidates を checkout しない。あちらのブランチにはプラグインの置き場が無いので、切り替えるとフックが外れる。
+候補を問題バンクに入れるかどうかは人が決める。選ぶ場所は選別台 https://claude.ai/artifact/6tAgoE1wTR2T9gUTPa8mt6（ソースは docs/candidate-review.html）。候補は保存場所の candidates に、判定とメモは decisions に入る。ユーザーが選別台で採用した候補を入れてと言ったら、ArtifactData で decisions を読み、verdict が adopt の候補を、メモの手直しを反映して problems.py に移す。id はモードの接頭辞で次の番号を振り直す。移したら decisions のその候補に applied: true を書き、Web版を作り直す。新しい朝便の候補を選別台に足したいと言われたら、furiochi-candidates から読んで candidates に入れる。候補は git show origin/furiochi-candidates:furiochi_lab/data/candidates/日付.json で読み、furiochi-candidates を checkout しない。あちらのブランチにはプラグインの置き場が無いので、切り替えるとフックが外れる。
 
 ## プラグイン harness
 
@@ -95,3 +95,4 @@ Python や JSON を書くと、直後に post_edit_check が構文を確かめ�
 - 2026-11-08 ハーネス（フック・権限ルール・検品係）を入れた。図は docs/ai-ecosystem.html
 - 2026-11-08 承認ゲートと、毎朝の新問づくりの定期タスクを入れた。新問は候補として置くだけで、採用は人が決める
 - 2026-11-14 共通の部品をプラグイン harness にまとめ、このリポジトリを配布元にした
+- 2026-11-15 朝便の候補を選ぶ選別台を作った。採用は選別台の decisions を正とする
