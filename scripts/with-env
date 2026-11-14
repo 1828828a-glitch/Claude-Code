@@ -1,3 +1,6 @@
 #!/usr/bin/env bash
-# このリポジトリでの呼び名。中身はプラグイン harness の with-env
-exec "$(dirname "${BASH_SOURCE[0]}")/../plugins/harness/bin/with-env" "$@"
+# このリポジトリでの呼び名。中身はプラグイン harness の with-env。
+# どこから呼んでも、このリポジトリの .env を読む
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export WITH_ENV_FILE="${WITH_ENV_FILE:-$here/.env}"
+exec "$here/plugins/harness/bin/with-env" "$@"

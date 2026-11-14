@@ -38,9 +38,8 @@ def check(path: str, project_dir: str) -> tuple[str | None, str | None]:
             return f"{rel}:{e.lineno} の JSON が壊れています（{e.msg}）。", None
 
     rel_posix = rel.replace(os.sep, "/")
-    for rule in harness_config.load(project_dir).get("rebuild_reminders") or []:
-        paths = (rule.get("paths") or []) if isinstance(rule, dict) else []
-        if any(rel_posix.startswith(str(x)) for x in paths):
+    for rule in harness_config.load(project_dir)["rebuild_reminders"]:
+        if any(rel_posix.startswith(x) for x in rule["paths"]):
             return None, f"{rel} を変えました。{rule.get('message') or '作業の区切りで作り直してください。'}"
     return None, None
 

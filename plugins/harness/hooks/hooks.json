@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py\"",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py\"; fi",
             "timeout": 15
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/prompt_guard.py\"",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/prompt_guard.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/prompt_guard.py\"; fi",
             "timeout": 10
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/guard.py\"",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/guard.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/guard.py\"; fi",
             "timeout": 10
           }
         ]
@@ -40,7 +40,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/post_edit_check.py\"",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/post_edit_check.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/post_edit_check.py\"; fi",
             "timeout": 15
           }
         ]
@@ -51,7 +51,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/stop_tests.py\"",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/scripts/stop_tests.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/stop_tests.py\"; fi",
             "timeout": 200
           }
         ]

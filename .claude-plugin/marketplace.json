@@ -12,7 +12,7 @@
       "name": "harness",
       "source": "./plugins/harness",
       "description": "危ない操作の番人、承認ゲート、鍵の隔離、テストの差し戻し、検品係をまとめたハーネス",
-      "version": "0.1.0"
+      "version": "0.1.1"
     }
   ]
 }

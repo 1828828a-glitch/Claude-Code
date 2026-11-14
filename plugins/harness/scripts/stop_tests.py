@@ -15,7 +15,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import shlex
 import subprocess
 import sys
 
@@ -25,19 +24,26 @@ import harness_config  # noqa: E402
 MAX_BOUNCES = 2
 
 
-def run(cmd: list[str], cwd: str, timeout: int = 10) -> subprocess.CompletedProcess[str] | None:
+STATE_EXCLUDE = ":(exclude).claude/state"
+
+
+def run(cmd: list[str] | str, cwd: str, timeout: int = 10) -> subprocess.CompletedProcess[str] | None:
+    """文字列のコマンドはシェルを通して回す（&& やパイプが使える）。並びはそのまま回す"""
     try:
-        return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
-    except (OSError, subprocess.SubprocessError):
-        return None
+        return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout,
+                              shell=isinstance(cmd, str), executable="/bin/bash" if isinstance(cmd, str) else None)
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(cmd, 124, "", f"テストが {timeout} 秒で終わらなかった")
+    except (OSError, subprocess.SubprocessError) as e:
+        return subprocess.CompletedProcess(cmd, 127, "", f"テストのコマンドを起動できなかった（{e}）")
 
 
 def diff_hash(project_dir: str, globs: list[str]) -> str | None:
-    status = run(["git", "status", "--porcelain", "--", *globs], project_dir)
+    status = run(["git", "status", "--porcelain", "--", *globs, STATE_EXCLUDE], project_dir)
     if status is None or status.returncode != 0 or not status.stdout.strip():
         return None
     h = hashlib.sha256()
-    diff = run(["git", "diff", "HEAD", "--", *globs], project_dir)
+    diff = run(["git", "diff", "HEAD", "--", *globs, STATE_EXCLUDE], project_dir)
     h.update((diff.stdout if diff else "").encode())
     for line in status.stdout.splitlines():
         if line.startswith("??"):
@@ -73,14 +79,9 @@ def main() -> int:
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
     cfg = harness_config.load(project_dir)
     command = cfg.get("test_command")
-    if isinstance(command, str):
-        command = shlex.split(command)
-    elif not (isinstance(command, list) and command):
-        command = None
     if command is None and not os.path.isdir(os.path.join(project_dir, "tests")):
         return 0
-    globs = [str(x) for x in (cfg.get("test_globs") or ["*.py"])]
-    digest = diff_hash(project_dir, globs)
+    digest = diff_hash(project_dir, cfg["test_globs"])
     if digest is None:
         return 0
 
@@ -97,7 +98,7 @@ def main() -> int:
             return 0
         command = [sys.executable, "-m", "pytest", "-q", "-x", "--no-header", "-p", "no:cacheprovider", "tests"]
 
-    result = run(command, project_dir, timeout=int(cfg.get("test_timeout") or 180))
+    result = run(command, project_dir, timeout=cfg["test_timeout"])
     if result is None:
         return 0
     if result.returncode == 0:

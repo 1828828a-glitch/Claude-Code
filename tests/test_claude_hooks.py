@@ -6,6 +6,7 @@
 
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -318,8 +319,9 @@ def test_settings_point_at_existing_hooks():
     for groups in settings["hooks"].values():
         for group in groups:
             for hook in group["hooks"]:
-                script = hook["command"].split("/plugins/harness/scripts/")[1].rstrip('"')
-                assert (HOOKS / script).is_file(), script
+                scripts = set(re.findall(r"/plugins/harness/scripts/([a-z_]+\.py)", hook["command"]))
+                assert len(scripts) == 1, hook["command"]
+                assert (HOOKS / scripts.pop()).is_file()
 
 
 def test_settings_and_plugin_hooks_stay_the_same():
@@ -692,3 +694,93 @@ def test_repo_shim_runs_plugin_with_env(tmp_path):
     proc = subprocess.run([str(ROOT / "scripts" / "with-env"), "true"], capture_output=True, text=True,
                           env={**os.environ, "CLAUDE_PROJECT_DIR": str(tmp_path)})
     assert proc.returncode == 0
+
+
+# ── 4回目の検品で足したケース ─────────────────────────
+
+def test_hooks_pass_quietly_when_script_is_missing(tmp_path):
+    settings = json.loads((ROOT / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    for event, groups in settings["hooks"].items():
+        cmd = groups[0]["hooks"][0]["command"]
+        proc = subprocess.run(["bash", "-c", cmd], input="{}", capture_output=True, text=True,
+                              env={**os.environ, "CLAUDE_PROJECT_DIR": str(tmp_path)})
+        assert proc.returncode == 0 and proc.stdout == "", event
+
+
+def test_settings_turn_off_the_plugin_copy_here():
+    settings = json.loads((ROOT / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    assert settings["enabledPlugins"]["harness@harness-kit"] is False
+
+
+def load_config_module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("harness_config", HOOKS / "harness_config.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+@pytest.mark.parametrize("raw,key,expected", [
+    ({"test_globs": "*.ts"}, "test_globs", ["*.ts"]),
+    ({"test_globs": []}, "test_globs", ["*.py"]),
+    ({"test_command": ""}, "test_command", None),
+    ({"test_command": ["pytest", 3, None]}, "test_command", ["pytest", "3"]),
+    ({"test_timeout": "3m"}, "test_timeout", 180),
+    ({"test_timeout": 999}, "test_timeout", 190),
+    ({"rebuild_reminders": {"paths": "./src/data/", "message": "m"}}, "rebuild_reminders",
+     [{"paths": ["src/data/"], "message": "m"}]),
+    ({"rebuild_reminders": [{"paths": []}, "x"]}, "rebuild_reminders", []),
+])
+def test_harness_config_normalizes_loose_values(raw, key, expected):
+    assert load_config_module().normalize(raw).get(key) == expected
+
+
+def test_harness_config_survives_non_utf8(tmp_path):
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "harness.json").write_bytes(b"\xff\xfe{")
+    assert load_config_module().load(str(tmp_path))["test_globs"] == ["*.py"]
+
+
+def test_post_edit_reminder_with_string_paths_matches_prefix_only(tmp_path):
+    write_harness_json(tmp_path, rebuild_reminders=[{"paths": "src/data/", "message": "作り直す"}])
+    hit = tmp_path / "src" / "data" / "a.py"
+    miss = tmp_path / "docs" / "b.py"
+    for f in (hit, miss):
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text("x = 1\n", encoding="utf-8")
+    assert "作り直す" in post_edit(hit, tmp_path)["hookSpecificOutput"]["additionalContext"]
+    assert post_edit(miss, tmp_path) == ""
+
+
+def test_stop_gives_up_even_when_globs_cover_its_own_state(tmp_path):
+    make_repo(tmp_path, "def test_ng():\n    assert 1 == 2\n")
+    write_harness_json(tmp_path, test_globs=["*"])
+    results = [stop(tmp_path) for _ in range(4)]
+    assert [bool(r) for r in results] == [True, True, False, False]
+
+
+def test_stop_runs_string_command_through_bash(tmp_path):
+    make_repo(tmp_path, "def test_changed():\n    assert True\n")
+    write_harness_json(tmp_path, test_command="true && echo shell-ran && false")
+    out = stop(tmp_path)
+    assert out["decision"] == "block" and "shell-ran" in out["reason"]
+
+
+def test_stop_reports_a_command_that_cannot_start(tmp_path):
+    make_repo(tmp_path, "def test_changed():\n    assert True\n")
+    write_harness_json(tmp_path, test_command=["no-such-test-runner-xyz"])
+    out = stop(tmp_path)
+    assert out["decision"] == "block" and "起動できなかった" in out["reason"]
+
+
+def test_session_start_points_to_setup_without_harness_json(tmp_path):
+    out = run_hook("session_start.py", {"hook_event_name": "SessionStart"},
+                   env={"CLAUDE_PROJECT_DIR": str(tmp_path)}, cwd=tmp_path)
+    assert "harness-setup" in out and "with-env" in out
+
+
+def test_repo_shim_reads_this_repo_env_from_anywhere(tmp_path):
+    proc = subprocess.run([str(ROOT / "scripts" / "with-env"), "bash", "-c", "echo $WITH_ENV_FILE"],
+                          capture_output=True, text=True, cwd=tmp_path,
+                          env={k: v for k, v in os.environ.items() if k not in ("CLAUDE_PROJECT_DIR", "WITH_ENV_FILE")})
+    assert proc.stdout.strip() == str(ROOT / ".env")

@@ -56,7 +56,7 @@ plugins/harness/scripts/guard.py が、すべての Bash とファイル操作�
 
 フリオチ新問の朝便が、毎朝6時50分（日本時間）に動く。届け先は実行用セッションの フリオチ新問の朝便（実行用） で、このリポジトリと furiochi-candidates への書き込み先を最初から持っている。毎回、前回の続きではなく同じ手順を最初からやり直す。新問を3つ作り、scripts/check_candidates.py で形を確かめ、furiochi-problem-checker に通して、残ったものを furiochi-candidates ブランチの furiochi_lab/data/candidates/日付.json に置く。PR は作らず、problems.py にも触らない。
 
-候補を問題バンクに入れるかどうかは人が決める。入れると言われたら problems.py に移し、id はモードの接頭辞で次の番号を振り直す。そのあと Web版を作り直す。
+候補を問題バンクに入れるかどうかは人が決める。入れると言われたら problems.py に移し、id はモードの接頭辞で次の番号を振り直す。そのあと Web版を作り直す。候補は git show origin/furiochi-candidates:furiochi_lab/data/candidates/日付.json で読み、furiochi-candidates を checkout しない。あちらのブランチにはプラグインの置き場が無いので、切り替えるとフックが外れる。
 
 ## プラグイン harness
 
@@ -83,6 +83,8 @@ Python や JSON を書くと、直後に post_edit_check が構文を確かめ�
 ## 書くときの決まり
 
 画面の文言や README の日本語は、ユーザーの文体ルールに合わせる。Markdown の太字を文中に残さない。「」は引用と固有名詞だけ。（）の補足を重ねない。同じ語尾を3回続けない。逃げの言い回しを使わない。迷ったら ja-text-checker に通す。
+
+フリオチLAB の画面文言では、利用者を責める言い方と、正解を当てるゲームのように読める言い方を避ける。ja-text-checker もこの決まりで見る。
 
 問題バンク、採点ルール、AIプロンプトを変えたら、作業の区切りで Web版を作り直す。
 

@@ -46,11 +46,13 @@ def build_context(project_dir: str) -> str:
 
     names = env_key_names(os.path.join(project_dir, ".env"))
     if names is None:
-        lines.append(".env: なし。鍵が要るときは .env.example を写して作ってもらう")
+        lines.append(f".env: なし。鍵が要るときは .env.example を写して作ってもらう。読み込みは {WITH_ENV}")
     elif names:
         lines.append(f".env にある鍵の名前: {', '.join(names)}（値は読まない。使うときは {WITH_ENV} を前に付けて実行する）")
     else:
         lines.append(".env: あるが鍵は空")
+    if not os.path.isfile(os.path.join(project_dir, ".claude", "harness.json")):
+        lines.append(".claude/harness.json: なし。テストの設定や鍵の置き場を作るなら harness-setup スキルを使う")
     return "\n".join(lines)
 
 
