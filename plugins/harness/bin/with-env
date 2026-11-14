@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# 鍵を .env から読み込んで、後ろのコマンドを実行する（プラグイン harness）
+#
+#   with-env npm run dev
+#   with-env python -m app
+#
+# 鍵は作業中のリポジトリ直下の .env の1か所だけに置く。Claude Code は中身を開かず、
+# このスクリプト経由で使う。値を画面に出すコマンドは渡さないこと（guard.py が確認に回す）。
+# .env の場所は WITH_ENV_FILE で変えられる。
+set -euo pipefail
+
+if [[ $# -eq 0 ]]; then
+  echo "使い方: with-env <コマンド> [引数...]" >&2
+  exit 64
+fi
+
+root="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+env_file="${WITH_ENV_FILE:-$root/.env}"
+
+if [[ -f "$env_file" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$env_file"
+  set +a
+else
+  echo "with-env: $env_file がないので、鍵なしで実行します" >&2
+fi
+
+exec "$@"

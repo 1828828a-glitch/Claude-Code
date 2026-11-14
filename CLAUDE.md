@@ -32,7 +32,7 @@ python3 scripts/check_candidates.py
 
 ## 危ない操作
 
-.claude/hooks/guard.py が、すべての Bash とファイル操作、コネクタのツールの前に走る。
+plugins/harness/scripts/guard.py が、すべての Bash とファイル操作、コネクタのツールの前に走る。
 
 ルートやホーム、このプロジェクトを丸ごと含む削除と、main への force push は止める。再帰削除、sudo、force push、main への push、git reset --hard、作業中の変更を捨てる操作は人の確認に回す。変更を捨てる操作には checkout -- や restore、switch -f も入る。.env の読み取りと上書き、鍵の値の表示も確認に回す。
 
@@ -58,11 +58,19 @@ python3 scripts/check_candidates.py
 
 候補を問題バンクに入れるかどうかは人が決める。入れると言われたら problems.py に移し、id はモードの接頭辞で次の番号を振り直す。そのあと Web版を作り直す。
 
+## プラグイン harness
+
+フック、検品係の kenpin と ja-text-checker、with-env は plugins/harness にまとめてあり、ほかのリポジトリへはプラグインとして配っている。入れ方は plugins/harness/README.md。このリポジトリ自身はプラグインを入れず、.claude/settings.json から plugins/harness/scripts を直接呼び、検品係は .claude/agents からリンクで読む。プラグインを直せば、その場でここにも効く。
+
+フックを足したり変えたりするときは、.claude/settings.json と plugins/harness/hooks/hooks.json の両方を同じ中身に直す。テストがずれを見張っている。プラグインを配り直すときは、plugin.json と .claude-plugin/marketplace.json の version を一緒に上げる。
+
+このリポジトリだけの設定は .claude/harness.json にある。Stop フックで回すテストのコマンドと、Web版の作り直しを知らせるパスを書いている。
+
 ## 品質の関所
 
 Python や JSON を書くと、直後に post_edit_check が構文を確かめる。壊れていたらその場で差し戻される。
 
-作業を終える前に stop_tests がテストを回す。未コミットの .py があるときだけ走り、落ちていれば終わらせずに差し戻す。
+作業を終える前に stop_tests がテストを回す。.claude/harness.json の test_globs に当たるファイル、ここでは .py に未コミットの変更があるときだけ走り、落ちていれば終わらせずに差し戻す。
 
 ユーザーに完了を伝える前に、検品係を通す。
 
@@ -84,3 +92,4 @@ Python や JSON を書くと、直後に post_edit_check が構文を確かめ�
 
 - 2026-11-08 ハーネス（フック・権限ルール・検品係）を入れた。図は docs/ai-ecosystem.html
 - 2026-11-08 承認ゲートと、毎朝の新問づくりの定期タスクを入れた。新問は候補として置くだけで、採用は人が決める
+- 2026-11-14 共通の部品をプラグイン harness にまとめ、このリポジトリを配布元にした

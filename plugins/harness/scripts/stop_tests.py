@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Stop フック：Python を変えたまま「終わりました」と言わせない
+"""Stop フック：コードを変えたまま「終わりました」と言わせない
 
-作業を終える直前に走る。未コミットの .py があるときだけテストを回し、
-落ちていたら止まらせずに Claude へ差し戻す。
+作業を終える直前に走る。テストの対象になるファイル（既定は *.py）に未コミットの変更が
+あるときだけテストを回し、落ちていたら止まらせずに Claude へ差し戻す。
 同じ差分で前回通っていれば回さない。同じ失敗で2回差し戻したら、
 堂々めぐりを避けるためにそれ以上は止めない（報告は Claude に任せる）。
-pytest が入っていない環境では何もしない。
+
+テストのコマンドは .claude/harness.json の test_command で決める。無ければ、
+tests/ があって pytest が入っているときだけ pytest を回す。
 """
 
 from __future__ import annotations
@@ -13,8 +15,12 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shlex
 import subprocess
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import harness_config  # noqa: E402
 
 MAX_BOUNCES = 2
 
@@ -26,12 +32,12 @@ def run(cmd: list[str], cwd: str, timeout: int = 10) -> subprocess.CompletedProc
         return None
 
 
-def python_diff_hash(project_dir: str) -> str | None:
-    status = run(["git", "status", "--porcelain", "--", "*.py"], project_dir)
+def diff_hash(project_dir: str, globs: list[str]) -> str | None:
+    status = run(["git", "status", "--porcelain", "--", *globs], project_dir)
     if status is None or status.returncode != 0 or not status.stdout.strip():
         return None
     h = hashlib.sha256()
-    diff = run(["git", "diff", "HEAD", "--", "*.py"], project_dir)
+    diff = run(["git", "diff", "HEAD", "--", *globs], project_dir)
     h.update((diff.stdout if diff else "").encode())
     for line in status.stdout.splitlines():
         if line.startswith("??"):
@@ -65,9 +71,16 @@ def main() -> int:
     except (json.JSONDecodeError, ValueError):
         pass
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
-    if not os.path.isdir(os.path.join(project_dir, "tests")):
+    cfg = harness_config.load(project_dir)
+    command = cfg.get("test_command")
+    if isinstance(command, str):
+        command = shlex.split(command)
+    elif not (isinstance(command, list) and command):
+        command = None
+    if command is None and not os.path.isdir(os.path.join(project_dir, "tests")):
         return 0
-    digest = python_diff_hash(project_dir)
+    globs = [str(x) for x in (cfg.get("test_globs") or ["*.py"])]
+    digest = diff_hash(project_dir, globs)
     if digest is None:
         return 0
 
@@ -78,12 +91,13 @@ def main() -> int:
     if state.get("red") == digest and state.get("bounces", 0) >= MAX_BOUNCES:
         return 0
 
-    probe = run([sys.executable, "-c", "import pytest"], project_dir)
-    if probe is None or probe.returncode != 0:
-        return 0
+    if command is None:
+        probe = run([sys.executable, "-c", "import pytest"], project_dir)
+        if probe is None or probe.returncode != 0:
+            return 0
+        command = [sys.executable, "-m", "pytest", "-q", "-x", "--no-header", "-p", "no:cacheprovider", "tests"]
 
-    result = run([sys.executable, "-m", "pytest", "-q", "-x", "--no-header", "-p", "no:cacheprovider", "tests"],
-                 project_dir, timeout=180)
+    result = run(command, project_dir, timeout=int(cfg.get("test_timeout") or 180))
     if result is None:
         return 0
     if result.returncode == 0:
@@ -95,7 +109,7 @@ def main() -> int:
     tail = "\n".join((result.stdout + result.stderr).strip().splitlines()[-25:])
     print(json.dumps({
         "decision": "block",
-        "reason": f"Python を変えたあとのテストが落ちています。直してから終えてください。\n{tail}",
+        "reason": f"コードを変えたあとのテストが落ちています。直してから終えてください。\n{tail}",
     }, ensure_ascii=False))
     return 0
 

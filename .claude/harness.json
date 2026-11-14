@@ -1,0 +1,11 @@
+{
+  "test_command": "python3 -m pytest -q -x --no-header -p no:cacheprovider tests",
+  "test_globs": ["*.py"],
+  "test_timeout": 180,
+  "rebuild_reminders": [
+    {
+      "paths": ["furiochi_lab/data/", "furiochi_lab/web/src/", "furiochi_lab/engine/ai_coach.py", "furiochi_lab/engine/rubric.py"],
+      "message": "Web版に埋め込まれる部品です。作業の区切りで python3 furiochi_lab/web/build.py を実行し、Web版を作り直してください。"
+    }
+  ]
+}

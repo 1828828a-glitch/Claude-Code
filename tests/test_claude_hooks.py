@@ -1,4 +1,4 @@
-"""Claude Code のフック（.claude/hooks）のテスト
+"""プラグイン harness のフック（plugins/harness/scripts）のテスト
 
 フックは Claude Code から JSON を標準入力で受け取って動くので、
 同じ形の JSON を流して、止める・確認に回す・通すの判定を確かめる。
@@ -13,7 +13,8 @@ import sys
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-HOOKS = ROOT / ".claude" / "hooks"
+PLUGIN = ROOT / "plugins" / "harness"
+HOOKS = PLUGIN / "scripts"
 
 
 def run_hook(name, payload, env=None, cwd=None):
@@ -223,12 +224,30 @@ def test_post_edit_passes_good_python(tmp_path):
     assert post_edit(f, tmp_path) == ""
 
 
-def test_post_edit_reminds_web_rebuild(tmp_path):
-    f = tmp_path / "furiochi_lab" / "data" / "problems.py"
+def write_harness_json(project, **cfg):
+    (project / ".claude").mkdir(exist_ok=True)
+    (project / ".claude" / "harness.json").write_text(json.dumps(cfg, ensure_ascii=False), encoding="utf-8")
+
+
+def test_post_edit_reminds_rebuild_from_harness_json(tmp_path):
+    write_harness_json(tmp_path, rebuild_reminders=[{"paths": ["src/data/"], "message": "npm run build で作り直す"}])
+    f = tmp_path / "src" / "data" / "items.py"
     f.parent.mkdir(parents=True)
-    f.write_text("PROBLEMS = []\n", encoding="utf-8")
+    f.write_text("ITEMS = []\n", encoding="utf-8")
     out = post_edit(f, tmp_path)
-    assert "build.py" in out["hookSpecificOutput"]["additionalContext"]
+    assert "npm run build" in out["hookSpecificOutput"]["additionalContext"]
+
+
+def test_post_edit_says_nothing_without_reminders(tmp_path):
+    f = tmp_path / "src" / "data" / "items.py"
+    f.parent.mkdir(parents=True)
+    f.write_text("ITEMS = []\n", encoding="utf-8")
+    assert post_edit(f, tmp_path) == ""
+
+
+def test_this_repo_reminds_furiochi_web_rebuild():
+    out = post_edit(ROOT / "furiochi_lab" / "data" / "problems.py", ROOT)
+    assert "furiochi_lab/web/build.py" in out["hookSpecificOutput"]["additionalContext"]
 
 
 # ── session_start.py ──────────────────────────────────
@@ -299,12 +318,32 @@ def test_settings_point_at_existing_hooks():
     for groups in settings["hooks"].values():
         for group in groups:
             for hook in group["hooks"]:
-                script = hook["command"].split("/.claude/hooks/")[1].rstrip('"')
+                script = hook["command"].split("/plugins/harness/scripts/")[1].rstrip('"')
                 assert (HOOKS / script).is_file(), script
 
 
+def test_settings_and_plugin_hooks_stay_the_same():
+    # このリポジトリはプラグインを入れずに同じスクリプトを直接呼ぶ。登録の中身がずれないこと
+    settings = json.loads((ROOT / ".claude" / "settings.json").read_text(encoding="utf-8"))["hooks"]
+    plugin = json.loads((PLUGIN / "hooks" / "hooks.json").read_text(encoding="utf-8"))["hooks"]
+    as_plugin = json.loads(json.dumps(settings).replace("$CLAUDE_PROJECT_DIR/plugins/harness", "${CLAUDE_PLUGIN_ROOT}"))
+    assert as_plugin == plugin
+
+
+def test_plugin_and_marketplace_manifests():
+    manifest = json.loads((PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    market = json.loads((ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+    entry = next(p for p in market["plugins"] if p["name"] == manifest["name"])
+    assert entry["source"] == "./plugins/harness"
+    assert entry["version"] == manifest["version"]
+    assert os.access(PLUGIN / "bin" / "with-env", os.X_OK)
+    assert (PLUGIN / "skills" / "harness-setup" / "SKILL.md").is_file()
+
+
 def test_agents_have_frontmatter():
-    for md in (ROOT / ".claude" / "agents").glob("*.md"):
+    agents = list((ROOT / ".claude" / "agents").glob("*.md")) + list((PLUGIN / "agents").glob("*.md"))
+    assert {"kenpin", "ja-text-checker", "furiochi-problem-checker"} <= {a.stem for a in agents}
+    for md in agents:
         head = md.read_text(encoding="utf-8").split("---")[1]
         assert f"name: {md.stem}" in head
         assert "description:" in head
@@ -624,3 +663,32 @@ def test_runner_and_download_variants_still_pass(command):
 ])
 def test_connector_reads_pass_and_workflow_trigger_asks(tool, expected):
     assert guard(tool) == expected
+
+
+# ── harness.json でテストのコマンドと対象を決める ────────────
+
+def test_stop_uses_test_command_from_harness_json(tmp_path):
+    make_repo(tmp_path, "def test_changed():\n    assert True\n")
+    write_harness_json(tmp_path, test_command=f"{sys.executable} -c \"import sys; print('custom-runner'); sys.exit(1)\"")
+    out = stop(tmp_path)
+    assert out["decision"] == "block" and "custom-runner" in out["reason"]
+
+
+def test_stop_ignores_changes_outside_test_globs(tmp_path):
+    make_repo(tmp_path, "def test_ng():\n    assert 1 == 2\n")
+    write_harness_json(tmp_path, test_globs=["*.ts"])
+    assert stop(tmp_path) == ""
+
+
+def test_with_env_loads_project_env(tmp_path):
+    (tmp_path / ".env").write_text("HARNESS_DEMO=loaded\n", encoding="utf-8")
+    proc = subprocess.run([str(PLUGIN / "bin" / "with-env"), sys.executable, "-c",
+                           "import os; print(os.environ.get('HARNESS_DEMO'))"],
+                          capture_output=True, text=True, env={**os.environ, "CLAUDE_PROJECT_DIR": str(tmp_path)})
+    assert proc.stdout.strip() == "loaded"
+
+
+def test_repo_shim_runs_plugin_with_env(tmp_path):
+    proc = subprocess.run([str(ROOT / "scripts" / "with-env"), "true"], capture_output=True, text=True,
+                          env={**os.environ, "CLAUDE_PROJECT_DIR": str(tmp_path)})
+    assert proc.returncode == 0

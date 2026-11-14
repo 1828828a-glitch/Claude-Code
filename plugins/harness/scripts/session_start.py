@@ -13,6 +13,10 @@ import subprocess
 import sys
 
 
+# 鍵を実行時に読み込むラッパー。プラグインの bin/ にある
+WITH_ENV = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "bin", "with-env")
+
+
 def git(*args: str, cwd: str) -> str:
     try:
         out = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, timeout=5)
@@ -42,9 +46,9 @@ def build_context(project_dir: str) -> str:
 
     names = env_key_names(os.path.join(project_dir, ".env"))
     if names is None:
-        lines.append(".env: なし。AI講評は自己採点に切り替わる。鍵が要るときは .env.example を写して作ってもらう")
+        lines.append(".env: なし。鍵が要るときは .env.example を写して作ってもらう")
     elif names:
-        lines.append(f".env にある鍵の名前: {', '.join(names)}（値は読まない。使うときは scripts/with-env 経由）")
+        lines.append(f".env にある鍵の名前: {', '.join(names)}（値は読まない。使うときは {WITH_ENV} を前に付けて実行する）")
     else:
         lines.append(".env: あるが鍵は空")
     return "\n".join(lines)

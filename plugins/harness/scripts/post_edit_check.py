@@ -3,8 +3,8 @@
 
 Edit・Write のあとに走る。
 Python と JSON は構文を確かめ、壊れていたらその場で Claude に差し戻す。
-フリオチLAB の問題バンクや Web版の部品を触ったときは、
-Web版（furiochi-lab.html）の作り直しが要ることを伝える。
+.claude/harness.json の rebuild_reminders に書いたパスを触ったときは、
+そこに書いた作り直しの知らせを Claude に添える。
 """
 
 from __future__ import annotations
@@ -13,13 +13,8 @@ import json
 import os
 import sys
 
-WEB_SOURCES = (
-    "furiochi_lab/data/",
-    "furiochi_lab/web/src/",
-    "furiochi_lab/engine/ai_coach.py",
-    "furiochi_lab/engine/rubric.py",
-)
-
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import harness_config  # noqa: E402
 
 def check(path: str, project_dir: str) -> tuple[str | None, str | None]:
     """(差し戻す理由, 添える情報) を返す"""
@@ -42,11 +37,11 @@ def check(path: str, project_dir: str) -> tuple[str | None, str | None]:
         except json.JSONDecodeError as e:
             return f"{rel}:{e.lineno} の JSON が壊れています（{e.msg}）。", None
 
-    if rel.replace(os.sep, "/").startswith(WEB_SOURCES):
-        return None, (
-            f"{rel} は Web版 に埋め込まれる部品です。"
-            "作業の区切りで python furiochi_lab/web/build.py を実行し、Web版を作り直してください。"
-        )
+    rel_posix = rel.replace(os.sep, "/")
+    for rule in harness_config.load(project_dir).get("rebuild_reminders") or []:
+        paths = (rule.get("paths") or []) if isinstance(rule, dict) else []
+        if any(rel_posix.startswith(str(x)) for x in paths):
+            return None, f"{rel} を変えました。{rule.get('message') or '作業の区切りで作り直してください。'}"
     return None, None
 
 

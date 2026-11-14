@@ -33,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/session_start.py\"",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/plugins/harness/scripts/session_start.py\"",
             "timeout": 15
           }
         ]
@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/prompt_guard.py\"",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/plugins/harness/scripts/prompt_guard.py\"",
             "timeout": 10
           }
         ]
@@ -56,7 +56,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard.py\"",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/plugins/harness/scripts/guard.py\"",
             "timeout": 10
           }
         ]
@@ -68,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/post_edit_check.py\"",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/plugins/harness/scripts/post_edit_check.py\"",
             "timeout": 15
           }
         ]
@@ -79,7 +79,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop_tests.py\"",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/plugins/harness/scripts/stop_tests.py\"",
             "timeout": 200
           }
         ]

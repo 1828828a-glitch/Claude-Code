@@ -303,7 +303,8 @@ footer.src { padding-block: 0 40px; font-size: 11.5px; color: var(--ink-3); }
         { t: "権限ルール", ev: "settings.json", d: "許可7・確認5・禁止4。テストと git の読み取りは聞かずに通す" },
         { t: "鍵は .env の1か所", ev: "scripts/with-env", d: "実行時に読み込む。Claude Code は中を開かず、セッション開始時に鍵の名前だけを受け取る" },
         { t: "CLAUDE.md", ev: "常設ルール", d: "止められたら言い換えずに報告して待つ。続く指示は1行ずつ書き足す" },
-        { t: "品質の関所", ev: "PostToolUse・Stop", d: "書いた直後に構文を確かめ、終える前にテストを回す。完了報告の前に検品係を通す" }
+        { t: "品質の関所", ev: "PostToolUse・Stop", d: "書いた直後に構文を確かめ、終える前にテストを回す。完了報告の前に検品係を通す" },
+        { t: "プラグイン harness", ev: "plugins/harness", d: "ここまでの部品は1つのプラグインにまとめてある。ほかのリポジトリには claude plugin install の1行で入る" }
       ] },
 
     { id: "rA", col: 5, row: 1, span: 4, kind: "route", route: "A", sym: "A", t: "アプリを作る・直す", s: "フリオチLAB とエニアグラム" },

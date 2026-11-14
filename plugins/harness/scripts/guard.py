@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse フック：危ない操作と鍵ファイルへの接触を見張る番人
+"""PreToolUse フック：危ない操作と鍵ファイルへの接触を見張る番人（プラグイン harness）
 
 Bash のコマンドと、ファイルを読む・書くツールの行き先を調べて、
 取り返しのつかない操作は止め（deny）、危ないが正当なこともある操作は
@@ -10,7 +10,7 @@ Bash のコマンドと、ファイルを読む・書くツールの行き先を
             未コミットの変更を捨てる操作、curl | sh、.env など鍵ファイルの読み書き、
             環境変数の一覧表示
 
-鍵は .env の1か所に置き、使うときは scripts/with-env が実行時に読む。
+鍵は .env の1か所に置き、使うときは with-env が実行時に読む。
 Claude Code が中身を開く必要はないので、開こうとしたら必ず人に聞く。
 
 承認ゲート：壊す操作とは別に、外に出す操作も人の承認に回す。
@@ -475,7 +475,7 @@ def _secret_hit(paths: list[str]) -> str | None:
 
 
 def _check_secret_args(name: str, args: list[str]) -> tuple[str, str] | None:
-    read_msg = "鍵ファイル {} に触れます。中身は scripts/with-env が実行時に読むので、開く必要があるか確認してください"
+    read_msg = "鍵ファイル {} に触れます。中身は with-env が実行時に読むので、開く必要があるか確認してください"
     if name in GREP_COMMANDS or name in ("rg", "ag"):
         hit = _secret_hit(_grep_files(args))
         return (ASK, read_msg.format(hit)) if hit else None
@@ -623,7 +623,7 @@ def check_file_tool(tool_name: str, tool_input: dict) -> tuple[str, str] | None:
     verb = "読みます" if tool_name in ("Read", "Grep") else "書き換えます"
     for p in paths:
         if is_secret_path(p):
-            return ASK, f"鍵ファイル {os.path.basename(p)} を{verb}。鍵は scripts/with-env が実行時に読むので、Claude Code が開く必要があるか確認してください"
+            return ASK, f"鍵ファイル {os.path.basename(p)} を{verb}。鍵は with-env が実行時に読むので、Claude Code が開く必要があるか確認してください"
     glob = tool_input.get("glob", "") or ""
     if tool_name == "Grep" and ".env" in glob and not glob.endswith(SAMPLE_SUFFIXES):
         return ASK, "鍵ファイル .env の中身を検索します"
