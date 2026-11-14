@@ -10,6 +10,12 @@ Claude Code のハーネスを、リポジトリごとに作らずに入れる�
 claude plugin marketplace add 1828828a-glitch/Claude-Code
 ```
 
+この1行は、配布元リポジトリの既定ブランチに .claude-plugin/marketplace.json があるときに通る。既定ブランチに入る前は、置いてあるブランチを # のあとに名指しする。
+
+```bash
+claude plugin marketplace add "1828828a-glitch/Claude-Code#claude/confident-volta-z0bss5"
+```
+
 自分のすべてのリポジトリで使うなら、ユーザー単位で入れる。
 
 ```bash
