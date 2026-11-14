@@ -1,0 +1,1 @@
+../../plugins/harness/agents/ja-text-checker.md

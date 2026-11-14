@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "harness-kit",
+  "owner": {
+    "name": "1828828a-glitch"
+  },
+  "metadata": {
+    "description": "Claude Code のハーネスを、リポジトリごとに作らずに配るための置き場"
+  },
+  "plugins": [
+    {
+      "name": "harness",
+      "source": "./plugins/harness",
+      "description": "危ない操作の番人、承認ゲート、鍵の隔離、テストの差し戻し、検品係をまとめたハーネス",
+      "version": "0.1.1"
+    }
+  ]
+}

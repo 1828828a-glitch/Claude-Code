@@ -14,7 +14,7 @@ python -m furiochi_lab --mode M02    # モード指定
 python -m furiochi_lab --list        # 問題バンク一覧
 ```
 
-AI講評を使うときは `ANTHROPIC_API_KEY` を設定する（`ant auth login` のプロファイルでもよい）。未設定なら、出題側の設計意図と成立例を見ながら自己採点で進む。
+AI講評を使うときは `ANTHROPIC_API_KEY` を設定する（`ant auth login` のプロファイルでもよい）。鍵はリポジトリ直下の `.env` に書き、`scripts/with-env streamlit run furiochi_app.py` のように起動すると読み込まれる。未設定なら、出題側の設計意図と成立例を見ながら自己採点で進む。
 
 | 環境変数 | 内容 | 既定値 |
 | --- | --- | --- |

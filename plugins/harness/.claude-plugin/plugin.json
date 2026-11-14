@@ -1,0 +1,11 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "harness",
+  "version": "0.1.1",
+  "description": "危ない操作の番人、外に出す操作の承認ゲート、鍵の隔離、テストの差し戻し、検品係のサブエージェントを、どのリポジトリにも1行で入れるハーネス一式",
+  "author": {
+    "name": "1828828a-glitch"
+  },
+  "repository": "https://github.com/1828828a-glitch/Claude-Code",
+  "keywords": ["hooks", "guard", "approval", "harness", "japanese"]
+}

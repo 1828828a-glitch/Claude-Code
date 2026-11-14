@@ -2,5 +2,91 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
-  "teammateMode": "auto"
+  "teammateMode": "auto",
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m pytest:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(python3 furiochi_lab/web/build.py:*)",
+      "Bash(python furiochi_lab/web/build.py:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ],
+    "ask": [
+      "Bash(sudo:*)",
+      "Bash(rm -rf:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)"
+    ],
+    "deny": [
+      "Bash(git push --force origin main:*)",
+      "Bash(git push -f origin main:*)",
+      "Bash(git push --force origin master:*)",
+      "Bash(git push -f origin master:*)"
+    ]
+  },
+  "enabledPlugins": {
+    "harness@harness-kit": false
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/plugins/harness/scripts/session_start.py\" ]; then python3 \"$CLAUDE_PROJECT_DIR/plugins/harness/scripts/session_start.py\"; fi",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/plugins/harness/scripts/prompt_guard.py\" ]; then python3 \"$CLAUDE_PROJECT_DIR/plugins/harness/scripts/prompt_guard.py\"; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Read|Edit|Write|MultiEdit|NotebookEdit|Grep|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/plugins/harness/scripts/guard.py\" ]; then python3 \"$CLAUDE_PROJECT_DIR/plugins/harness/scripts/guard.py\"; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/plugins/harness/scripts/post_edit_check.py\" ]; then python3 \"$CLAUDE_PROJECT_DIR/plugins/harness/scripts/post_edit_check.py\"; fi",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/plugins/harness/scripts/stop_tests.py\" ]; then python3 \"$CLAUDE_PROJECT_DIR/plugins/harness/scripts/stop_tests.py\"; fi",
+            "timeout": 200
+          }
+        ]
+      }
+    ]
+  }
 }
