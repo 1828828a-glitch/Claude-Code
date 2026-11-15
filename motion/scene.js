@@ -1,6 +1,7 @@
 // 恒和システム 会社の魅力編。画像も動画素材も使わず、管理画面ふうのパネルを3D空間に並べてカメラが渡り歩く。
 // 時刻 t を渡すと必ず同じ絵が出るように書いてあるので、1コマずつ書き出せる。
 // 載せている数字と出典は、別チャットで作った「会社の魅力編」の台本と同じもの。
+// 各パネルの中の出るタイミングは、ナレーション(audio/narration.json)の声の区切りに合わせてある。
 import * as THREE from 'three';
 
 const params = new URLSearchParams(location.search);
@@ -101,29 +102,29 @@ const PANELS = [
       frame(g, '', '', '');
       const lines = ['> kowa-system --start', '  since ........ 1979', '  status ....... running', '  uptime ....... 47 years'];
       lines.forEach((s, i) => {
-        const k = ap(lt, 0.25 + i * 0.42, 0.38);
+        const k = ap(lt, 0.2 + i * 0.34, 0.3);
         const shown = s.slice(0, Math.floor(s.length * k));
         const cursor = k > 0 && k < 1 ? '_' : '';
         tx(g, shown + cursor, 110, 190 + i * 54, 34, i === 0 ? CY : GR, { font: MONO, weight: 700 });
       });
-      rise(g, '恒和システム株式会社', PW / 2, 590, 118, WH, ap(lt, 2.0, 0.5), { align: 'center' });
-      rise(g, '業務システムの設計・開発・運用管理', PW / 2, 716, 42, CY, ap(lt, 2.5, 0.5), { align: 'center' });
+      rise(g, '恒和システム株式会社', PW / 2, 590, 118, WH, ap(lt, 1.7, 0.5), { align: 'center' });
+      rise(g, '業務システムの設計・開発・運用管理', PW / 2, 716, 42, CY, ap(lt, 4.0, 0.5), { align: 'center' });
     },
   },
   { // 1つめ。歴史
-    start: 4,
+    start: 7.9,
     draw(g, lt) {
       frame(g, '01', 'HISTORY', '続いている会社');
-      rise(g, '設立から', 90, 168, 38, GR, ap(lt, 0.35, 0.4));
-      const k47 = backOut(ap(lt, 0.5, 0.45));
+      rise(g, '設立から', 90, 168, 38, GR, ap(lt, 3.4, 0.4));
+      const k47 = backOut(ap(lt, 3.7, 0.45));
       if (k47 > 0) { g.save(); g.translate(90, 300); g.scale(k47, k47); tx(g, '47', 0, 0, 220, CY); tx(g, '年', 268, 34, 90, WH); g.restore(); }
       // 年表
       const x0 = 640, x1 = 1480, y = 290;
       g.lineWidth = 6; g.strokeStyle = DIM; g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke();
-      const u = easeOut(ap(lt, 0.9, 1.3));
+      const u = ap(lt, 0.6, 5.1);
       g.strokeStyle = CY; g.beginPath(); g.moveTo(x0, y); g.lineTo(lerp(x0, x1, u), y); g.stroke();
       [['1979', '設立'], ['1987', '社員持株'], ['2016', '女性活躍'], ['2026', 'いま']].forEach(([yr, s], i) => {
-        const x = lerp(x0, x1, i / 3), k = backOut(ap(lt, 0.95 + i * 0.4, 0.3));
+        const x = lerp(x0, x1, i / 3), k = backOut(ap(lt, 0.7 + i * 1.7, 0.3));
         if (k <= 0) return;
         g.fillStyle = i === 3 ? GRN : CY; g.beginPath(); g.arc(x, y, 16 * k, 0, 7); g.fill();
         g.fillStyle = BG; g.beginPath(); g.arc(x, y, 7 * k, 0, 7); g.fill();
@@ -132,48 +133,48 @@ const PANELS = [
       });
       // 平均寿命との比較
       const sc = 760 / 47;
-      rise(g, '恒和システム', 500, 520, 30, WH, ap(lt, 3.0, 0.3), { align: 'right' });
-      bar(g, 530, 493, 54, { max: 760, w: 47 * sc }, ap(lt, 3.1, 0.6), CY, '47年');
-      rise(g, '倒産したIT企業の平均寿命', 500, 606, 30, GR, ap(lt, 3.6, 0.3), { align: 'right' });
-      bar(g, 530, 579, 54, { max: 760, w: 17.2 * sc }, ap(lt, 3.7, 0.6), GR, '17.2年');
-      badge(g, '2.7倍', 1130, 606, ap(lt, 4.5, 0.35), 46);
-      rise(g, 'これからの目標', 90, 730, 30, GR, ap(lt, 5.3, 0.35));
-      rise(g, '100年続く会社へ', 330, 728, 66, WH, ap(lt, 5.4, 0.45));
+      rise(g, '恒和システム', 500, 520, 30, WH, ap(lt, 6.6, 0.3), { align: 'right' });
+      bar(g, 530, 493, 54, { max: 760, w: 47 * sc }, ap(lt, 6.7, 0.6), CY, '47年');
+      rise(g, '倒産したIT企業の平均寿命', 500, 606, 30, GR, ap(lt, 7.3, 0.3), { align: 'right' });
+      bar(g, 530, 579, 54, { max: 760, w: 17.2 * sc }, ap(lt, 7.5, 0.6), GR, '17.2年');
+      badge(g, '2.7倍', 1130, 606, ap(lt, 10.2, 0.35), 46);
+      rise(g, 'これからの目標', 90, 730, 30, GR, ap(lt, 11.6, 0.35));
+      rise(g, '100年続く会社へ', 330, 728, 66, WH, ap(lt, 11.9, 0.45));
       note(g, '出典：恒和システム 採用サイト（会社概要）／東京商工リサーチ「2025年 倒産企業の平均寿命」情報通信業');
     },
   },
   { // 2つめ。人
-    start: 11,
+    start: 23.5,
     draw(g, lt) {
       frame(g, '02', 'PEOPLE', '若くて、多様');
       const rows = [
-        ['社員に占める20代の割合', 48.3, '48.3%', 'IT業界', 23.5, '23.5%', '約2倍'],
-        ['女性の割合', 48.3, '48.3%', 'IT業界', 30.8, '30.8%', ''],
-        ['文系出身の割合', 79.2, '79.2%', '新卒エンジニア全体', 25, '約25%', ''],
+        ['社員に占める20代の割合', 48.3, '48.3%', 'IT業界', 23.5, '23.5%', '約2倍', [0.4, 0.6, 2.7, 4.7]],
+        ['女性の割合', 48.3, '48.3%', 'IT業界', 30.8, '30.8%', '', [6.3, 6.5, 7.3, 0]],
+        ['文系出身の割合', 79.2, '79.2%', '新卒エンジニア全体', 25, '約25%', '', [8.3, 9.7, 10.5, 0]],
       ];
-      rows.forEach(([title, a, as, who, b, bs, bd], i) => {
-        const y = 118 + i * 232, t0 = 0.35 + i * 2.0;
-        rise(g, title, 90, y + 30, 38, WH, ap(lt, t0, 0.35));
-        tx(g, '恒和システム', 500, y + 100, 28, WH, { align: 'right', alpha: ap(lt, t0 + 0.15, 0.25) });
-        bar(g, 530, y + 76, 48, { max: 900, w: a * 9 }, ap(lt, t0 + 0.2, 0.6), CY, as);
-        tx(g, who, 500, y + 162, 28, GR, { align: 'right', alpha: ap(lt, t0 + 0.75, 0.25) });
-        bar(g, 530, y + 138, 48, { max: 900, w: b * 9 }, ap(lt, t0 + 0.8, 0.6), GR, bs);
-        if (bd) badge(g, bd, 1330, y + 100, ap(lt, t0 + 1.5, 0.35), 40);
+      rows.forEach(([title, a, as, who, b, bs, bd, [tt, ta, tb, td]], i) => {
+        const y = 118 + i * 232;
+        rise(g, title, 90, y + 30, 38, WH, ap(lt, tt, 0.35));
+        tx(g, '恒和システム', 500, y + 100, 28, WH, { align: 'right', alpha: ap(lt, ta - 0.05, 0.25) });
+        bar(g, 530, y + 76, 48, { max: 900, w: a * 9 }, ap(lt, ta, 0.6), CY, as);
+        tx(g, who, 500, y + 162, 28, GR, { align: 'right', alpha: ap(lt, tb - 0.05, 0.25) });
+        bar(g, 530, y + 138, 48, { max: 900, w: b * 9 }, ap(lt, tb, 0.6), GR, bs);
+        if (bd) badge(g, bd, 1330, y + 100, ap(lt, td, 0.35), 40);
       });
       note(g, '出典：総務省「労働力調査」2025年平均 情報通信業の就業者／レバテック調査（ITmedia ビジネスオンライン 2024年12月10日）');
     },
   },
   { // 3つめ。働き方
-    start: 18,
+    start: 36.2,
     draw(g, lt) {
       frame(g, '03', 'WORK-LIFE', 'ココロもフトコロも');
       const tiles = [
-        ['年間休日', '128', '日', 'IT業界平均 122.2日', '＋6日'],
-        ['残業の月平均', '11', '時間', 'IT業界平均 16.5時間', '−5.5時間'],
-        ['有休取得の平均', '20.6', '日', 'IT業界平均 12.7日', '＋8日'],
+        ['年間休日', '128', '日', 'IT業界平均 122.2日', '＋6日', 1.5, 12.3],
+        ['残業の月平均', '11', '時間', 'IT業界平均 16.5時間', '−5.5時間', 4.8, 14.3],
+        ['有休取得の平均', '20.6', '日', 'IT業界平均 12.7日', '＋8日', 8.5, 16.5],
       ];
-      tiles.forEach(([lab, n, unit, avg, diff], i) => {
-        const x = 70 + i * 495, on = ap(lt, 0.35 + i * 1.1, 0.4);
+      tiles.forEach(([lab, n, unit, avg, diff, tOn, tDiff], i) => {
+        const x = 70 + i * 495, on = ap(lt, tOn, 0.4);
         box(g, x, 118, 470, 650, 14);
         g.fillStyle = on > 0 ? 'rgba(53,214,255,0.07)' : 'rgba(255,255,255,0.02)'; g.fill();
         g.lineWidth = 2.5; g.strokeStyle = on > 0 ? 'rgba(53,214,255,0.6)' : DIM; g.stroke();
@@ -187,16 +188,16 @@ const PANELS = [
           tx(g, unit, -(nw + uw + 10) / 2 + nw + 10, 44, 56, WH);
           g.restore();
         }
-        const c = ap(lt, 4.3 + i * 0.4, 0.4);
+        const c = ap(lt, 10.3 + i * 0.25, 0.4);
         if (c > 0) { g.strokeStyle = DIM; g.lineWidth = 2; g.beginPath(); g.moveTo(x + 40, 500); g.lineTo(x + 430, 500); g.stroke(); }
         rise(g, avg, x + 235, 556, 30, GR, c, { align: 'center' });
-        badge(g, diff, x + 235, 668, ap(lt, 4.55 + i * 0.4, 0.35), 50);
+        badge(g, diff, x + 235, 668, ap(lt, tDiff, 0.35), 50);
       });
       note(g, '出典：恒和システム 採用サイト（募集要項）／厚生労働省「就労条件総合調査」令和7年・「毎月勤労統計調査」2025年');
     },
   },
   { // 全社員が株主
-    start: 25,
+    start: 55,
     draw(g, lt) {
       frame(g, '04', 'OWNERSHIP', '会社は、みんなのもの');
       // つながりの図。真ん中が会社、まわりが社員
@@ -214,7 +215,7 @@ const PANELS = [
           g.beginPath(); g.arc(x, y + 20, 16, Math.PI, 0); g.fill();
         }
         // 配当が会社から社員へ流れる
-        const f = lt - 1.9 - i * 0.05;
+        const f = lt - 4.9 - i * 0.05;
         if (f > 0) {
           const m = (f * 0.55) % 1;
           g.fillStyle = GRN; g.beginPath(); g.arc(lerp(cx, x, m), lerp(cy, y, m), 8, 0, 7); g.fill();
@@ -223,20 +224,20 @@ const PANELS = [
       const kc = backOut(ap(lt, 0.3, 0.4));
       g.fillStyle = CY; g.beginPath(); g.arc(cx, cy, 78 * kc, 0, 7); g.fill();
       tx(g, '恒和', cx, cy + 4, 52, BG, { align: 'center', alpha: kc });
-      rise(g, '全社員が株主', 800, 330, 104, WH, ap(lt, 0.9, 0.45));
-      rise(g, '会社がもうかれば、', 804, 468, 42, CY, ap(lt, 1.9, 0.4));
-      rise(g, '配当が社員にも届く。', 804, 530, 42, CY, ap(lt, 2.1, 0.4));
-      rise(g, '配当の額は業績によって変わります', 804, 620, 26, GR, ap(lt, 2.6, 0.4), { weight: 500 });
+      rise(g, '全社員が株主', 800, 330, 104, WH, ap(lt, 1.5, 0.45));
+      rise(g, '会社がもうかれば、', 804, 468, 42, CY, ap(lt, 3.7, 0.4));
+      rise(g, '配当が社員にも届く。', 804, 530, 42, CY, ap(lt, 4.7, 0.4));
+      rise(g, '配当の額は業績によって変わります', 804, 620, 26, GR, ap(lt, 5.5, 0.4), { weight: 500 });
       note(g, '出典：恒和システム 採用サイト（福利厚生・持株制度）');
     },
   },
   { // しめ
-    start: 29.5,
+    start: 63.6,
     draw(g, lt) {
       frame(g, '', '', '');
       tx(g, '> status: running', 110, 170, 30, GR, { font: MONO, weight: 700, alpha: ap(lt, 0.3, 0.3) });
       ['47年続く', '若くて多様', 'しっかり休める', '全社員が株主'].forEach((s, i) => {
-        const k = backOut(ap(lt, 0.5 + i * 0.25, 0.35));
+        const k = backOut(ap(lt, 1.3 + i * 0.2, 0.35));
         if (k <= 0) return;
         const x = 215 + i * 390;
         g.save(); g.translate(x, 320); g.scale(k, k);
@@ -244,8 +245,8 @@ const PANELS = [
         tx(g, s, 0, 3, 36, WH, { align: 'center' });
         g.restore();
       });
-      rise(g, '恒和システム株式会社', PW / 2, 520, 118, WH, ap(lt, 1.5, 0.5), { align: 'center' });
-      const k = backOut(ap(lt, 2.4, 0.4));
+      rise(g, '恒和システム株式会社', PW / 2, 520, 118, WH, ap(lt, 0.6, 0.5), { align: 'center' });
+      const k = backOut(ap(lt, 2.3, 0.4));
       if (k > 0) {
         g.save(); g.translate(PW / 2, 700); g.scale(k, k);
         box(g, -360, -52, 720, 104, 52); g.fillStyle = CY; g.fill();
@@ -255,7 +256,7 @@ const PANELS = [
     },
   },
 ];
-export const DURATION = 35;
+export const DURATION = 70.5;
 
 // パネルの置き場所。x, y, z と、左右の向き
 const PLACE = [[0, 0, 0, 0], [15, 1.5, -42, -0.3], [-13, -1, -84, 0.3], [13, 2, -126, -0.25], [-10, 0, -168, 0.25], [0, 0.5, -210, 0]];
