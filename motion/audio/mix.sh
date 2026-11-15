@@ -1,5 +1,6 @@
 #!/bin/bash
-# 声を narration.json の時刻に並べ、BGM を声の下で下げて混ぜ、映像に付ける。
+# 声を各行の開始秒に並べ、BGM を声の下で下げて混ぜ、映像に付ける。
+# 開始秒はこのファイルの adelay、narration.json、scene.js のパネル開始、bgm.py の効果音の4か所にある。変えるときは全部そろえる。
 # 使い方: audio/mix.sh 映像.mp4 声のフォルダ bgm.wav 出力.mp4
 # 声は gen.py、BGM は bgm.py で作る。gen.py には torch と style-bert-vits2 が要る。
 set -euo pipefail

@@ -1,4 +1,6 @@
 # 女性ナレーションを1行ずつ wav にする。Style-Bert-VITS2 の JVNV 女性話者(F1)を使う
+# 声のモデルは litagin/style_bert_vits2_jvnv で、利用条件は JVNV コーパスを引き継いだ CC BY-SA 4.0。
+# 動画を公開するときは出典の表示が要る。継承の条件が動画にどこまで及ぶかは、出す前に確かめる。
 import json, os, sys, soundfile as sf
 from huggingface_hub import hf_hub_download, list_repo_files
 from style_bert_vits2.nlp import bert_models
