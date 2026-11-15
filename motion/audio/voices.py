@@ -1,6 +1,8 @@
 # 声の候補を作る。話者と読み方の設定を変え、各行の長さを元の版にそろえる
 # 使い方: python voices.py voices.json。できた声は lower.py で高さを下げてから mix.sh に渡す。
-# 普通の版は lower.py 入力 出力 222 0.95 1.0、低く抑えた版は 198 0.90 0.72。利用条件は gen.py の冒頭と同じ。
+# 普通の版は p_f2 の声を lower.py 入力 出力 222 0.95 1.0 で、低く抑えた版は p_f1 の声を 198 0.90 0.72 で加工する。
+# 利用条件は gen.py の冒頭と同じ。lower.py には pyworld、このファイルには librosa が要る。
+# TARGET は元の版の各行の秒数。lines.json の台詞を変えたら測り直す。
 import json, os, sys, soundfile as sf, numpy as np, librosa
 from huggingface_hub import hf_hub_download, list_repo_files
 from style_bert_vits2.nlp import bert_models
