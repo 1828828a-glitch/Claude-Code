@@ -1,0 +1,13 @@
+{
+  "name": "motion",
+  "private": true,
+  "description": "コードだけで作るモーショングラフィックス。ブラウザで描いて1コマずつ書き出す",
+  "scripts": {
+    "render": "node render.js"
+  },
+  "dependencies": {
+    "@fontsource/noto-sans-jp": "^5.0.0",
+    "playwright": "1.63.0",
+    "three": "^0.170.0"
+  }
+}
