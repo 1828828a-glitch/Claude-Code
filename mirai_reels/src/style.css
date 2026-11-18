@@ -1,0 +1,71 @@
+/* みらキャン リール共通の見た目。色と書体は指示書「3. デザインのルール」に合わせる */
+@font-face { font-family: "ZenMaru"; src: url("../assets/fonts/ZenMaruGothic-Medium.ttf") format("truetype"); font-weight: 500; }
+@font-face { font-family: "ZenMaru"; src: url("../assets/fonts/ZenMaruGothic-Bold.ttf") format("truetype"); font-weight: 700; }
+@font-face { font-family: "ZenMaru"; src: url("../assets/fonts/ZenMaruGothic-Black.ttf") format("truetype"); font-weight: 900; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #2A211C; }
+body { font-family: "ZenMaru", sans-serif; color: #4A3328; overflow: hidden; }
+#viewport { position: fixed; left: 0; right: 0; top: 0; bottom: 64px; display: flex; align-items: center; justify-content: center; }
+#stage { position: relative; flex: none; width: 1080px; height: 1920px; overflow: hidden; background: #F6EDE2; transform-origin: 50% 50%; }
+body.render #viewport { bottom: 0; align-items: flex-start; justify-content: flex-start; }
+body.render #ui { display: none; }
+
+.scene { position: absolute; inset: 0; overflow: hidden; visibility: hidden; isolation: isolate; }
+.dots { background-image: radial-gradient(circle, rgba(74, 51, 40, .08) 3px, transparent 3.6px); background-size: 48px 48px; }
+.abs { position: absolute; }
+.txt { position: absolute; left: 140px; width: 800px; text-align: center; font-weight: 900; line-height: 1.2; white-space: nowrap; }
+.ch { display: inline-block; }
+.pillrow { position: absolute; left: 140px; width: 800px; text-align: center; }
+.pill { display: inline-block; border-radius: 999px; font-weight: 900; white-space: nowrap; line-height: 1.2; }
+.note { position: absolute; left: 140px; width: 800px; text-align: center; font-weight: 500; color: #7A6556; line-height: 1.45; white-space: nowrap; }
+.badge { position: absolute; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; line-height: 1; }
+.burst { position: absolute; left: -1460px; top: -1040px; width: 4000px; height: 4000px; border-radius: 50%; }
+.blob { position: absolute; border-radius: 50%; }
+.face { position: absolute; }
+.face svg, .ico svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.ico { position: absolute; }
+.deco { position: absolute; overflow: visible; }
+.marker { position: absolute; border-radius: 999px; }
+
+/* 最初と最後のカットのロゴ：県章（KIシンボル）は白い台の上、MIRAI CANVAS は小さくクレジットとして */
+#ki { position: absolute; left: 50%; top: 232px; transform: translateX(-50%); z-index: 45; background: #fff; border-radius: 18px; padding: 9px 18px; box-shadow: 0 5px 0 rgba(74, 51, 40, .10); line-height: 0; }
+#ki img { height: 66px; width: auto; display: block; }
+#mirai { position: absolute; left: 0; right: 0; top: 1446px; text-align: center; z-index: 45; line-height: 0; }
+#mirai img { width: 300px; height: auto; }
+#grain { position: absolute; inset: 0; pointer-events: none; z-index: 100; opacity: .06; mix-blend-mode: multiply; }
+
+/* 安全領域の確認用（書き出しには出ない） */
+#safe { position: absolute; inset: 0; z-index: 200; pointer-events: none; display: none; }
+#safe.on { display: block; }
+#safe i { position: absolute; background: rgba(220, 40, 40, .22); }
+
+#ui { position: fixed; left: 0; right: 0; bottom: 0; height: 64px; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: #1E1814; color: #F3E6D6; }
+#ui button, #ui select { background: #3A2E27; color: #F3E6D6; border: 0; border-radius: 10px; height: 40px; min-width: 44px; padding: 0 12px; font: 700 15px "ZenMaru", sans-serif; cursor: pointer; }
+#ui button:hover { background: #4A3B32; }
+#seek { flex: 1; min-width: 60px; accent-color: #EE7A5C; }
+#time { font-variant-numeric: tabular-nums; font-size: 14px; min-width: 84px; text-align: right; }
+@media (max-width: 560px) { #btnSafe { display: none; } #time { min-width: 0; } }
+
+/* 吹き出し・情報カード */
+.bubble { position: absolute; left: 140px; width: 800px; background: #fff; border-radius: 48px; padding: 34px 40px 40px; text-align: center; font-weight: 900; line-height: 1.3; color: #4A3328; box-shadow: 0 12px 0 rgba(74, 51, 40, .10); }
+.bubble .tail { position: absolute; width: 52px; height: 52px; background: #fff; bottom: -18px; transform: rotate(45deg); border-radius: 8px; }
+.bubble .tail.bl { left: 96px; }
+.bubble .tail.br { right: 96px; }
+.bubble .tail.bc { left: 374px; }
+.card { position: absolute; left: 140px; width: 800px; background: #fff; border-radius: 36px; padding: 26px 34px 28px; box-shadow: 0 10px 0 rgba(74, 51, 40, .10); }
+.card .row { display: flex; align-items: flex-start; gap: 22px; margin: 12px 0; }
+.card .lab { flex: none; width: 112px; text-align: center; border-radius: 999px; background: #222C62; color: #fff; font-size: 34px; font-weight: 900; padding: 6px 0 9px; margin-top: 4px; }
+.card .val { font-size: 42px; font-weight: 900; line-height: 1.32; color: #4A3328; white-space: nowrap; }
+.step { position: absolute; left: 140px; width: 800px; background: #fff; border-radius: 36px; padding: 26px 30px; display: flex; align-items: center; gap: 26px; box-shadow: 0 10px 0 rgba(74, 51, 40, .10); }
+.step .n { flex: none; width: 104px; height: 104px; border-radius: 50%; background: #EE7A5C; color: #fff; font-size: 60px; font-weight: 900; display: flex; align-items: center; justify-content: center; padding-bottom: 6px; }
+.step .s { font-weight: 900; line-height: 1.25; white-space: nowrap; }
+.search { position: absolute; left: 140px; width: 800px; height: 104px; background: #fff; border: 5px solid #4A3328; border-radius: 52px; display: flex; align-items: center; gap: 14px; padding-left: 28px; box-shadow: 0 10px 0 rgba(74, 51, 40, .10); }
+.search .q { font-size: 42px; font-weight: 700; white-space: nowrap; }
+.check { position: absolute; left: 130px; width: 760px; height: 128px; display: flex; align-items: center; gap: 30px; }
+.check .ic { flex: none; width: 124px; height: 124px; border-radius: 50%; background: #fff; box-shadow: 0 8px 0 rgba(74, 51, 40, .10); }
+.check .ic svg { width: 100%; height: 100%; display: block; }
+.check .lb { flex: 1; font-size: 64px; font-weight: 900; white-space: nowrap; }
+.check .bx { flex: none; width: 96px; height: 96px; border-radius: 22px; background: #fff; border: 6px solid #4A3328; position: relative; }
+.check .bx svg { position: absolute; left: -10px; top: -26px; width: 120px; height: 120px; overflow: visible; }
+#draft { position: absolute; left: 24px; top: 140px; z-index: 60; background: #D9534A; color: #fff; font-size: 30px; font-weight: 900; padding: 6px 18px 9px; border-radius: 12px; }
