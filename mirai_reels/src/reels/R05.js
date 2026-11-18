@@ -20,7 +20,7 @@ REEL({
     K.pill(c1.el, '保存版', { top: 420, bg: C.coral, size: 48, at: .05 });
     K.words(c1.el, ['イルミネーション'], { top: 530, size: 96, at: .15 });
     K.words(c1.el, [{ t: '開催情報', c: C.coral }], { top: 660, size: 150, at: .4, shadow: true });
-    K.line(c1.el, '神奈川の冬、4か所まとめ', { top: 870, size: 56, weight: 700, at: .6 });
+    K.line(c1.el, '4か所の期間・時間・料金', { top: 870, size: 56, weight: 700, at: .6 });
     K.icon(c1.el, ICON.garland(), { cx: 540, cy: 1130, size: 420, at: .5, until: c1.e, sway: 2 });
 
     // スポット：番号＋名前＋期間・時間・料金のカード
@@ -44,7 +44,6 @@ REEL({
     K.words(c6.el, [{ t: '誰', c: C.yellow }, 'と行きたい？'], { top: 420, size: 104, color: C.white, at: c6.s + .05, gap: .12 });
     K.words(c6.el, ['コメントで教えてね'], { top: 570, size: 72, color: C.white, at: c6.s + .2 });
     K.pill(c6.el, '保存しておこう', { top: 700, bg: C.coral, size: 48, at: c6.s + .35 });
-    K.line(c6.el, '詳しくは各イベント名で検索', { top: 830, size: 44, color: C.white, weight: 700, at: c6.s + .45 });
     K.note(c6.el, ['出典：各イベント公式サイト（2026年11月11日時点）', '※内容は変更の場合あり。最新情報は公式サイトで確認を'], { top: 1270, size: 26, color: '#D7DBEA', at: c6.s + .5 });
     K.scatter(c6.el, [['star', C.yellow, 200, 470, 56], ['spark', C.white, 880, 450, 50], ['spark', C.yellow, 860, 1040, 44]], c6.s + .5, c6.e);
   },

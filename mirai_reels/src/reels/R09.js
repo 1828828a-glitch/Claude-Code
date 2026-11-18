@@ -7,6 +7,8 @@ REEL({
   build(K) {
     const { C } = K;
     const texts = (K.data.texts || []).slice(0, 6);
+    // 答えが6つに足りないときは空き枠で埋め、確定にしてあっても仮の扱いに戻す（注意書きと _仮文言 が付く）
+    if (texts.length < 6) K.data.texts_status = '仮';
     while (texts.length < 6) texts.push('（答えをここに入れる）');
     const list = texts.map((_, i) => ({ d: 2, bg: i % 2 ? C.mint : C.cream, dots: i % 2 === 0 }));
     list.push({ d: 3, bg: C.cream, burst: ['#F8DCC4', C.cream] });

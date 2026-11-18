@@ -321,7 +321,7 @@ function makeKit(def, data) {
     if (data.texts_status === '仮') {
       const w = document.createElement('div');
       w.id = 'draft';
-      w.textContent = '仮の文言（差し替え前・公開しない）';
+      w.textContent = '仮の文言。差し替えてから公開';
       stage.appendChild(w);
     }
     const g = document.createElement('div');
@@ -435,7 +435,7 @@ async function ready(K) {
   addEventListener('resize', fit);
   fit();
   try {
-    const text = stage.textContent + '仮の文言（差し替え前・公開しない）';
+    const text = stage.textContent + '仮の文言。差し替えてから公開';
     await Promise.all(['500', '700', '900'].map(w => document.fonts.load(`${w} 40px "ZenMaru"`, text)));
     await document.fonts.ready;
     await Promise.all([...document.images].map(i => i.decode().catch(() => {})));

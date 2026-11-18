@@ -24,7 +24,7 @@ REEL({
     K.marker(c2.el, { left: 200, top: 990, width: 680, h: 30, at: c2.s + 1.5 });
 
     // 7〜15 チェックリスト：1つずつ出て、チェックが付く
-    K.words(c3.el, ['チェックしてみよう'], { top: 340, size: 64, at: c3.s + .1 });
+    K.words(c3.el, ['家にあるか、チェック'], { top: 340, size: 64, at: c3.s + .1 });
     const items = [['水', ICON.water()], ['食料', ICON.food()], ['携帯トイレ', ICON.toilet()], ['ライト', ICON.light()], ['電池・充電器', ICON.battery()], ['常備薬', ICON.medicine()]];
     items.forEach(([label, icon], i) => {
       const d = document.createElement('div');
