@@ -41,8 +41,7 @@ const PY_WAV = `
 import sys, wave
 import numpy as np
 import make_reels as m
-slug, path, total = sys.argv[1], sys.argv[2], float(sys.argv[3])
-hit, logo = 9.0, 9.6
+slug, path, total, hit, logo = sys.argv[1], sys.argv[2], float(sys.argv[3]), float(sys.argv[4]), float(sys.argv[5])
 m.G_BUT, m.G_SOL, m.G_END = hit, hit + 0.1, hit
 out = m.bgm(total)
 events = [(0.05, "pop"), (2.5, "pop"), (hit + 0.1, "crack"), (logo, "rumble"), (logo + 0.4, "jingle")]
@@ -97,8 +96,8 @@ const b64 = d => Buffer.from(d.slice(d.indexOf(',') + 1), 'base64');
   } else {
     for (const s of slugs) {
       const wav = path.join(OUT, s + '.wav'), mp4 = path.join(OUT, `crack3d_${s}.mp4`);
-      const TOTAL = await page.evaluate(() => window.TOTAL);
-      py(PY_WAV, s, wav, String(TOTAL));
+      const [TOTAL, HIT, LOGO] = await page.evaluate(() => window.TIMES);
+      py(PY_WAV, s, wav, String(TOTAL), String(HIT), String(LOGO));
       const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-', '-i', wav,
         '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '128k', '-shortest', '-movflags', '+faststart', mp4], { stdio: ['pipe', 'inherit', 'inherit'] });
       const done = new Promise(r => ff.on('close', r));

@@ -668,7 +668,7 @@ function drawFrame(slug, t) {
   else if (t < G_LOGO + 1.4) shatterOver(slug, ep, t - G_LOGO);
   else endCard(t - G_LOGO, false);
 }
-window.TOTAL = TOTAL3;
+window.TIMES = [TOTAL3, G_HIT, G_LOGO];
 window.renderFrame = (slug, t, fmt = 'jpeg') => { drawFrame(slug, t); return out.toDataURL(fmt === 'png' ? 'image/png' : 'image/jpeg', 0.92); };
 window.renderThumb = slug => {
   const ep = EPS[slug];
