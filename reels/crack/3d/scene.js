@@ -1,11 +1,12 @@
 // crack リール 3D版。three.js でブロックの部屋とキャラを組み、時刻 t のコマを描く。
-// render3d.cjs が headless Chromium から window.renderFrame(slug, t) を呼んで1コマずつ受け取る。
+// render3d.cjs が headless Chromium から renderFrame(slug, t) を呼んで1コマずつ受け取る。
 'use strict';
 
 const W = 360, H = 640, FW = 1080, FH = 1920;
-const T_HOOK = 2.5, T_PROB = 6.5, T_BUT = 2.0, T_CRACK = 2.0, T_SOL = 5.5, T_END = 3.5;
-const G_PROB = T_HOOK, G_BUT = G_PROB + T_PROB, G_CRACK = G_BUT + T_BUT, G_SOL = G_CRACK + T_CRACK, G_END = G_SOL + T_SOL;
-const STORY_END = G_BUT;
+const T_HOOK = 2.5, T_PROB = 6.5;
+const STORY_END = T_HOOK + T_PROB;
+// あるあるで終わる流れ：あるある 9.0秒 → ヒビ 0.6秒 → ブロックが崩れて crack ロゴ 4.5秒
+const G_HIT = STORY_END, G_LOGO = G_HIT + 0.6, TOTAL3 = G_LOGO + 4.5;
 const RAINBOW = [[236, 120, 200], [160, 130, 235], [70, 150, 240], [60, 200, 220], [130, 225, 170], [250, 235, 140]];
 let NO_BUBBLES = false;
 
@@ -486,29 +487,6 @@ function ep1Story(t) {
   if (t >= 4.0 && t < 5.2) sayCh(CH.T, 'でも 先に帰るの\n気まずい…', seg(t, 4.0, 4.4), true);
   if (t >= 7.5) people.forEach(([ch], i) => sayCh(ch, 'だれか先に\n帰って…', seg(t, 7.5 + i * 0.3, 7.9 + i * 0.3), true));
 }
-const K1S = [[0, [0, 4.8, 11.5], [0, 2.1, 0.6]], [1.0, [-0.4, 4.4, 10.2], [-0.4, 2.2, 0.9]], [2.8, [-0.2, 4.5, 10.6], [0, 2.2, 0.8]], [5.5, [1.4, 5.0, 11.8], [1.0, 2.0, -1.0]]];
-function ep1Sol(t) {
-  office(18, '18:01', 0, { noWindow: true });
-  P.ped.visible = true; P.btn.position.y = (t >= 1.0 && t < 1.6) ? 1.03 : 1.1;
-  P.banner.visible = t > 1.1; P.banner.position.y = lerp(9.5, 4.3, ease(seg(t, 1.1, 1.5)));
-  P.door.visible = true; P.hinge.rotation.y = -1.5 * ease(seg(t, 3.0, 3.5));
-  const cheer = t >= 1.5 && t < 3.0, jump = cheer ? Math.abs(Math.sin(t * 12)) * 0.25 : 0;
-  const exitPose = (ch, w, expr) => { if (w.z < -2.8) { ch.g.visible = false; return; } pose(ch, { x: w.x, z: w.z, ry: w.ry, walk: w.walk, expr }); };
-  if (t < 0.9) { const w = walkPath([[-2.1, 0.4], [-1.45, 2.3]], 2.4, 0, t); pose(CH.T, { x: w.x, z: w.z, ry: w.ry, walk: w.walk }); }
-  else if (t < 1.5) pose(CH.T, { x: -1.45, z: 2.3, ry: Math.PI / 2, arm: 3, expr: t > 1.1 ? 'happy' : 'n' });
-  else if (t < 3.0) pose(CH.T, { x: -1.45, z: 2.3, arm: 2, expr: 'happy', y: jump });
-  else exitPose(CH.T, walkPath([[-1.45, 2.3], [2.0, 1.2], [2.0, -3.3]], 3.4, 3.0, t), 'happy');
-  if (t < 3.6) pose(CH.M, { x: 0.6, z: 1.4, arm: cheer ? 2 : 0, expr: t > 1.1 ? 'happy' : 'n', y: jump, ry: t < 1.5 ? -0.5 : 0 });
-  else exitPose(CH.M, walkPath([[0.6, 1.4], [2.0, 0.9], [2.0, -3.3]], 3.0, 3.6, t), 'happy');
-  if (t < 3.4) pose(CH.B, { x: 2.1, z: 1.9, arm: cheer ? 2 : 0, expr: t > 1.1 ? 'happy' : 'n', y: jump, ry: t < 1.5 ? -0.6 : 0 });
-  else exitPose(CH.B, walkPath([[2.1, 1.9], [2.0, 0.9], [2.0, -3.3]], 5.0, 3.4, t), 'happy');
-  camKeys(K1S, t);
-  confetti([-0.5, 1.3, 2.3], t - 1.0);
-  if (t < 1.8) popAt(new THREE.Vector3(-0.5, 2.0, 2.3), 'ポチッ', seg(t, 1.0, 1.8));
-  if (t >= 1.6 && t < 3.0) sayCh(CH.B, 'ナイス退勤！', seg(t, 1.6, 2.0));
-  if (t >= 3.2 && t < 4.4 && CH.B.g.visible) sayCh(CH.B, 'わたしも\n帰るー！', seg(t, 3.2, 3.6));
-}
-
 // ------------------------------------------------------------------ 第2話 休み明けのおみやげ配り
 const K2 = [[0, [-2.4, 4.3, 9.5], [-1.8, 1.8, 0.5]], [2.2, [-0.4, 4.4, 10], [-0.3, 1.8, 0.5]], [4.4, [0, 4.6, 11], [0, 1.9, 0]], [6.6, [-0.4, 4.8, 11.5], [-0.6, 2.4, 0]],
   [7.6, [1.2, 6.4, 15], [-0.8, 3.8, 0]], [9.0, [0.6, 6.2, 14.4], [-0.8, 3.6, 0]]];
@@ -538,22 +516,6 @@ function ep2Story(t) {
   if (t >= 4.6 && t < 6.8) { sayCh(CH.M, 'これ\nお返し♪', seg(t, 4.6, 5.0)); sayCh(CH.B, 'わたしからも', seg(t, 5.3, 5.7)); }
   if (t >= 6.8) { sayCh(CH.T, 'お返しの\nお返しの…', seg(t, 6.8, 7.2)); sayCh(CH.B, '正直 甘いの\n苦手なんだよね', seg(t, 7.7, 8.2), true); }
 }
-const K2S = [[0, [0.3, 4.8, 12.2], [0.3, 2.3, 0.6]], [2.6, [-0.3, 4.4, 10.8], [-0.2, 2.5, 0.6]], [5.5, [1.0, 4.8, 12], [0.4, 2.3, 0.6]]];
-function ep2Sol(t) {
-  office(9, '9:05', 0);
-  P.stage.visible = true; P.photo.visible = true; P.photo.position.set(-1.3, lerp(9.5, 4.3, ease(seg(t, 0, 0.6))), -2.9); drawPhoto(t);
-  const talk = Math.floor(t * 6) % 2 === 0 && t < 2.8;
-  pose(CH.T, { x: -1.3, y: 0.35, z: 0.6, expr: t > 2.8 ? 'happy' : 'n', arm: talk ? 1 : 0, ry: 0.15 });
-  const laugh = t > 2.8, jig = laugh ? Math.abs(Math.sin(t * 14)) * 0.15 : 0;
-  pose(CH.M, { x: 1.0, z: 2.0, ry: -0.6, expr: laugh ? 'happy' : 'n', y: jig, arm: laugh && Math.floor(t * 4) % 2 ? 2 : 0 });
-  pose(CH.B, { x: 2.3, z: 1.3, ry: -0.6, expr: t > 3.6 ? 'happy' : 'n', y: t > 3.6 ? jig : 0 });
-  camKeys(K2S, t);
-  if (t < 2.9) sayCh(CH.T, '露天風呂で\nサルと目が\n合った話', seg(t, 0.7, 1.4));
-  sayCh(CH.M, 'ウケる！\n行きたい！', seg(t, 2.9, 3.3));
-  sayCh(CH.B, '甘いのより\nこっちがいい', seg(t, 3.7, 4.2));
-  U(() => { for (let k = 0; k < 5; k++) { const ht = t - 3.0 - k * 0.35; if (ht > 0) { const [x, y] = proj(new THREE.Vector3(0.6 + k * 0.45, 2.9, 1.6)); heart(x + 6 * Math.sin(ht * 5), y - ht * 50); } } });
-}
-
 // ------------------------------------------------------------------ 第3話 上司におじぎするハンコ
 const K3 = [[0, [0, 4.4, 11.8], [0, 2.9, 0]], [2.4, [0, 4.3, 10.6], [0, 2.9, 0]], [3.0, [1.5, 4.3, 3.6], [1.8, 3.9, -2.9]], [3.4, [1.5, 4.3, 3.6], [1.8, 3.9, -2.9]],
   [3.9, [0.6, 4.2, 9.4], [0.4, 2.8, 0]], [4.3, [0.6, 4.2, 9.4], [0.4, 2.8, 0]], [4.7, [1.6, 4.2, 4.2], [1.8, 3.9, -2.9]], [5.1, [1.6, 4.2, 4.2], [1.8, 3.9, -2.9]],
@@ -580,27 +542,10 @@ function ep3Story(t) {
   if (t >= 3.5 && t < 5.0) sayCh(CH.B, 'まっすぐは\n失礼だよ？', seg(t, 3.5, 3.9));
   if (t >= 7.6) sayCh(CH.S, 'で、これ\n何の書類？', seg(t, 7.6, 8.0));
 }
-const K3S = [[0, [0, 4.6, 12], [0, 2.7, 0.5]], [1.2, [0, 4.2, 10.2], [0, 2.9, 0]], [2.4, [0.2, 4.4, 11.8], [0.2, 2.4, 0.8]], [5.5, [0.8, 4.4, 11.8], [0.4, 2.2, 0.8]]];
-function ep3Sol(t) {
-  office(10, null, 0, { noWindow: true });
-  P.board.visible = true; drawScreen(t);
-  P.minis.forEach((m, k) => { m.visible = true; m.position.set(0.9 + k * 0.62, 0, 2.9); m.rotation.set(t > 2.6 ? 0.45 * Math.max(0, Math.sin(t * 5 + k)) : 0, -0.2, 0); });
-  pose(CH.S, { x: -1.7, z: 1.5, arm: t > 0.5 && t < 1.4 ? 3 : 0, expr: t > 1.2 ? 'happy' : 'n', ry: t < 1.4 ? -0.5 : 0 });
-  pose(CH.T, { x: 0.1, z: 1.2, expr: t > 1.2 && t < 2.4 ? 'shock' : (t > 2.4 ? 'happy' : 'n') });
-  pose(CH.B, { x: 2.1, z: 1.3, expr: t > 1.4 ? 'happy' : 'n' });
-  camKeys(K3S, t);
-  confetti([0, 3.2, 0.5], t - 1.2, 5);
-  if (t < 1.5) popAt(new THREE.Vector3(0, 4.3, -2.8), 'ポチッ', seg(t, 0.8, 1.5));
-  if (t < 2.6) U(() => bigPop('承認まで 3秒', W / 2, 330, seg(t, 1.2, 1.8), [255, 230, 60], 1.5));
-  sayCh(CH.S, '浮いた5日で\n何しようか', seg(t, 2.6, 3.0));
-  sayCh(CH.T, '企画\n考えます！', seg(t, 3.5, 3.9));
-  sayAt(new THREE.Vector3(1.52, 1.1, 2.9), 'おつかれ〜', seg(t, 4.2, 4.5));
-}
-
 const EPS = {
-  '01_teiji': { no: '#01', title: ['定時に', '帰れない空気'], story: ep1Story, sol: ep1Sol, keys: K1, newl: ['先に帰る人は', 'ヒーロー'], thumbT: 8.6, thumb: ['定時に', '帰れない', '空気'] },
-  '02_omiyage': { no: '#02', title: ['休み明けの', 'おみやげ配り'], story: ep2Story, sol: ep2Sol, keys: K2, newl: ['モノより', '土産話'], thumbT: 7.4, thumb: ['休み明けの', 'おみやげ', '配り'] },
-  '03_hanko': { no: '#03', title: ['上司におじぎ', 'するハンコ'], story: ep3Story, sol: ep3Sol, keys: K3, newl: ['敬意は角度より', 'スピードで'], thumbT: 6.8, thumb: ['上司に', 'おじぎする', 'ハンコ'] },
+  '01_teiji': { no: '#01', title: ['定時に', '帰れない空気'], story: ep1Story, keys: K1, thumbT: 8.6, thumb: ['定時に', '帰れない', '空気'] },
+  '02_omiyage': { no: '#02', title: ['休み明けの', 'おみやげ配り'], story: ep2Story, keys: K2, thumbT: 7.4, thumb: ['休み明けの', 'おみやげ', '配り'] },
+  '03_hanko': { no: '#03', title: ['上司におじぎ', 'するハンコ'], story: ep3Story, keys: K3, thumbT: 6.8, thumb: ['上司に', 'おじぎする', 'ハンコ'] },
 };
 
 // ------------------------------------------------------------------ コマの組み立て
@@ -624,40 +569,6 @@ function storyFrame(ep, t) {
   else band(ep.title, '誰も喜ばない常識 ' + ep.no, seg(t, T_HOOK, T_HOOK + 0.9));
 }
 function dim(k) { hemi.intensity *= 1 - 0.35 * k; dirL.intensity *= 1 - 0.45 * k; }
-function butSetup(ep, lt, withBubble, shake = 0) {
-  reset(); ep.story(STORY_END);
-  const last = ep.keys[ep.keys.length - 1];
-  const pz = ease(seg(lt, 0, 1.6)) * 1.2;
-  camKeys([[0, [last[1][0], last[1][1], last[1][2] - pz], last[2]]], 0, shake);
-  dim(seg(lt, 0, 0.4));
-  const p = ease(seg(lt, 0, 0.8));
-  const hx = lerp(3.4, 0, p), hy = lerp(6.0, 3.3, p) + 0.08 * Math.sin(lt * 6), hz = lerp(2.0, 3.3, p);
-  hibi(hx, hy, hz, lt);
-  if (withBubble) sayAt(new THREE.Vector3(hx, hy + 0.8, hz), 'その常識、\n割ってみる？', seg(lt, 0.8, 1.3));
-}
-function butFrame(ep, lt) {
-  butSetup(ep, lt, true);
-  compose(() => { ui.fillStyle = 'rgba(10,10,30,0.28)'; ui.fillRect(0, 0, W, H); });
-  band(['こうしたら', '解決できるかも'], 'でも、それって…', seg(lt, 0, 0.9), [140, 220, 255]);
-}
-let crackCenter = [180, 300];
-function crackScene(ep, lt) {
-  const shake = lt >= 0.35 && lt < 0.7 ? 0.12 : 0;
-  butSetup(ep, T_BUT, false, shake);
-  const sw = lt < 0.15 ? lerp(-0.3, -1.5, lt / 0.15) : lt < 0.3 ? lerp(-1.5, 1.6, (lt - 0.15) / 0.15) : 1.6;
-  HIBI.pick.rotation.set(sw, 0, -0.2);
-  HIBI.g.position.z += lt > 0.15 ? 0.6 * seg(lt, 0.15, 0.3) : 0;
-  HIBI.g.updateMatrixWorld(true);
-  const tip = HIBI.pick.localToWorld(new THREE.Vector3(0, 1.12, 0));
-  const c = proj(tip); crackCenter = [clamp(c[0], 60, 300), clamp(c[1], 200, 520)];
-  compose(() => { ui.fillStyle = 'rgba(10,10,30,0.28)'; ui.fillRect(0, 0, W, H); });
-  band(['こうしたら', '解決できるかも'], 'でも、それって…', 1, [140, 220, 255]);
-  if (lt >= 0.35) {
-    drawCracks(crackCenter[0], crackCenter[1], ease(seg(lt, 0.35, 0.7)));
-    if (lt < 0.45) { ui.fillStyle = 'rgba(255,255,255,0.6)'; ui.fillRect(0, 0, W, H); }
-    bigPop('パキッ！', W / 2, 500, seg(lt, 0.35, 0.85), [255, 230, 60], 2.5);
-  }
-}
 // 崩れるブロック（別シーン）
 let SH = null;
 const brokenCache = {};
@@ -680,41 +591,11 @@ function buildShatter() {
   }
   SH = { s, cam, snapC, snapT, tiles };
 }
-function crackFrame(ep, lt, slug) {
-  if (lt < 0.85) { crackScene(ep, lt); return; }
-  if (!SH) buildShatter();
-  if (brokenCache.slug !== slug) {
-    crackScene(ep, 0.849);
-    ui.setTransform(3, 0, 0, 3, 0, 0); drawCracks(crackCenter[0], crackCenter[1], 1); bigPop('パキッ！', W / 2, 500, 1, [255, 230, 60], 2.5);
-    const g = SH.snapC.getContext('2d'); g.drawImage(out, 0, 0); SH.snapT.needsUpdate = true;
-    brokenCache.slug = slug; brokenCache.center = crackCenter.slice();
-  }
-  solFrame(ep, 0);
-  const tt = lt - 0.85, r = rng(5), [cx, cy] = brokenCache.center;
-  for (const m of SH.tiles) {
-    const d = m.userData, ux = (d.i + 0.5) * 24, uy = (d.j + 0.5) * 24;
-    const delay = Math.hypot(ux - cx, uy - cy) / 420 * 0.45 + r() * 0.12;
-    const vx = (r() - 0.5) * 3, vz = 1 + r() * 4, wx = (r() - 0.5) * 10, wy = (r() - 0.5) * 8;
-    const k = Math.max(0, tt - delay);
-    m.position.set(d.x + vx * k, d.y - 13 * k * k, vz * k);
-    m.rotation.set(wx * k, wy * k, 0);
-    m.visible = m.position.y > -8;
-  }
-  renderer.setClearColor(0x000000, 0);
-  renderer.render(SH.s, SH.cam);
-  renderer.setClearColor(0x000000, 1);
-  ui.setTransform(1, 0, 0, 1, 0, 0); ui.drawImage(glc, 0, 0);
-}
-function solFrame(ep, lt) {
-  reset(); ep.sol(lt); compose();
-  band(ep.newl, '新しい常識', seg(lt, 0.2, 1.2), [255, 140, 200]);
-}
-
 // ------------------------------------------------------------------ エンドカード
 let LOGO, MARK;
 const BLOBS = [[[0.15, 0.2], [236, 120, 200]], [[0.85, 0.15], [120, 160, 245]], [[0.5, 0.05], [252, 238, 150]], [[0.1, 0.75], [170, 120, 230]], [[0.9, 0.7], [40, 170, 230]], [[0.5, 0.95], [150, 235, 200]], [[0.5, 0.5], [190, 170, 240]]];
 const gradC = mk(54, 96);
-function endCard(lt) {
+function endCard(lt, flash = true) {
   const g = gradC.getContext('2d'); px(g, 0, 0, 54, 96, [190, 170, 240]);
   BLOBS.forEach(([[bx, by], c], i) => {
     const x = (bx + 0.08 * Math.cos(lt * 0.9 + i)) * 54, y = (by + 0.05 * Math.sin(lt * 0.7 + i * 2)) * 96;
@@ -739,21 +620,55 @@ function endCard(lt) {
     const x0 = FW / 2 - ui.measureText(s).width / 2, part = [...s].slice(0, k).join('');
     ui.fillStyle = 'rgb(60,40,110)'; ui.fillText(part, x0 + 5, y + 5); ui.fillStyle = '#fff'; ui.fillText(part, x0, y);
   }
-  if (lt < 0.35) { ui.fillStyle = `rgba(255,255,255,${1 - lt / 0.35})`; ui.fillRect(0, 0, FW, FH); }
+  if (flash && lt < 0.35) { ui.fillStyle = `rgba(255,255,255,${1 - lt / 0.35})`; ui.fillRect(0, 0, FW, FH); }
 }
 
 // ------------------------------------------------------------------ 外から呼ぶ口
-function drawFrame(slug, t) {
-  const ep = EPS[slug];
-  if (t >= G_END) return endCard(t - G_END);
-  if (t < G_BUT) storyFrame(ep, t);
-  else if (t < G_CRACK) butFrame(ep, t - G_BUT);
-  else if (t < G_SOL) crackFrame(ep, t - G_CRACK, slug);
-  else {
-    solFrame(ep, t - G_SOL);
-    if (t > G_END - 0.25) { ui.setTransform(1, 0, 0, 1, 0, 0); ui.fillStyle = `rgba(255,255,255,${seg(t, G_END - 0.25, G_END)})`; ui.fillRect(0, 0, FW, FH); }
+// あるあるのオチの画面にヒビが入り、ブロックになって崩れて crack ロゴが出る
+const HIT = [180, 330];
+function hitFrame(ep, lt) {
+  reset(); ep.story(STORY_END);
+  const last = ep.keys[ep.keys.length - 1];
+  camKeys([[0, last[1], last[2]]], lt, lt >= 0.1 && lt < 0.45 ? 0.1 : 0);
+  compose();
+  band(ep.title, '誰も喜ばない常識 ' + ep.no, 1);
+  if (lt >= 0.1) {
+    drawCracks(HIT[0], HIT[1], ease(seg(lt, 0.1, 0.45)));
+    if (lt < 0.2) { ui.fillStyle = 'rgba(255,255,255,0.6)'; ui.fillRect(0, 0, W, H); }
+    bigPop('パキッ！', W / 2, 500, seg(lt, 0.1, 0.6), [255, 230, 60], 2.5);
   }
 }
+function shatterOver(slug, ep, tt) {
+  if (!SH) buildShatter();
+  if (brokenCache.slug !== slug) {
+    hitFrame(ep, 0.599);
+    const g = SH.snapC.getContext('2d'); g.drawImage(out, 0, 0); SH.snapT.needsUpdate = true;
+    brokenCache.slug = slug;
+  }
+  endCard(tt, false);
+  const r = rng(5), [cx, cy] = HIT;
+  for (const m of SH.tiles) {
+    const d = m.userData, ux = (d.i + 0.5) * 24, uy = (d.j + 0.5) * 24;
+    const delay = Math.hypot(ux - cx, uy - cy) / 420 * 0.45 + r() * 0.12;
+    const vx = (r() - 0.5) * 3, vz = 1 + r() * 4, wx = (r() - 0.5) * 10, wy = (r() - 0.5) * 8;
+    const k = Math.max(0, tt - delay);
+    m.position.set(d.x + vx * k, d.y - 13 * k * k, vz * k);
+    m.rotation.set(wx * k, wy * k, 0);
+    m.visible = m.position.y > -8;
+  }
+  renderer.setClearColor(0x000000, 0);
+  renderer.render(SH.s, SH.cam);
+  renderer.setClearColor(0x000000, 1);
+  ui.setTransform(1, 0, 0, 1, 0, 0); ui.drawImage(glc, 0, 0);
+}
+function drawFrame(slug, t) {
+  const ep = EPS[slug];
+  if (t < G_HIT) storyFrame(ep, t);
+  else if (t < G_LOGO) hitFrame(ep, t - G_HIT);
+  else if (t < G_LOGO + 1.4) shatterOver(slug, ep, t - G_LOGO);
+  else endCard(t - G_LOGO, false);
+}
+window.TOTAL = TOTAL3;
 window.renderFrame = (slug, t, fmt = 'jpeg') => { drawFrame(slug, t); return out.toDataURL(fmt === 'png' ? 'image/png' : 'image/jpeg', 0.92); };
 window.renderThumb = slug => {
   const ep = EPS[slug];
