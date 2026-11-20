@@ -36,21 +36,22 @@ a = (m.logo_mask() * 255).astype(np.uint8)
 img = Image.new("RGBA", (a.shape[1], a.shape[0]), (255, 255, 255, 0))
 img.putalpha(Image.fromarray(a))
 img.save(sys.argv[1])`;
-// 音は2D版の部品を使い、あるあるで終わる時間割に合わせて並べ直す
+// 音は2D版の部品を使い、ページが持つ時間割と効果音の表に合わせて並べ直す
 const PY_WAV = `
-import sys, wave
+import sys, json, wave
 import numpy as np
 import make_reels as m
-slug, path, total, hit, logo = sys.argv[1], sys.argv[2], float(sys.argv[3]), float(sys.argv[4]), float(sys.argv[5])
+info = json.loads(sys.argv[2])
+total, hit, logo = info["total"], info["hit"], info["logo"]
 m.G_BUT, m.G_SOL, m.G_END = hit, hit + 0.1, hit
 out = m.bgm(total)
-events = [(0.05, "pop"), (2.5, "pop"), (hit + 0.1, "crack"), (logo, "rumble"), (logo + 0.4, "jingle")]
-events += [(t, k) for (t, k) in m.SFX_EP[slug] if t < hit]
+events = [(0.05, "pop"), (2.8, "pop"), (hit + 0.1, "crack"), (logo, "rumble"), (logo + 0.4, "jingle")] + [tuple(e) for e in info["sfx"]]
 for t, k in events:
     s = m.sfx(k); st = int(t * m.SR); end = min(len(out), st + len(s))
-    out[st:end] += s[: end - st]
+    if st < len(out):
+        out[st:end] += s[: end - st]
 pcm = (np.clip(out, -1, 1) * 32000).astype(np.int16)
-with wave.open(path, "wb") as w:
+with wave.open(sys.argv[1], "wb") as w:
     w.setnchannels(1); w.setsampwidth(2); w.setframerate(m.SR); w.writeframes(pcm.tobytes())`;
 const PY_SHEET = `
 import sys
@@ -82,7 +83,7 @@ const b64 = d => Buffer.from(d.slice(d.indexOf(',') + 1), 'base64');
   const slugs = only.length ? only : SLUGS;
   if (args.includes('--preview')) {
     const pdir = path.join(OUT, 'preview'); fs.mkdirSync(pdir, { recursive: true });
-    const times = (args.find(a => a.startsWith('--times=')) || '--times=1.5,3.2,4.6,6.5,7.6,8.6,9.3,9.9,10.4,13.5').slice(8).split(',').map(Number);
+    const times = (args.find(a => a.startsWith('--times=')) || '--times=1.5,3.8,5.2,8.8,11.5,14.4,18.2,21.0,23.4,25.8').slice(8).split(',').map(Number);
     for (const s of slugs) {
       const files = [];
       for (const t of times) {
@@ -96,8 +97,8 @@ const b64 = d => Buffer.from(d.slice(d.indexOf(',') + 1), 'base64');
   } else {
     for (const s of slugs) {
       const wav = path.join(OUT, s + '.wav'), mp4 = path.join(OUT, `crack3d_${s}.mp4`);
-      const [TOTAL, HIT, LOGO] = await page.evaluate(() => window.TIMES);
-      py(PY_WAV, s, wav, String(TOTAL), String(HIT), String(LOGO));
+      const info = await page.evaluate(s => window.epInfo(s), s), TOTAL = info.total;
+      py(PY_WAV, wav, JSON.stringify(info));
       const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-', '-i', wav,
         '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '128k', '-shortest', '-movflags', '+faststart', mp4], { stdio: ['pipe', 'inherit', 'inherit'] });
       const done = new Promise(r => ff.on('close', r));
