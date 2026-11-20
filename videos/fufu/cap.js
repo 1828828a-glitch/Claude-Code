@@ -10,7 +10,7 @@ const fs = require('fs');
   await p.goto('http://localhost:8765/index.html' + (V ? '?v' : ''));
   await p.waitForFunction('window.READY === true', null, { timeout: 60000 });
   const total = await p.evaluate('TOTAL');
-  fs.writeFileSync('timeline.json', JSON.stringify({ total, starts: await p.evaluate('STARTS') }));
+  fs.writeFileSync('timeline.json', JSON.stringify({ total, starts: await p.evaluate('STARTS'), sfx: await p.evaluate('SFX'), marks: await p.evaluate('MARKS') }));
   if (only) {
     for (const ts of only.split(',')) {
       const T = +ts; const st = Math.max(0, T - 1.5); // warm up particles

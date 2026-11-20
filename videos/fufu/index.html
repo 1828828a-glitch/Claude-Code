@@ -6,7 +6,16 @@
 html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#000;font-family:MPR,sans-serif}
 #c{position:absolute;inset:0}
 #fade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
-#vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%)}
+#vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 45%,rgba(0,0,0,.72) 100%)}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.big{position:absolute;left:0;right:0;top:46%;display:flex;flex-direction:column;align-items:center;gap:14px;pointer-events:none}
+.big .bt{font-size:76px;font-weight:800;color:#fff;-webkit-text-stroke:3px #000;text-shadow:0 6px 0 #000,0 0 28px rgba(0,0,0,.7);text-align:center;line-height:1.25;padding:0 40px}
+.vert .big{top:57%}
+.vert .big .bt{font-size:100px;-webkit-text-stroke:4px #000}
+.rw{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.07) 0 2px,rgba(0,0,0,.16) 2px 5px)}
+.rw .ic{position:absolute;left:50px;top:60px;color:#fff;font-size:60px;font-weight:800;text-shadow:0 0 10px #000;letter-spacing:-6px}
+.vert .rw .ic{top:250px;left:70px;font-size:90px}
+.rw .band{position:absolute;left:0;right:0;height:46px;background:rgba(255,255,255,.22)}
 .sub{position:absolute;left:0;right:0;bottom:46px;display:flex;justify-content:center;pointer-events:none}
 .box{background:rgba(10,10,20,.72);border:3px solid rgba(255,255,255,.85);border-radius:6px;padding:14px 30px 16px;color:#fff;font-size:36px;font-weight:800;letter-spacing:1px;display:flex;align-items:center;gap:18px;box-shadow:0 4px 0 rgba(0,0,0,.5)}
 .who{font-size:26px;padding:4px 14px;border-radius:4px;color:#fff}
@@ -32,6 +41,7 @@ html,body{margin:0;width:1280px;height:720px;overflow:hidden;background:#000;fon
 <canvas id="c" width="1280" height="720"></canvas>
 <div id="vig"></div>
 <div id="ov"></div>
+<div id="flash"></div>
 <div id="fade"></div>
 <script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script>
 <script type="module">
@@ -429,8 +439,9 @@ const WHO = { '妻': 'w', '夫': 'h' };
 const br = (x) => x.replace(/\|/g, VERT ? '<br>' : '');
 function line(who, text) { text = br(text); return `<div class="sub"><div class="box"><span class="who ${WHO[who] || 'x'}">${who}</span><span>${text}</span></div></div>`; }
 function narr(who, text) { text = br(VERT ? text.replace(/<br>/g, '|') : text); return `<div class="narr">${text}</div>`; }
-let lastOv = '';
-function setOv(h) { if (h !== lastOv) { ov.innerHTML = h; lastOv = h; } }
+function big(who, text, top) { return `<div class="big"${top ? ` style="top:${top}"` : ''}><span class="who ${WHO[who] || 'x'}">${who}</span><div class="bt">${br(text)}</div></div>`; }
+let lastOv = '', ovT0 = 0, NOW = 0, ROLL = 0, FLASH = 0, GRADE = 0, REWIND = false;
+function setOv(h) { if (h !== lastOv) { ov.innerHTML = h; lastOv = h; ovT0 = NOW; } }
 
 // ---------- scene states ----------
 const NIGHT = { amb: '#3a4a78', ambI: .55, sky: '#4a5a9a', hemiI: .2, sun: '#8fa8ff', sunI: .45, sunDir: V(2, 10, -10), lampI: .9, bg: '#070b18' };
@@ -450,10 +461,32 @@ const DAYC = (x, y, z) => V(DC.x + x, y, DC.z + z);
 const OFC = (x, y, z) => V(OF.x + x, y, OF.z + z);
 
 const S = [];
-// 0 title
-S.push({ d: 4, init() { homeState(); light(NIGHT); place(W, -4.5, 0, -3.8, Math.PI); place(K, 4.2, .35, 4.2, Math.PI); K.face('closed'); }, up(t) {
-  orbit(V(0, 1, 0), 13 - t * .8, 6 - t * .4, .9 + t * .18); W.face('tired'); idle(W, t); sit(K); K.inner.position.y = -.1;
-  K.headG.rotation.z = .3; setOv(t > .4 ? `<div class="title" style="opacity:${seg(t, .4, 1.2) * (1 - seg(t, 3.3, 3.9))}"><div class="t">『夫婦』編</div><div class="s">深夜のリビング</div></div>` : '');
+// 0 HOOK: cold open on the outburst
+S.push({ d: 2.3, sfx: [[0, 'hit'], [1.95, 'rewind']], init() { homeState(); light({ ...NIGHT, lampI: 1.2 }); place(W, -3, 0, -2.8, 0); faceTo(W, 3.2, .4); place(H, 3.6, 0, .4, -1.2); }, up(t) {
+  W.face('angry'); H.face('wow');
+  W.armR.rotation.x = -2.3 - Math.abs(Math.sin(t * 8)) * .5; W.armL.rotation.x = -.4; W.armL.rotation.z = -.5;
+  W.upper.rotation.x = -.1 + Math.sin(t * 8) * .05; W.headG.rotation.x = -.05 + Math.sin(t * 8) * .06;
+  const yaw = W.root.rotation.y, fx = Math.sin(yaw), fz = Math.cos(yaw);
+  const head = V(-3, 1.98, -2.8);
+  const near = V(-3 + fx * 1.7, 1.72, -2.8 + fz * 1.7), far = V(-3 + fx * 6, 2.8, -2.8 + fz * 6);
+  const e = 1 - Math.pow(1 - clamp(t / .28), 3);
+  camera.position.lerpVectors(far, near, e); camera.position.addScaledVector(V(fx, 0, fz), -seg(t, .3, 2.3) * .25);
+  camera.lookAt(head); LOOK.copy(head); setFov(L(55, 40, e));
+  shake(t < .8 ? .06 * (1 - t / .8) + .008 : .008, t); ROLL = .13;
+  FLASH = t < .1 ? 1 - t / .1 : seg(t, 1.95, 2.3);
+  setOv(t > .08 ? big('妻', '全部|私のせいなの！？', VERT ? '17%' : '8%') : '');
+} });
+// 1 REWIND back to the start of the night
+let rwSub = -1;
+S.push({ d: .9, init() { rwSub = -1; }, up(t) {
+  const q = t / .9; const sub = q < .45 ? 3 : 2;
+  const lt = sub === 3 ? S[3].d * (1 - q / .45) : S[2].d * (1 - (q - .45) / .55);
+  if (sub !== rwSub) { rwSub = sub; hideAll(); clearParts(); S[sub].init(); }
+  for (const c of cast) if (c.root.visible) reset(c);
+  S[sub].up(Math.max(0, lt), 0);
+  REWIND = true; ROLL = Math.sin(t * 40) * .02; FLASH = q < .12 ? .7 * (1 - q / .12) : 0;
+  const by = Math.floor((1 - q) * 900) % 720;
+  setOv(`<div class="rw"><div class="band" style="top:${(VERT ? by * 2.6 : by).toFixed(0)}px"></div><div class="ic">◀◀</div></div>`);
 } });
 // 1 husband comes home
 S.push({ d: 4.8, init() { homeState(); light(NIGHT); place(W, -4.4, 0, -3.8, Math.PI); place(H, 8.5, 0, 1, -Math.PI / 2); }, up(t) {
@@ -474,7 +507,7 @@ S.push({ d: 4.2, init() { homeState(); light(NIGHT); place(W, -4.4, 0, -3.8, 0.9
   W.upper.rotation.x = -.08 + Math.sin(t * 7) * .05; W.headG.rotation.x = Math.sin(t * 7) * .08;
   H.headG.rotation.x = -.1; H.upper.rotation.x = -.15 * seg(t, 1, 1.4); H.root.position.x = 3.2 + seg(t, 1, 1.6) * .4;
   cam(seg(t, 0, 2.5), V(-.5, 1.9, 2), V(-1.4, 1.9, .2), V(-3, 2, -2.8), V(-3, 2.1, -2.8));
-  shake(t > .9 && t < 1.4 ? .04 : 0, t);
+  shake(t > .9 && t < 1.4 ? .05 : 0, t); ROLL = -.08;
   setOv(t > .5 ? line('妻', '私だって仕事してるんだけど！|全部私のせいなの！？') : '');
 } });
 // 3 narration: back to back, camera rises
@@ -489,7 +522,7 @@ S.push({ d: 5.6, init() { homeState(); light(NIGHT); place(W, -1.4, 0, 1.2, Math
 S.push({ d: 3.6, init() { homeState(); light(NIGHT); place(W, -5.8, 0, -3.5, Math.PI); }, up(t) {
   W.face('tired'); idle(W, t); W.headG.rotation.x = -.25 + seg(t, 1.5, 3) * .45; W.upper.rotation.x = seg(t, 1.5, 3) * .15;
   W.armL.rotation.x = W.armR.rotation.x = -.15;
-  dishes.forEach((d, i) => { d.rotation.z = Math.sin(t * 5 + i) * .02 * i * .2; });
+  dishes.forEach((d, i) => { d.rotation.z = Math.sin(t * 5 + i) * .02 * i * .2; }); ROLL = .06;
   cam(seg(t, 0, 3.6), V(-3.6, 1.6, -1.6), V(-4.6, 2.2, -2.6), V(-5.8, 1.6, -4.6), V(-5.9, 1.8, -4.5), 45);
 } });
 // 5 daycare at dusk: wife runs in late, bows
@@ -508,7 +541,7 @@ S.push({ d: 6.4, init() { light({ amb: '#a07080', ambI: .5, sky: '#ff9a6a', hemi
   }
   if (t < 2.4) cam(seg(t, 0, 2.4), DAYC(-12, 2, 15), DAYC(-4, 2.4, 13), DAYC(-12, 1, 9), DAYC(-1, 1.2, 3));
   else cam(seg(t, 2.4, 6.4), DAYC(-4, 2.4, 13), DAYC(2.5, 2, 10.5), DAYC(-1, 1.2, 3), DAYC(-.6, 1.1, 6));
-  setOv(t > 4.6 ? line('妻', 'あー、だめだ') : (t > 2.5 && t < 4.4 ? `<div class="sub"><div class="box"><span class="who w">妻</span><span>${br('すみません、|遅くなりました……！')}</span></div></div>` : ''));
+  setOv(t > 4.6 ? big('妻', 'あー、だめだ') : (t > 2.5 && t < 4.4 ? `<div class="sub"><div class="box"><span class="who w">妻</span><span>${br('すみません、|遅くなりました……！')}</span></div></div>` : ''));
 } });
 // 6 husband kitchen disaster
 S.push({ d: 6, init() { homeState({ flame: true, food: '#111' }); light({ ...NIGHT, lampI: 1.1, ambI: .7 }); place(H, 1.6, 0, -2.6, -Math.PI / 2); }, up(t, dt) {
@@ -556,7 +589,7 @@ S.push({ d: 5.2, init() { light({ amb: '#c8d4e2', ambI: .55, sky: '#dfefff', hem
   HS.root.rotation.y = Math.PI + Math.sin(t * .8) * .06;
   myChair.rotation.y = Math.sin(t * .8) * .06;
   orbit(OFC(-3, 1.2, 1.6), 3.6 - t * .2, 1.4 + t * .2, -.4 + t * .25, 45);
-  setOv(t < 2.3 ? line('夫', 'あー、だめだ') : narr('夫', '自分でなんとかしなきゃと|思っていた'));
+  setOv(t < 2.3 ? big('夫', 'あー、だめだ') : narr('夫', '自分でなんとかしなきゃと|思っていた'));
 } });
 // 9 dining table silence
 S.push({ d: 4.4, init() { homeState(); light(NIGHT); place(W, 0, 0, -2.55, 0); place(H, 0, 0, -.25, Math.PI); }, up(t) {
@@ -564,7 +597,7 @@ S.push({ d: 4.4, init() { homeState(); light(NIGHT); place(W, 0, 0, -2.55, 0); p
   W.headG.rotation.y = .8; H.headG.rotation.y = -.75; W.headG.rotation.x = .15; H.headG.rotation.x = .2;
   W.armL.rotation.x = W.armR.rotation.x = -1.2; H.armL.rotation.x = H.armR.rotation.x = -1.1;
   // tension: tiny fidget
-  H.armR.rotation.x += Math.sin(t * 3) * .08 * seg(t, 2, 3);
+  H.armR.rotation.x += Math.sin(t * 3) * .08 * seg(t, 2, 3); ROLL = seg(t, 0, 4.4) * .07;
   cam(seg(t, 0, 4.4), V(4.2, 1.5, -1.2), V(3.2, 1.4, -1.6), V(0, 1.3, -1.4), V(0, 1.3, -1.4), 45);
   setOv(t > 1 ? `<div class="sub"><div class="box" style="font-size:30px;letter-spacing:10px">……</div></div>` : '');
 } });
@@ -589,7 +622,8 @@ S.push({ d: 4.6, init() { homeState(); light(NIGHT); place(W, 0, 0, -2.55, 0); p
   if (t < 1.6) cam(seg(t, 0, 1.6), V(.9, 1.85, .9), V(.6, 1.85, .7), V(0, 1.85, -2.5), V(0, 1.85, -2.5), 42);
   else if (t < 3.2) cam(seg(t, 1.6, 3.2), V(-.6, 1.85, -3.6), V(-.5, 1.85, -3.3), V(0, 1.85, -.3), V(0, 1.85, -.3), 42);
   else cam(seg(t, 3.2, 4.6), V(3.4, 1.7, -1.4), V(2.8, 2.2, -.6), V(0, 1.4, -1.4), V(0, 1.4, -1.4), 45);
-  setOv(t < 1.5 ? line('妻', '実はね…') : t < 3.2 ? line('夫', '実はさ…') : '');
+  setOv(t < 1.5 ? big('妻', '実はね…') : t < 3.2 ? big('夫', '実はさ…') : '');
+  GRADE = seg(t, 3.0, 4.6); FLASH = t > 3.2 ? .55 * (1 - seg(t, 3.2, 3.8)) : 0;
 } });
 // 12 narration, warm, morning comes
 S.push({ d: 6.2, init() { homeState({ lampGlow: .9 }); place(W, 0, 0, -2.55, 0); place(H, 0, 0, -.25, Math.PI); }, up(t) {
@@ -676,18 +710,42 @@ S.push({ d: 5, init() { homeState({ day: true, mess: false, dishes: 0, clean: 10
 } });
 
 // ---------- driver ----------
-const starts = []; let acc = 0; for (const s of S) { starts.push(acc); acc += s.d; }
-window.TOTAL = acc; window.STARTS = starts;
+// per-scene tuning: playback speed, fades, and colour grade (0 = cold conflict, 1 = warm)
+const SP = { 2: 1.1, 3: 1.1, 5: 1.15, 6: 1.15, 7: 1.15, 8: 1.15, 14: 1.15, 15: 1.15, 16: 1.15 };
+S.forEach((s, i) => { s.sp = SP[i] || 1; s.grade = i < 12 ? 0 : 1; s.fi = s.fo = 0; });
+S[10].fi = .5; S[18].fo = .9; S[13].flashIn = .8; S[2].flashIn = .5;
+const SFXL = { 3: [[.9, 'hit2']], 5: [[0, 'whoosh']], 6: [[0, 'whoosh'], [4.6, 'thud']], 7: [[0, 'whoosh'], [.2, 'boil'], [3.3, 'poof']], 8: [[0, 'whoosh']], 9: [[0, 'thud']],
+  10: Array.from({ length: 9 }, (_, k) => [.25 + k * .5, 'tick']), 11: [[.1, 'tick'], [.6, 'tick'], [1.0, 'heart'], [1.8, 'heart'], [2.5, 'heart'], [3.1, 'heart']],
+  12: [[0, 'heart'], [1.6, 'heart'], [3.2, 'chime']], 14: [[0, 'whoosh']], 15: [[3.4, 'chime']], 16: [[3.2, 'whoosh']], 18: [[.4, 'chime']] };
+const starts = []; let acc = 0; for (const s of S) { starts.push(acc); acc += s.d / s.sp; }
+const SFX = [];
+S.forEach((s, i) => { for (const [lt, type] of (s.sfx || []).concat(SFXL[i] || [])) SFX.push({ t: +(starts[i] + lt / s.sp).toFixed(3), type }); });
+window.TOTAL = acc; window.STARTS = starts; window.SFX = SFX;
+window.MARKS = { sad: starts[2], silence: starts[10], warm: starts[12] + 3.2 / S[12].sp };
+const canvasEl = document.getElementById('c'), vigEl = document.getElementById('vig'), flashEl = document.getElementById('flash');
 let cur = -1;
 window.renderFrame = (time, dt) => {
+  NOW = time;
   let i = 0; while (i < S.length - 1 && time >= starts[i + 1]) i++;
-  const t = time - starts[i];
-  if (i !== cur) { cur = i; seed = 777 + i * 31; hideAll(); clearParts(); setFov(50); setOv(''); S[i].init(); }
+  const s = S[i]; const t = (time - starts[i]) * s.sp;
+  if (i !== cur) { cur = i; seed = 777 + i * 31; hideAll(); clearParts(); setFov(50); setOv(''); s.init(); }
   for (const c of cast) if (c.root.visible) reset(c);
-  S[i].up(t, dt);
+  ROLL = 0; FLASH = 0; REWIND = false; GRADE = s.grade;
+  s.up(t, dt * s.sp);
   if (KD !== 1) { camera.position.sub(LOOK).multiplyScalar(KD).add(LOOK); camera.lookAt(LOOK); }
-  const s = S[i]; const fi = i === 0 ? .6 : .25, fo = i === S.length - 1 ? .8 : .25;
-  fadeEl.style.opacity = String(1 - Math.min(1, t / fi, (s.d - t) / fo));
+  if (ROLL) camera.rotateZ(ROLL);
+  if (s.flashIn) FLASH = Math.max(FLASH, s.flashIn * (1 - clamp(t / .35)));
+  flashEl.style.opacity = String(clamp(FLASH));
+  const G = GRADE;
+  canvasEl.style.filter = REWIND ? 'saturate(.15) contrast(1.45) brightness(1.15)' : `saturate(${L(.55, 1.12, G).toFixed(3)}) contrast(${L(1.12, 1.04, G).toFixed(3)}) brightness(${L(1.02, 1.03, G).toFixed(3)})`;
+  vigEl.style.opacity = String(L(1, .5, G));
+  const el = ov.firstElementChild;
+  if (el && !el.classList.contains('rw') && !el.classList.contains('telop') && !el.classList.contains('title')) {
+    const isBig = el.classList.contains('big'); const a = clamp((time - ovT0) / (isBig ? .16 : .13)); const e = 1 - Math.pow(1 - a, 3);
+    el.style.transform = `scale(${(isBig ? L(1.7, 1, e) : L(.88, 1, e)).toFixed(3)})`; el.style.opacity = String(e);
+  }
+  const lt = time - starts[i], d = s.d / s.sp;
+  fadeEl.style.opacity = String(1 - Math.min(1, s.fi ? lt / s.fi : 1, s.fo ? (d - lt) / s.fo : 1));
   renderer.render(scene, camera);
 };
 await document.fonts.load('800 20px MPR'); await document.fonts.load('400 20px MPR');
