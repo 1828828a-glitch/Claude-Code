@@ -723,7 +723,7 @@ const SFX3 = [[0.6, 'blip'], [3.3, 'stack'], [3.32, 'pop'], [4.8, 'blip'], [6.6,
   ...ticks(8.6, 15.0, 0.9), [15.4, 'whoosh'], [16.6, 'blip'], [18.0, 'blip'], [21.0, 'whoosh'], [21.2, 'blip'], [24.2, 'pop']];
 
 const EPS = {
-  '01_teiji': { no: '#01', title: ['定時に', '帰れない空気'], story: ep1Story, keys: K1, len: 27.0, sfx: SFX1, thumbT: 21.2, thumb: ['定時に', '帰れない', '空気'] },
+  '01_teiji': { no: '#01', title: ['定時に', '帰れない空気'], story: ep1Story, keys: K1, len: 27.0, sfx: SFX1, thumbT: 5.0, thumb: ['定時に', '帰れない', '空気'] },
   '02_omiyage': { no: '#02', title: ['休み明けの', 'おみやげ配り'], story: ep2Story, keys: K2, len: 27.0, sfx: SFX2, thumbT: 15.6, thumb: ['休み明けの', 'おみやげ', '配り'] },
   '03_hanko': { no: '#03', title: ['上司におじぎ', 'するハンコ'], story: ep3Story, keys: K3, len: 28.0, sfx: SFX3, thumbT: 13.4, thumb: ['上司に', 'おじぎする', 'ハンコ'] },
 };
