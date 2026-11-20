@@ -8,6 +8,8 @@ Claude Code が毎回最初に読むファイル。中身は2つのアプリと�
 
 エニアグラム統合タイプ判定は enneagram_tool と streamlit_app.py。
 
+videos には台本から作った動画の作り直し用一式を置く。今あるのは videos/fufu の『夫婦』編で、ブロック調の3D映像を Three.js で組み、Playwright で書き出す。手順は各フォルダの README。動画ファイルそのものは大きいのでコミットしない。
+
 テストは tests にあり、python3 -m pytest -q tests で20秒ほどかかる。AI講評は偽のクライアントで試すので、テストで API は呼ばない。
 
 ## 動かし方
