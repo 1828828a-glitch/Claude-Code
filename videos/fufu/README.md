@@ -36,6 +36,16 @@ python3 bgm.py
 ffmpeg -i video.mp4 -i bgm.wav -c:v copy -c:a aac -b:a 192k -shortest fufu_openup.mp4
 ```
 
+TikTok などの縦長用は VERT=1 を付ける。1080×1920 の video_v.mp4 ができる。カメラは横長用の動きをもとに、縦のときだけ視野を広げて少し引く。字幕は縦の画面で意味の切れ目に改行が入る。台詞の中の | が、縦のときだけ改行になる印。
+
+```bash
+VERT=1 FPS=24 node cap.js
+```
+
+```bash
+ffmpeg -i video_v.mp4 -i bgm.wav -c:v copy -c:a aac -b:a 192k -shortest fufu_openup_v.mp4
+```
+
 一部のコマだけ確かめたいときは、秒数を並べて静止画にする。
 
 ```bash

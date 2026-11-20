@@ -1,6 +1,8 @@
-node_modules/
+node_modules
 timeline.json
 video.mp4
+video_v.mp4
 bgm.wav
-fufu_openup.mp4
+fufu_openup*.mp4
 still_*.jpg
+*.log
