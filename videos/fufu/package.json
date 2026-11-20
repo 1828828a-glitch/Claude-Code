@@ -1,0 +1,13 @@
+{
+  "name": "fufu-video",
+  "version": "1.0.0",
+  "private": true,
+  "description": "『夫婦』編 ブロック調3D動画の書き出し用",
+  "dependencies": {
+    "@fontsource/m-plus-rounded-1c": "^5.0.0",
+    "three": "0.160.0"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}
