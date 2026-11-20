@@ -1,6 +1,6 @@
 # BGM と効果音を作る。cap.js が書く timeline.json から、効果音の時刻 sfx と、曲調を切り替える位置 marks を読む。
 # marks.sad   巻き戻しが終わって本編が始まるところ。ここから短調のピアノ
-# marks.silence 食卓の沈黙。ここで曲を止め、時計の音と心音だけにする
+# marks.silence 食卓の沈黙。ここで曲を止め、かすかな低いうなりと、時計の音、心音だけにする
 # marks.warm  「実はさ…」のあと。ここから明るい曲
 import numpy as np, wave, json
 SR = 44100
@@ -88,7 +88,7 @@ while t < MK['silence'] - .3:
     t += 3.2; k += 1
 # tension drone through the silence and the calendar, rising into the reveal
 dl = MK['warm'] - MK['silence']; tt = np.arange(int(dl * SR)) / SR
-put(mus, MK['silence'], (np.sin(2 * np.pi * 55 * tt) + .5 * np.sin(2 * np.pi * 82.4 * tt)) * np.minimum(1, tt / 2) * (.04 + .06 * tt / dl) * np.clip((dl - tt) / .15, 0, 1))
+put(mus, MK['silence'], (np.sin(2 * np.pi * 55 * tt) + .5 * np.sin(2 * np.pi * 82.4 * tt)) * np.minimum(1, tt / 2) * (.015 + .03 * tt / dl) * np.clip((dl - tt) / .15, 0, 1))
 # warm section
 hap = [(48, [60, 64, 67]), (43, [59, 62, 67]), (45, [60, 64, 69]), (41, [60, 65, 69])]
 t = MK['warm']; k = 0; beat = .4

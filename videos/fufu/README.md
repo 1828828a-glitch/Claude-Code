@@ -28,7 +28,7 @@ python3 -m http.server 8765
 FPS=24 node cap.js
 ```
 
-BGM と効果音を作って映像に重ねる。bgm.py は timeline.json に書かれた効果音の時刻と、曲調を切り替える位置を読む。どちらも index.html の driver の部分で決めているので、場面を足したり並べ替えたりしたら SP、SFXL、MARKS の場面番号も合わせて直す。
+BGM と効果音を作って映像に重ねる。bgm.py は timeline.json に書かれた効果音の時刻と、曲調を切り替える位置を読む。効果音は index.html の driver にある SFXL と、各場面の sfx に書いてある。曲調の切り替えは driver の MARKS で決めている。場面を足したり並べ替えたりしたら、SP、SFXL、MARKS の場面番号も合わせて直す。
 
 ```bash
 python3 bgm.py

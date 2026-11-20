@@ -473,7 +473,7 @@ S.push({ d: 2.3, sfx: [[0, 'hit'], [1.95, 'rewind']], init() { homeState(); ligh
   camera.position.lerpVectors(far, near, e); camera.position.addScaledVector(V(fx, 0, fz), -seg(t, .3, 2.3) * .25);
   camera.lookAt(head); LOOK.copy(head); setFov(L(55, 40, e));
   shake(t < .8 ? .06 * (1 - t / .8) + .008 : .008, t); ROLL = .13;
-  FLASH = t < .1 ? 1 - t / .1 : seg(t, 1.95, 2.3);
+  FLASH = t > .03 && t < .14 ? .85 * (1 - (t - .03) / .11) : seg(t, 1.95, 2.3); // 最初のコマは白くしない（TikTok のカバー対策）
   setOv(t > .08 ? big('妻', '全部|私のせいなの！？', VERT ? '17%' : '8%') : '');
 } });
 // 1 REWIND back to the start of the night
@@ -488,7 +488,7 @@ S.push({ d: .9, init() { rwSub = -1; }, up(t) {
   const by = Math.floor((1 - q) * 900) % 720;
   setOv(`<div class="rw"><div class="band" style="top:${(VERT ? by * 2.6 : by).toFixed(0)}px"></div><div class="ic">◀◀</div></div>`);
 } });
-// 1 husband comes home
+// 2 husband comes home
 S.push({ d: 4.8, init() { homeState(); light(NIGHT); place(W, -4.4, 0, -3.8, Math.PI); place(H, 8.5, 0, 1, -Math.PI / 2); }, up(t) {
   H.face(t < 2.6 ? 'tired' : 'wow');
   if (!path(H, t, 0, 2.4, [[8.5, 1], [5.5, 1.2], [3.2, .4]], 7, .45)) { faceTo(H, 2, 2.6); H.upper.rotation.x = .12; idle(H, t); H.headG.rotation.x = .25; H.headG.rotation.y = Math.sin(t * 2) * .35; }
@@ -498,7 +498,7 @@ S.push({ d: 4.8, init() { homeState(); light(NIGHT); place(W, -4.4, 0, -3.8, Mat
   cam(seg(t, 0, 4.8), V(10, 3, 6), V(5.5, 2.4, 4.5), V(6, 1.4, 1), V(2.5, 1.4, 1));
   setOv(t > .9 ? line('夫', '今日、仕事終わらなくてさ……|あ、部屋片付いてないの？') : '');
 } });
-// 2 wife snaps
+// 3 wife snaps
 S.push({ d: 4.2, init() { homeState(); light(NIGHT); place(W, -4.4, 0, -3.8, 0.9); place(H, 3.2, 0, .4, -1.2); }, up(t) {
   W.face('angry'); H.face(t > 1 ? 'wow' : 'tired');
   const p = seg(t, 0, .8); W.root.position.x = L(-4.4, -3, p); W.root.position.z = L(-3.8, -2.8, p); if (t < .8) walk(W, t, 14, .5); else idle(W, t);
@@ -510,7 +510,7 @@ S.push({ d: 4.2, init() { homeState(); light(NIGHT); place(W, -4.4, 0, -3.8, 0.9
   shake(t > .9 && t < 1.4 ? .05 : 0, t); ROLL = -.08;
   setOv(t > .5 ? line('妻', '私だって仕事してるんだけど！|全部私のせいなの！？') : '');
 } });
-// 3 narration: back to back, camera rises
+// 4 narration: back to back, camera rises
 S.push({ d: 5.6, init() { homeState(); light(NIGHT); place(W, -1.4, 0, 1.2, Math.PI * .8); place(H, .2, 0, 1.6, -Math.PI * .3); }, up(t) {
   W.face('sad'); H.face('tired'); idle(W, t); idle(H, t); W.headG.rotation.x = .3; H.headG.rotation.x = .25;
   W.armL.rotation.x = W.armR.rotation.x = -.6; W.armL.rotation.z = .45; W.armR.rotation.z = -.45; // crossed arms
@@ -518,14 +518,14 @@ S.push({ d: 5.6, init() { homeState(); light(NIGHT); place(W, -1.4, 0, 1.2, Math
   const a = .3 + t * .22; orbit(V(-.4, 1, 1.3), 6 + t * .6, 2.5 + t * 1.3, a);
   setOv(narr('妻', '忙しい日々の繰り返しで、|余裕がなくなって、<br>お互いにトゲのある|言葉ばかり投げていた。'));
 } });
-// 4 wife stares at dish pile
+// 5 wife stares at dish pile
 S.push({ d: 3.6, init() { homeState(); light(NIGHT); place(W, -5.8, 0, -3.5, Math.PI); }, up(t) {
   W.face('tired'); idle(W, t); W.headG.rotation.x = -.25 + seg(t, 1.5, 3) * .45; W.upper.rotation.x = seg(t, 1.5, 3) * .15;
   W.armL.rotation.x = W.armR.rotation.x = -.15;
   dishes.forEach((d, i) => { d.rotation.z = Math.sin(t * 5 + i) * .02 * i * .2; }); ROLL = .06;
   cam(seg(t, 0, 3.6), V(-3.6, 1.6, -1.6), V(-4.6, 2.2, -2.6), V(-5.8, 1.6, -4.6), V(-5.9, 1.8, -4.5), 45);
 } });
-// 5 daycare at dusk: wife runs in late, bows
+// 6 daycare at dusk: wife runs in late, bows
 S.push({ d: 6.4, init() { light({ amb: '#a07080', ambI: .5, sky: '#ff9a6a', hemiI: .35, sun: '#ff9a50', sunI: .7, sunDir: V(-14, 5, 6), center: DC, bg: '#3b2a4a', fog: [25, 60] });
   place(T, DC.x + .6, 0, 1.2, 0); place(K, DC.x - .2, 0, 1.4, 0); place(W, DC.x - 14, 0, 9, Math.PI / 2); }, up(t) {
   T.face('normal'); K.face(t < 2.6 ? 'sad' : 'happy'); idle(T, t); idle(K, t); T.armL.rotation.x = -.3; K.armR.rotation.x = -.3;
@@ -543,7 +543,7 @@ S.push({ d: 6.4, init() { light({ amb: '#a07080', ambI: .5, sky: '#ff9a6a', hemi
   else cam(seg(t, 2.4, 6.4), DAYC(-4, 2.4, 13), DAYC(2.5, 2, 10.5), DAYC(-1, 1.2, 3), DAYC(-.6, 1.1, 6));
   setOv(t > 4.6 ? big('妻', 'あー、だめだ') : (t > 2.5 && t < 4.4 ? `<div class="sub"><div class="box"><span class="who w">妻</span><span>${br('すみません、|遅くなりました……！')}</span></div></div>` : ''));
 } });
-// 6 husband kitchen disaster
+// 7 husband kitchen disaster
 S.push({ d: 6, init() { homeState({ flame: true, food: '#111' }); light({ ...NIGHT, lampI: 1.1, ambI: .7 }); place(H, 1.6, 0, -2.6, -Math.PI / 2); }, up(t, dt) {
   // boiling over
   if (t < 2.2) { potLid.position.y = .48 + Math.abs(Math.sin(t * 22)) * .08; potLid.rotation.z = Math.sin(t * 17) * .1;
@@ -569,7 +569,7 @@ S.push({ d: 6, init() { homeState({ flame: true, food: '#111' }); light({ ...NIG
   shake(t > 3.6 && t < 4.3 ? .03 : 0, t);
   stepParts(dt);
 } });
-// 7 office: husband late, bows to boss
+// 8 office: husband late, bows to boss
 S.push({ d: 4.6, init() { clearParts(); light({ amb: '#e8eef5', ambI: .7, sky: '#dfefff', hemiI: .3, sun: '#fff', sunI: .6, sunDir: V(4, 12, 8), center: OF, bg: '#cfe3f2' });
   place(B, OF.x + 5.5, 0, 2.8, 0); place(HS, OF.x - 7, 0, 5.5, Math.PI / 2); }, up(t) {
   B.face('normal'); B.armL.rotation.x = B.armR.rotation.x = -1.2; B.armL.rotation.z = .5; B.armR.rotation.z = -.5; idle(B, t, .5);
@@ -580,7 +580,7 @@ S.push({ d: 4.6, init() { clearParts(); light({ amb: '#e8eef5', ambI: .7, sky: '
   else cam(seg(t, 1.5, 4.6), OFC(1, 2.4, 10.5), OFC(8.5, 2, 8.6), OFC(4, 1.3, 4.6), OFC(5.4, 1.4, 4.1));
   setOv(t > 1.6 ? line('夫', '遅れてすみません！') : '');
 } });
-// 8 husband slumps at desk, narration
+// 9 husband slumps at desk, narration
 S.push({ d: 5.2, init() { light({ amb: '#c8d4e2', ambI: .55, sky: '#dfefff', hemiI: .25, sun: '#ffd8a8', sunI: .5, sunDir: V(-8, 6, 8), center: OF, bg: '#7a8fa8' });
   place(HS, OF.x - 3, .02, 2.55, Math.PI); }, up(t) {
   HS.face(t < 2.2 ? 'tired' : 'closed'); sit(HS);
@@ -591,7 +591,7 @@ S.push({ d: 5.2, init() { light({ amb: '#c8d4e2', ambI: .55, sky: '#dfefff', hem
   orbit(OFC(-3, 1.2, 1.6), 3.6 - t * .2, 1.4 + t * .2, -.4 + t * .25, 45);
   setOv(t < 2.3 ? big('夫', 'あー、だめだ') : narr('夫', '自分でなんとかしなきゃと|思っていた'));
 } });
-// 9 dining table silence
+// 10 dining table silence
 S.push({ d: 4.4, init() { homeState(); light(NIGHT); place(W, 0, 0, -2.55, 0); place(H, 0, 0, -.25, Math.PI); }, up(t) {
   sit(W); sit(H); W.face('sad'); H.face('tired');
   W.headG.rotation.y = .8; H.headG.rotation.y = -.75; W.headG.rotation.x = .15; H.headG.rotation.x = .2;
@@ -601,7 +601,7 @@ S.push({ d: 4.4, init() { homeState(); light(NIGHT); place(W, 0, 0, -2.55, 0); p
   cam(seg(t, 0, 4.4), V(4.2, 1.5, -1.2), V(3.2, 1.4, -1.6), V(0, 1.3, -1.4), V(0, 1.3, -1.4), 45);
   setOv(t > 1 ? `<div class="sub"><div class="box" style="font-size:30px;letter-spacing:10px">……</div></div>` : '');
 } });
-// 10 calendar
+// 11 calendar
 S.push({ d: 3.8, init() { homeState(); light(NIGHT); place(W, 0, 0, -2.55, 0); place(H, 0, 0, -.25, Math.PI); }, up(t) {
   sit(W); sit(H); W.face('wow'); H.face('wow');
   const a = seg(t, 0, .6); W.headG.rotation.y = L(.8, Math.PI * .9, a); H.headG.rotation.y = L(-.75, 0, a); W.headG.rotation.x = -.15; H.headG.rotation.x = -.2;
@@ -610,7 +610,7 @@ S.push({ d: 3.8, init() { homeState(); light(NIGHT); place(W, 0, 0, -2.55, 0); p
   else cam(seg(t, 1, 3.6), V(-1.1, 2.6, -2.4), V(-1.1, 2.6, -3.85), V(-1.1, 2.6, -5.48), V(-1.1, 2.6, -5.48), 45);
   setOv(t > 2.2 ? `<div class="cap">11月22日</div>` : '');
 } });
-// 11 "jitsu wa"
+// 12 "jitsu wa"
 S.push({ d: 4.6, init() { homeState(); light(NIGHT); place(W, 0, 0, -2.55, 0); place(H, 0, 0, -.25, Math.PI); }, up(t) {
   sit(W); sit(H); const k = seg(t, 0, 4.6);
   light({ ...NIGHT, ambI: L(.55, .7, k), lampI: L(.9, 1.5, k), amb: '#' + new THREE.Color('#3a4a78').lerp(new THREE.Color('#7a6050'), k).getHexString() });
@@ -625,7 +625,7 @@ S.push({ d: 4.6, init() { homeState(); light(NIGHT); place(W, 0, 0, -2.55, 0); p
   setOv(t < 1.5 ? big('妻', '実はね…') : t < 3.2 ? big('夫', '実はさ…') : '');
   GRADE = seg(t, 3.0, 4.6); FLASH = t > 3.2 ? .55 * (1 - seg(t, 3.2, 3.8)) : 0;
 } });
-// 12 narration, warm, morning comes
+// 13 narration, warm, morning comes
 S.push({ d: 6.2, init() { homeState({ lampGlow: .9 }); place(W, 0, 0, -2.55, 0); place(H, 0, 0, -.25, Math.PI); }, up(t) {
   const k = seg(t, 2.5, 5.5);
   const c = (a, b) => '#' + new THREE.Color(a).lerp(new THREE.Color(b), k).getHexString();
@@ -638,7 +638,7 @@ S.push({ d: 6.2, init() { homeState({ lampGlow: .9 }); place(W, 0, 0, -2.55, 0);
   orbit(V(0, 1.3, -1.4), 5.5 + t * .3, 1.4 + t * .45, -1.2 + t * .3);
   setOv(t < 3 ? narr('妻', '二人で話して気付いた。|それぞれが出来ないことを') : narr('夫', '二人でできる様に|なればいいと'));
 } });
-// 13 washing dishes together
+// 14 washing dishes together
 S.push({ d: 4.4, init() { homeState({ day: true, mess: false, dishes: 19, lampGlow: .3 }); light(MORNING); place(W, -5.9, 0, -3.75, Math.PI); place(H, -4.8, 0, -3.75, Math.PI); }, up(t, dt) {
   W.face('happy'); H.face('happy');
   const n = Math.round(19 - seg(t, .3, 4) * 16); dishes.forEach((d, i) => d.visible = i < n); cleanDishes.forEach((d, i) => d.visible = i < Math.round(seg(t, .3, 4) * 10));
@@ -649,7 +649,7 @@ S.push({ d: 4.4, init() { homeState({ day: true, mess: false, dishes: 19, lampGl
   cam(seg(t, 0, 4.4), V(-3.2, 2, -.8), V(-6.6, 2.2, -1), V(-5.3, 1.3, -4.4), V(-5.3, 1.3, -4.4), 48);
   stepParts(dt);
 } });
-// 14 cooking together
+// 15 cooking together
 S.push({ d: 4.8, init() { clearParts(); homeState({ day: true, mess: false, dishes: 0, clean: 10, flame: true, food: '#c8862e' }); light(MORNING); place(W, -3.4, 0, -3.8, Math.PI); place(H, -2.2, 0, -3.5, Math.PI); }, up(t, dt) {
   W.face('happy'); H.face(t > 2.4 ? 'wow' : 'normal');
   W.armR.rotation.x = -1.4; W.armR.rotation.z = Math.sin(t * 6) * .35; W.armL.rotation.x = -1;
@@ -664,7 +664,7 @@ S.push({ d: 4.8, init() { clearParts(); homeState({ day: true, mess: false, dish
   cam(seg(t, 0, 4.8), V(-1, 1.8, -.6), V(-1.6, 2.3, -1.4), V(-3, 1.4, -4.3), V(-2.9, 1.7, -4), 50);
   stepParts(dt);
 } });
-// 15 daycare: wife drops off (morning) / husband picks up (evening)
+// 16 daycare: wife drops off (morning) / husband picks up (evening)
 S.push({ d: 6.6, init() { clearParts(); ovenFood.position.set(-3.4, .32, -4.7); place(T, DC.x, 0, 1.2, 0); }, up(t) {
   T.face('happy'); idle(T, t);
   if (t < 3.2) {
@@ -686,7 +686,7 @@ S.push({ d: 6.6, init() { clearParts(); ovenFood.position.set(-3.4, .32, -4.7); 
   }
   setOv('');
 } });
-// 16 walking home at sunset
+// 17 walking home at sunset
 S.push({ d: 7, init() { light({ amb: '#a07080', ambI: .6, sky: '#ffb07a', hemiI: .35, sun: '#ffa060', sunI: .8, sunDir: V(-14, 5, -6), center: DAYC(0, 0, 9), bg: '#f0a070', fog: [20, 70] });
   place(W, DC.x - 7, 0, 9.3, -Math.PI / 2); place(K, DC.x - 6.2, 0, 9.3, -Math.PI / 2); place(H, DC.x - 5.4, 0, 9.3, -Math.PI / 2); T.root.visible = false; }, up(t) {
   W.face('happy'); H.face('happy'); K.face('happy');
@@ -698,7 +698,7 @@ S.push({ d: 7, init() { light({ amb: '#a07080', ambI: .6, sky: '#ffb07a', hemiI:
   const cx = DC.x + 1.6 - off; camera.position.set(cx - 5.5 + t * .6, 1.2 + t * .15, 15.5 - t * .5); camera.lookAt(cx, 1.1, 9.3); LOOK.set(cx, 1.1, 9.3); setFov(45);
   setOv(t < 3.4 ? line('夫', 'お互い、なんだか|言い出せない事もあったけれど') : line('妻', '夫婦も少しずつ|オープンアップしていける'));
 } });
-// 17 telop
+// 18 telop
 S.push({ d: 5, init() { homeState({ day: true, mess: false, dishes: 0, clean: 10, food: '#c8862e' }); light({ ...MORNING, lampI: .6, lamp: '#ffd9a0' }); place(W, -.8, 0, 1.5, 0); place(K, 0, 0, 1.8, 0); place(H, .8, 0, 1.5, 0); }, up(t, dt) {
   for (const [c, ph] of [[W, 0], [K, 1], [H, 2]]) { c.face('happy'); const j = Math.max(0, Math.sin(t * 6 + ph)); c.inner.position.y = j * .35; c.armL.rotation.x = c.armR.rotation.x = -2.7 + j * .4; c.armL.rotation.z = -.3; c.armR.rotation.z = .3; c.legL.rotation.x = j * .2; c.legR.rotation.x = -j * .2; }
   if (rnd() < .8) for (let i = 0; i < 2; i++) spawn({ p: V((rnd() - .5) * 8, 5, 1.5 + (rnd() - .5) * 4), v: V((rnd() - .5), -.5, (rnd() - .5)), color: ['#ff6b8a', '#ffd23f', '#6bd4ff', '#8be07a', '#ff9f43'][Math.floor(rnd() * 5)], emit: '#333', size: .12, life: 3, g: -1.2, spin: 4 });
