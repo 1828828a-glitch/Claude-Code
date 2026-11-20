@@ -594,7 +594,7 @@ function ep2Story(t) {
   if (t >= 10.8 && t < 11.6) M = { x: 0.2, arm: 1, expr: 'happy' };
   if (t >= 11.6 && t < 12.4) B = { x: 2.2, arm: 1, expr: 'happy' };
   if (tower || (fallen && t < 19)) { M.expr = 'shock'; B.expr = 'shock'; M.look = -1; B.look = -1; }
-  if (t >= 23.4 && t < 24.6) M = { x: 0.2, expr: 'happy', look: -1 };
+  if (t >= 24.0 && t < 25.0) M = { x: 0.2, expr: 'happy', look: -1 };
   if (t >= 24.8) B = { x: 2.2, expr: 'tired', hold: 'box' };
   pose(CH.M, M); pose(CH.B, B);
   // 隣の課
@@ -654,17 +654,17 @@ function ep2Story(t) {
   if (t >= 10.8 && t < 11.7) sayCh(CH.M, '私も！\n北海道の', seg(t, 10.8, 11.1));
   if (t >= 11.6 && t < 12.5) sayCh(CH.B, '京都の\n八ツ橋', seg(t, 11.6, 11.9));
   if (t >= 12.4 && t < 13.3) sayCh(CH.N, 'ハワイの\nマカダミア', seg(t, 12.4, 12.7));
-  if (t >= 13.0 && t < 14.5) U(() => { const [x, y] = proj(V(-3.4, 3.0, 1.5)); txt('ほかの課からも', x + 30, y, 16, [255, 240, 120]); });
+  if (t >= 13.3 && t < 14.6) U(() => bigPop('ほかの課からも！', W / 2, 200, seg(t, 13.3, 13.8), [255, 230, 60], 1));
   if (t >= 15.0 && t < 17.0) sayCh(CH.T, 'お返しの\nお返しが…', seg(t, 15.0, 15.4));
   if (t >= 17.0 && t < 18.6) U(() => bigPop('ドサーッ', W / 2, 360, seg(t, 17.0, 17.7), [255, 255, 255], 1.8));
   if (t >= 19.8 && t < 22.4) popAt(V(-0.9, 2.15, 2.9), '沖縄 ちんすこう', seg(t, 19.8, 20.3), [255, 230, 60], 0.8);
   if (t >= 20.6 && t < 22.4) sayCh(CH.T, '…これ', seg(t, 20.6, 20.9), true);
-  if (t >= 22.4 && t < 24.6) sayCh(CH.T, '僕が配った\nやつ…！', seg(t, 22.4, 22.8));
-  if (t >= 23.4 && t < 24.6) sayCh(CH.M, '一周して\n戻ってきたね', seg(t, 23.4, 23.8));
+  if (t >= 22.4 && t < 24.0) sayCh(CH.T, '僕が配った\nやつ…！', seg(t, 22.4, 22.8));
+  if (t >= 24.0 && t < 25.0) sayCh(CH.M, '一周して\n戻ってきたね', seg(t, 24.0, 24.3));
   if (t >= 24.8) sayCh(CH.B, '正直 甘いの\n苦手なんだよね', seg(t, 25.0, 25.5), true);
 }
 const SFX2 = [[0.8, 'blip'], [3.2, 'blip'], [3.7, 'blip'], [4.4, 'blip'], [6.4, 'blip'], [7.0, 'pop'], [7.2, 'blip'], [8.4, 'whoosh'], [8.8, 'whoosh'], [9.2, 'whoosh'], [9.6, 'blip'],
-  [10.8, 'blip'], [11.6, 'blip'], [12.4, 'blip'], ...BOX_T.map(x => [x + 0.38, 'stack']), [15.0, 'blip'], [17.0, 'rumble'], [17.05, 'crack'], [19.8, 'pop'], [20.6, 'blip'], [22.4, 'pop'], [23.4, 'blip'], [25.0, 'blip']];
+  [10.8, 'blip'], [11.6, 'blip'], [12.4, 'blip'], ...BOX_T.map(x => [x + 0.38, 'stack']), [15.0, 'blip'], [17.0, 'rumble'], [17.05, 'crack'], [19.8, 'pop'], [20.6, 'blip'], [22.4, 'pop'], [24.0, 'blip'], [25.0, 'blip']];
 
 // ------------------------------------------------------------------ 第3話 上司におじぎするハンコ
 // オチ：ボールペン1本の稟議が14日かけて社長に届き、社長は胸ポケットのペンを差し出す。
@@ -704,7 +704,7 @@ function ep3Story(t) {
   }
   camKeys(K3, t);
   if (t >= 8.4 && t < 15.4) {
-    const day = t < 8.6 ? 1 : RELAY.filter(r => t >= r[3]).reduce((a, r) => r[4], 1) + Math.floor((t - 8.6) % 1.8 / 0.9);
+    const day = 1 + Math.floor(seg(t, 8.4, 15.4) * 12.99);
     U(() => { const [x, y] = proj(V(0, 2.02, -2.8)); px(ui, x - 62, y - 11, 124, 22, [40, 40, 60]); txt(`承認まで ${day}日目`, x, y, 16, [255, 230, 90], null); });
   }
   if (t >= 26.0) U(() => { px(ui, W / 2 - 62, 560, 124, 22, [40, 40, 60]); txt('承認まで 14日目', W / 2, 571, 16, [255, 230, 90], null); });
@@ -725,7 +725,7 @@ const SFX3 = [[0.6, 'blip'], [3.3, 'stack'], [3.32, 'pop'], [4.8, 'blip'], [6.6,
 const EPS = {
   '01_teiji': { no: '#01', title: ['定時に', '帰れない空気'], story: ep1Story, keys: K1, len: 27.0, sfx: SFX1, thumbT: 5.0, thumb: ['定時に', '帰れない', '空気'] },
   '02_omiyage': { no: '#02', title: ['休み明けの', 'おみやげ配り'], story: ep2Story, keys: K2, len: 27.0, sfx: SFX2, thumbT: 15.6, thumb: ['休み明けの', 'おみやげ', '配り'] },
-  '03_hanko': { no: '#03', title: ['上司におじぎ', 'するハンコ'], story: ep3Story, keys: K3, len: 28.0, sfx: SFX3, thumbT: 13.4, thumb: ['上司に', 'おじぎする', 'ハンコ'] },
+  '03_hanko': { no: '#03', title: ['上司におじぎ', 'するハンコ'], story: ep3Story, keys: K3, len: 28.0, sfx: SFX3, thumbT: 22.0, thumb: ['上司に', 'おじぎする', 'ハンコ'] },
 };
 
 // ------------------------------------------------------------------ コマの組み立て
