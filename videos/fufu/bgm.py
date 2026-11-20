@@ -1,4 +1,4 @@
-# BGM と効果音を作る。cap.js が書く timeline.json の sfx（効果音の時刻）と marks（曲調の切り替え位置）を読む。
+# BGM と効果音を作る。cap.js が書く timeline.json から、効果音の時刻 sfx と、曲調を切り替える位置 marks を読む。
 # marks.sad   巻き戻しが終わって本編が始まるところ。ここから短調のピアノ
 # marks.silence 食卓の沈黙。ここで曲を止め、時計の音と心音だけにする
 # marks.warm  「実はさ…」のあと。ここから明るい曲
